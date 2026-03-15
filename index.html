@@ -6,7 +6,18 @@
 <title>EGO</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0e0e12;--card:#18181f;--rim:#26262f;--text:#f0eef8;--muted:#6a6a80;--c0:#ff4d4d;--c1:#4d8dff;--c2:#3dd68c;--c3:#ffb830;--rad:16px;}
+:root{
+  --bg:#0e0e12;--card:#18181f;--rim:#26262f;--text:#f0eef8;--muted:#6a6a80;
+  --c0:#ff4d4d;--c1:#4d8dff;--c2:#3dd68c;--c3:#ffb830;--rad:16px;
+}
+[data-theme="light"]{
+  --bg:#f0eff8;--card:#ffffff;--rim:#dddbe8;--text:#12111a;--muted:#7a7890;
+}
+@media(prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){
+    --bg:#f0eff8;--card:#ffffff;--rim:#dddbe8;--text:#12111a;--muted:#7a7890;
+  }
+}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;justify-content:center;min-height:100dvh;}
@@ -112,32 +123,47 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .brow{display:flex;gap:8px;}
 .brow .btn{flex:1;}
 .err-msg{color:var(--c0);font-size:13px;text-align:center;display:none;padding:4px 0;}
+.maxp-btn{width:42px;height:42px;border-radius:10px;border:1.5px solid var(--rim);background:var(--card);color:var(--muted);font-family:'Bebas Neue',sans-serif;font-size:20px;cursor:pointer;transition:all .15s;}
+.maxp-btn:active{transform:scale(.95);}
+.maxp-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.theme-btn{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:10px;border:1.5px solid var(--rim);background:var(--card);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;transition:all .15s;}
+.theme-btn:active{transform:scale(.95);}
 </style>
 </head>
 <body>
 <div class="app">
 
 <!-- ══ HOME ══ -->
-<div class="scr" id="s-home">
-  <div style="padding-top:12px">
+<div class="scr on" id="s-home">
+  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Zmień motyw">🌙</button>
+
+  <div style="padding-top:24px">
     <div class="logo">EGO<em>.</em></div>
-    <div class="sub">Kto cię zna najlepiej?</div>
+    <div class="sub">Kto zna cię najlepiej?</div>
   </div>
-  <div class="field">
-    <label>Imię:</label>
-    <input id="inp-name" type="text" placeholder="Wpisz swoje imię" maxlength="14" autocomplete="off">
+
+  <!-- Imię + dołącz -->
+  <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:var(--rad);padding:18px;display:flex;flex-direction:column;gap:12px;">
+    <div class="field" style="background:var(--bg)">
+      <label style="font-size:13px;color:var(--muted);white-space:nowrap">Imię:</label>
+      <input id="inp-name" type="text" placeholder="Twoje imię" maxlength="14" autocomplete="off"
+        style="font-size:16px;font-weight:600;">
+    </div>
+    <div style="height:1px;background:var(--rim)"></div>
+    <div class="field" style="background:var(--bg)">
+      <label style="font-size:13px;color:var(--muted);white-space:nowrap">Kod:</label>
+      <input id="inp-code" type="text" placeholder="np. AB3K"
+        style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:6px;text-transform:uppercase;"
+        oninput="this.value=this.value.toUpperCase()"
+        onkeydown="if(event.key==='Enter')joinGame()">
+    </div>
+    <button class="btn btn-dim" onclick="joinGame()">→ Dołącz do gry</button>
   </div>
+
   <button class="btn btn-lit" onclick="createGame()">🎮 Utwórz nową grę</button>
-  <div style="text-align:center;color:var(--muted);font-size:13px">— lub —</div>
-  <div class="field">
-    <label>Kod:</label>
-    <input id="inp-code" type="text" placeholder="Wklej kod gry od hosta" autocomplete="off" style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;text-transform:uppercase;">
-  </div>
-  <button class="btn btn-dim" onclick="joinGame()">🔗 Dołącz do gry</button>
+
   <div class="err-msg" id="home-err"></div>
-  <div class="sub" style="text-align:center;padding:0 12px">
-    Host tworzy grę → wysyła kod → każdy wybiera swój slot
-  </div>
+
 </div>
 
 <!-- ══ SLOT PICK ══ -->
@@ -177,6 +203,14 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <!-- Host controls -->
   <div id="lob-host" style="display:none;flex-direction:column;gap:10px;">
     <div class="rrow-cfg">
+      <label>Liczba graczy</label>
+      <div style="display:flex;gap:6px">
+        <button class="maxp-btn" data-n="2" onclick="setMaxPlayers(2)">2</button>
+        <button class="maxp-btn" data-n="3" onclick="setMaxPlayers(3)">3</button>
+        <button class="maxp-btn active" data-n="4" onclick="setMaxPlayers(4)">4</button>
+      </div>
+    </div>
+    <div class="rrow-cfg">
       <label>Rundy na gracza</label>
       <input type="number" id="rpp" min="1" max="10" value="3">
     </div>
@@ -200,6 +234,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="ans-list" id="v-ans"></div>
   <div class="vstatus" id="v-st"></div>
   <button class="btn btn-lit" id="btn-vote" style="display:none" onclick="confirmVote()">Zatwierdź odpowiedź ✓</button>
+  <button class="btn btn-dim" id="btn-swap-v" style="display:none" onclick="swapQuestion()"></button>
   <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33;margin-top:4px" onclick="leaveGame()">← Opuść grę</button>
 </div>
 
@@ -225,6 +260,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
   <div class="ans-list" id="sj-ans"></div>
   <button class="btn btn-lit" id="btn-sj" style="display:none" onclick="submitSJ()">Pokaż wyniki! 🎉</button>
+  <button class="btn btn-dim" id="btn-swap-sj" style="display:none" onclick="swapQuestionSJ()"></button>
 </div>
 
 <!-- ══ REVEAL ══ -->
@@ -294,6 +330,36 @@ const QS=[
 /* ═══════════════════════════════════════════════════════════════ */
 
 const COLORS=['#a78bfa','#38bdf8','#fb923c','#e879f9'];
+
+/* ── MOTYW ── */
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  localStorage.setItem('ego_theme',t);
+  const icon=t==='dark'?'☀️':'🌙';
+  document.querySelectorAll('.theme-btn').forEach(b=>b.textContent=icon);
+}
+function toggleTheme(){
+  const cur=document.documentElement.getAttribute('data-theme');
+  // If no explicit theme set, check computed bg
+  const isDark=cur==='dark'||(cur!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches);
+  applyTheme(isDark?'light':'dark');
+}
+// Init theme — called after DOM + $ are ready (see below)
+
+/* ── ODMIANA PŁCI ── */
+// Heuristic: Polish feminine names typically end in 'a' or 'i'
+// Masculine exceptions ending in 'a': Kuba, Sasha, Nikita, Barnaba, Kosma, Bonawentura, Jarema
+const MASC_ENDING_A=['kuba','sasha','nikita','barnaba','kosma','bonawentura','jarema','misza','sasza','ilia','borja'];
+function isFeminine(name){
+  if(!name)return false;
+  const n=name.toLowerCase().trim();
+  if(MASC_ENDING_A.some(m=>n===m))return false;
+  return n.endsWith('a')||n.endsWith('ia');
+}
+// Returns gendered form: genderWord(name, 'Trafiłeś/aś') → 'Trafiłaś' or 'Trafiłeś'
+// Usage: gW(name, masc, fem)
+function gW(name,masc,fem){return isFeminine(name)?fem:masc;}
+
 const POLL_MS=2500;
 
 // ── utils ──
@@ -302,6 +368,17 @@ const $=id=>document.getElementById(id);
 const show=id=>{document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');};
 const shuf=a=>{const b=[...a];for(let i=b.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;};
 const dc=o=>JSON.parse(JSON.stringify(o));
+
+// Init theme from localStorage or system preference
+(()=>{
+  const saved=localStorage.getItem('ego_theme');
+  if(saved){ applyTheme(saved); }
+  else{
+    const isDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+    const btn=$('theme-btn');
+    if(btn) btn.textContent=isDark?'☀️':'🌙';
+  }
+})();
 const CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const rnd4=()=>Array.from({length:4},()=>CHARS[Math.floor(Math.random()*CHARS.length)]).join('');
 function showErr(id,msg){const e=$(id);if(!e)return;e.textContent=msg;e.style.display='block';}
@@ -367,7 +444,8 @@ function norm(gs){
   gs.subjects = toArr(gs.subjects);
   gs.qSeq     = toArr(gs.qSeq);
   gs.votes    = gs.votes || {};
-  gs.ready    = gs.ready || {};
+  gs.ready      = gs.ready || {};
+  gs.maxPlayers = gs.maxPlayers || 4;
   // Normalize vote keys AND values to integers
   if(gs.votes && typeof gs.votes==='object'){
     const v={};
@@ -388,6 +466,16 @@ let pollTimer=null;
 let _sjPick=null;
 let _lastRi=null; // track round index to reset local state on round change
 let _allVotedAt=null; // timestamp when all votes first detected
+let _maxPlayers=4; // host-controlled, 2-4
+
+function setMaxPlayers(n){
+  _maxPlayers=n;
+  document.querySelectorAll('.maxp-btn').forEach(b=>{
+    b.classList.toggle('active', parseInt(b.dataset.n)===n);
+  });
+  if(gameId) fbPatch(`games/${gameId}`,{maxPlayers:n}).catch(()=>{});
+  renderLobby();
+}
 
 function startPoll(){
   if(pollTimer)clearInterval(pollTimer);
@@ -460,7 +548,12 @@ function startPoll(){
               const next=norm(dc(GS));
               next.phase='reveal';
               next.players.forEach((p,i)=>{
-                if(p&&i!==si&&next.votes[i]==next.sa) next.players[i].pts++;
+                next.players.forEach((p,i)=>{
+                  if(p&&i!==si&&next.votes[i]==next.sa){
+                    next.players[i].pts++;   // guesser gets 1 pt
+                    next.players[si].pts++;  // subject gets 1 pt per correct guesser
+                  }
+                });
               });
               GS=next;
               await writeGS();
@@ -491,7 +584,7 @@ async function createGame(){
   $('home-err').style.color='var(--muted)';
   try{
     gameId=rnd4();
-    GS={phase:'lobby',players:[{name,pts:0},null,null,null],subjects:[],qSeq:[],rt:0,ri:0,votes:{},sa:-1};
+    GS={phase:'lobby',players:[{name,pts:0},null,null,null],subjects:[],qSeq:[],rt:0,ri:0,votes:{},sa:-1,ready:{},maxPlayers:4};
     await fbPut(`games/${gameId}`,GS);
     mySlot=0;isHost=true;
     sessionStorage.setItem('ego_sess',JSON.stringify({gameId,mySlot}));
@@ -532,7 +625,9 @@ async function joinGame(){
 function renderSlots(gs,name){
   $('slots-sub').textContent=name?`Cześć ${name}! Wybierz swój slot:`:'Wybierz swój slot';
   const grid=$('slot-grid');grid.innerHTML='';
+  const max=gs.maxPlayers||4;
   for(let i=0;i<4;i++){
+    if(i>=max) continue; // hide slots beyond limit
     const p=gs.players[i];
     const isMine=mySlot===i;
     const div=document.createElement('div');
@@ -578,14 +673,24 @@ function renderLobby(){
   $('lob-code').textContent=gameId||'----';
   const ready=GS.ready||{};
   const players=GS.players;
-  const filled=players.filter(Boolean).length;
-  $('lob-cnt').textContent=`Gracze (${filled}/4)`;
+  const max=GS.maxPlayers||4;
+  const activePlayers=players.slice(0,max);
+  const filled=activePlayers.filter(Boolean).length;
+  $('lob-cnt').textContent=`Gracze (${filled}/${max})`;
 
-  $('lob-list').innerHTML=players.map((p,i)=>{
+  // Sync maxp-btn active state for host
+  if(isHost){
+    document.querySelectorAll('.maxp-btn').forEach(b=>{
+      b.classList.toggle('active', parseInt(b.dataset.n)===max);
+    });
+    _maxPlayers=max;
+  }
+
+  $('lob-list').innerHTML=activePlayers.map((p,i)=>{
     if(!p)return`<div style="background:var(--card);border:1.5px dashed var(--rim);border-radius:12px;padding:12px 16px;font-size:13px;color:var(--muted)">Slot ${i+1} — wolny</div>`;
     const isReady=!!ready[i];
     const readyBadge=isReady
-      ? `<span style="margin-left:auto;background:#14532d;color:#4ade80;border:1.5px solid #16a34a;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;">✓ gotowy</span>`
+      ? `<span style="margin-left:auto;background:#14532d;color:#4ade80;border:1.5px solid #16a34a;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;">✓ ${gW(p.name,'gotowy','gotowa')}</span>`
       : `<span style="margin-left:auto;background:#2d1a1a;color:#f87171;border:1.5px solid #dc262655;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;">⏳ czeka</span>`;
     return`<div class="prow" style="border:1.5px solid ${isReady?'#16a34a':C(i)+'44'};">
       <div class="prow-dot" style="background:${C(i)}"></div>
@@ -608,17 +713,18 @@ function renderLobby(){
     const btn=$('btn-ready');
     btn.style.display='block';
     const iAmReady=!!ready[mySlot];
+    const myName=GS.players[mySlot]?.name||'';
     if(iAmReady){
-      btn.textContent='✅ Jesteś gotowy/a — kliknij aby cofnąć';
+      btn.textContent=`✅ ${gW(myName,'Jesteś gotowy','Jesteś gotowa')} — kliknij aby cofnąć`;
       btn.style.cssText='background:#14532d;color:#4ade80;border:2px solid #16a34a;border-radius:12px;padding:15px;font-size:15px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;width:100%;';
     } else {
-      btn.textContent='Jestem gotowy/a ✓';
+      btn.textContent=gW(myName,'Jestem gotowy ✓','Jestem gotowa ✓');
       btn.style.cssText='background:var(--text);color:var(--bg);border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;width:100%;';
     }
   }
 
   // Host / guest controls
-  const allReady=players.every((p,i)=>!p||!!ready[i]);
+  const allReady=activePlayers.every((p,i)=>!p||!!ready[i]);
   if(isHost){
     $('lob-host').style.display='flex';
     $('lob-guest').style.display='none';
@@ -630,13 +736,13 @@ function renderLobby(){
     } else {
       btn.disabled=true;
       btn.style.opacity='0.4';
-      const readyCount=players.filter((p,i)=>p&&!!ready[i]).length;
+      const readyCount=activePlayers.filter((p,i)=>p&&!!ready[i]).length;
       btn.textContent=`Gotowych: ${readyCount}/${filled} — czekaj…`;
     }
   } else {
     $('lob-host').style.display='none';
     $('lob-guest').style.display='block';
-    const readyCount=players.filter((p,i)=>p&&!!ready[i]).length;
+    const readyCount=activePlayers.filter((p,i)=>p&&!!ready[i]).length;
     $('lob-guest-conn').innerHTML=allReady
       ? `<span class="cdot dok"></span>Wszyscy gotowi! Gra startuje za chwilę…`
       : `<span class="cdot dwait"></span>Gotowych: ${readyCount}/${filled} — czekaj na pozostałych`;
@@ -688,7 +794,8 @@ async function leaveGame(){
   sessionStorage.removeItem('ego_name');
   gameId=null; mySlot=null; isHost=false; GS=null;
   _localVote=null; _confirmedVote=null; _sjPick=null; _lastRi=null;
-  show('s-home');
+  const name=($('inp-name')?.value||'').trim();
+  name ? show('s-home') : show('s-home');
 }
 
 // ── HOST START ──
@@ -715,7 +822,7 @@ function render(){
   // Reset local per-round state whenever round changes (for all players, not just host)
   const currentRi = GS.ri ?? 0;
   if(_lastRi !== null && _lastRi !== currentRi){
-    _localVote=null; _confirmedVote=null; _sjPick=null; _sjPending=null;
+    _localVote=null; _confirmedVote=null; _sjPick=null; _sjPending=null; _swapsLeft=2; _sjSwapsLeft=2;
   }
   _lastRi = currentRi;
 
@@ -781,16 +888,27 @@ function renderVoting(){
   $('qc-v').style.setProperty('--ac',C(si));
   const ri=GS.ri+1,tot=GS.rt;
 
-  // Subject waits on wait screen while others vote
+  // Subject sees question + locked answers while others vote
   if(amSJ()){
     const guessers=GS.players.filter((p,i)=>p&&i!==si);
     const done=guessers.filter((p,gi)=>{
       const pi=GS.players.indexOf(p); return GS.votes[pi]!==undefined;
     }).length;
-    setWait(C(si),sp.name,'Inni o Tobie zgadują…',
-      `Zagłosowało ${done} z ${guessers.length} graczy`,
-      q.q.replace('[imię]',sp.name));
-    show('s-wait'); return;
+    mkSbar('sb-v');
+    $('qc-v').style.setProperty('--ac',C(si));
+    $('v-meta').textContent=`Runda ${ri} / ${tot}`;
+    $('v-about').innerHTML=`To pytanie jest o <strong style="color:${C(si)}">Tobie</strong>!`;
+    $('v-q').textContent=q.q.replace('[imię]',sp.name);
+    // Show answers locked — subject can see options but can't pick yet
+    buildAns('v-ans',q.a,true,null,null,null);
+    $('btn-vote').style.display='none';
+    $('v-st').innerHTML=`
+      <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:14px 16px;text-align:center;margin-top:4px">
+        <div style="font-size:20px;margin-bottom:6px">🤫</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">Poczekaj na pozostałych!</div>
+        <div style="color:var(--muted);font-size:13px">Twoja kolej po nich — zagłosowało ${done} z ${guessers.length}</div>
+      </div>`;
+    show('s-vote'); return;
   }
   if(mySlot===null||!GS.players[mySlot]){
     setWait('#888','?','Trwa głosowanie…','Czekaj',q.q.replace('[imię]',sp.name));
@@ -805,12 +923,15 @@ function renderVoting(){
   const voted=fbVote!==undefined||_confirmedVote!==null;
   const shownVote=fbVote!==undefined?fbVote:(_confirmedVote!==null?_confirmedVote:_localVote);
 
+  const myName=GS.players[mySlot]?.name||'';
+
   if(voted){
     buildAns('v-ans',q.a,true,shownVote,null,null);
     $('btn-vote').style.display='none';
+    $('btn-swap-v').style.display='none';
     const guessers=GS.players.filter((p,i)=>p&&i!==si);
     const done=guessers.filter((p,gi)=>{const pi=GS.players.indexOf(p);return GS.votes[pi]!==undefined;}).length;
-    $('v-st').innerHTML=`<span style="color:var(--c2)">✓ Zatwierdzone!</span> Czekaj na pozostałych… (${done}/${guessers.length})`;
+    $('v-st').innerHTML=`<span style="color:var(--c2)">✓ ${gW(myName,'Zatwierdziłeś','Zatwierdziłaś')}!</span> Czekaj na pozostałych… (${done}/${guessers.length})`;
   } else {
     buildAns('v-ans',q.a,false,null,null,i=>{
       _localVote=i; renderVoting();
@@ -824,16 +945,56 @@ function renderVoting(){
       $('btn-vote').style.display='none';
       $('v-st').textContent='Jak twoim zdaniem odpowie?';
     }
+    // Swap button — visible only before confirming
+    const sb=$('btn-swap-v');
+    sb.style.display='block';
+    sb.textContent=_swapBtnLabel(_swapsLeft);
+    sb.disabled=_swapsLeft<=0;
+    sb.style.opacity=_swapsLeft>0?'1':'0.4';
   }
   show('s-vote');
 }
+
+// ── SWAP QUESTION ──
+function _doSwap(onDone){
+  const used=GS.qSeq||[];
+  const available=QS.map((_,i)=>i).filter(i=>!used.includes(i));
+  // If pool exhausted, allow repeats from non-current
+  const pool=available.length>0 ? available : QS.map((_,i)=>i).filter(i=>i!==GS.qSeq[GS.ri]);
+  if(!pool.length)return; // no swap possible
+  const newQIdx=pool[Math.floor(Math.random()*pool.length)];
+  // Replace current question in qSeq
+  const newSeq=[...GS.qSeq];
+  newSeq[GS.ri]=newQIdx;
+  GS.qSeq=newSeq;
+  // Push to Firebase (host will broadcast on next poll, but update locally immediately)
+  fbPatch(`games/${gameId}`,{qSeq:newSeq}).catch(()=>{});
+  onDone();
+}
+
+function swapQuestion(){
+  if(_swapsLeft<=0)return;
+  _swapsLeft--;
+  _localVote=null; _confirmedVote=null;
+  _doSwap(()=>renderVoting());
+}
+
+function swapQuestionSJ(){
+  if(_sjSwapsLeft<=0)return;
+  _sjSwapsLeft--;
+  _sjPending=null;
+  _doSwap(()=>renderSubj());
+}
+
+function _swapBtnLabel(left){ return left>0 ? `🔄 Zmień pytanie (zostało: ${left})` : '🔄 Brak wymian'; }
 
 function confirmVote(){
   if(_localVote===null)return;
   _confirmedVote=_localVote;
   $('btn-vote').style.display='none';
   buildAns('v-ans',QS[GS.qSeq[GS.ri]].a,true,_confirmedVote,null,null);
-  $('v-st').innerHTML=`<span style="color:var(--c2)">✓ Zatwierdzone! Czekaj na pozostałych…</span>`;
+  const myName=GS&&mySlot!==null?GS.players[mySlot]?.name||'':'';
+  $('v-st').innerHTML=`<span style="color:var(--c2)">✓ ${gW(myName,'Zatwierdziłeś','Zatwierdziłaś')}! Czekaj na pozostałych…</span>`;
   castVote(_confirmedVote);
 }
 
@@ -849,6 +1010,8 @@ async function castVote(ans){
 
 // ── SUBJECT answers last ──
 let _sjPending=null;
+let _swapsLeft=2;    // resets each round, shared between voter and subject screens
+let _sjSwapsLeft=2;  // for subject screen
 
 function renderSubj(){
   const q=CQ();if(!q)return;
@@ -870,14 +1033,13 @@ function renderSubj(){
   $('sj-q').textContent=q.q.replace('[imię]',sp.name);
 
   if(_sjPending!==null){
-    // Already picked — keep locked, show confirm button
     buildAns('sj-ans',q.a,true,_sjPending,null,null);
     $('btn-sj').style.display='block';
+    $('btn-swap-sj').style.display='none';
   } else {
     buildAns('sj-ans',q.a,false,null,null,i=>{
       _sjPending=i;
       buildAns('sj-ans',q.a,true,i,null,null);
-      // Allow changing — re-enable buttons
       const btns=document.querySelectorAll('#sj-ans .abtn');
       btns.forEach((b,bi)=>{
         b.classList.remove('locked');
@@ -886,6 +1048,12 @@ function renderSubj(){
       $('btn-sj').style.display='block';
     });
     $('btn-sj').style.display='none';
+    // Swap button — only before answering
+    const sb=$('btn-swap-sj');
+    sb.style.display='block';
+    sb.textContent=_swapBtnLabel(_sjSwapsLeft);
+    sb.disabled=_sjSwapsLeft<=0;
+    sb.style.opacity=_sjSwapsLeft>0?'1':'0.4';
   }
   show('s-subj');
 }
@@ -920,6 +1088,7 @@ function renderReveal(){
 
   if(amI && !iAmSubject && myVote!==undefined){
     const hit=myVote==correct;
+    const myName=GS.players[mySlot]?.name||'';
     bannerHtml=`
     <div style="
       border-radius:18px;
@@ -930,34 +1099,38 @@ function renderReveal(){
     ">
       <div style="font-size:56px;margin-bottom:8px">${hit?'🎉':'😬'}</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:2px;color:${hit?'#4ade80':'#f87171'};line-height:1">
-        ${hit?'TRAFIŁEŚ/AŚ!':'PUDŁO!'}
+        ${hit?gW(myName,'TRAFIŁEŚ!','TRAFIŁAŚ!'):'PUDŁO!'}
       </div>
       <div style="font-size:14px;color:${hit?'#86efac':'#fca5a5'};margin-top:10px;line-height:1.5">
         ${hit
           ? `Twoja odpowiedź zgadza się z odpowiedzią ${sp.name} 🎯<br><strong>+1 punkt dla Ciebie!</strong>`
-          : `Twój wybór: <strong style="color:#fff">${q.a[myVote]}</strong><br>Poprawna: <strong style="color:#4ade80">${q.a[correct]}</strong>`
+          : `${gW(myName,'Wybrałeś','Wybrałaś')}: <strong style="color:#fff">${q.a[myVote]}</strong><br>Poprawna: <strong style="color:#4ade80">${q.a[correct]}</strong>`
         }
       </div>
     </div>`;
   } else if(iAmSubject){
-    // Show subject how many guessed correctly
     const guessers=GS.players.filter((p,i)=>p&&i!==si);
     const correct_cnt=guessers.filter((p,gi)=>{
       const pi=GS.players.indexOf(p);
       return GS.votes[pi]==correct;
     }).length;
+    const subjectPts=correct_cnt; // 1 pt per correct guesser
     bannerHtml=`
     <div style="
       border-radius:18px;padding:24px 20px;
-      background:#1e1b4b;border:3px solid #818cf8;
+      background:${correct_cnt>0?'#1e1b4b':'#1a1a24'};
+      border:3px solid ${correct_cnt>0?'#818cf8':'#3f3f50'};
       text-align:center;
     ">
-      <div style="font-size:48px;margin-bottom:8px">🎯</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;color:#a5b4fc;line-height:1">
+      <div style="font-size:48px;margin-bottom:8px">${correct_cnt===guessers.length?'🏆':correct_cnt>0?'🎯':'😮'}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;color:${correct_cnt>0?'#a5b4fc':'#6b6b80'};line-height:1">
         TO TWOJE PYTANIE
       </div>
-      <div style="font-size:14px;color:#c7d2fe;margin-top:10px">
-        <strong style="color:#fff">${correct_cnt} z ${guessers.length}</strong> graczy odgadło Twoją odpowiedź
+      <div style="font-size:14px;color:#c7d2fe;margin-top:10px;line-height:1.6">
+        <strong style="color:#fff">${correct_cnt} z ${guessers.length}</strong> graczy odgadło Twoją odpowiedź<br>
+        ${correct_cnt>0
+          ? `<strong style="color:#a5b4fc;font-size:16px">+${subjectPts} ${subjectPts===1?'punkt':'punkty'} dla Ciebie!</strong>`
+          : `<span style="color:#6b6b80">Nikt nie trafił — 0 punktów</span>`}
       </div>
     </div>`;
   }
@@ -989,7 +1162,7 @@ function renderReveal(){
   });
 
   $('rv-res').innerHTML=`<div class="rctitle">Wyniki rundy</div>
-    <div class="rvrow"><div class="rvl"><div class="rvdot" style="background:${C(si)}"></div><strong>${sp.name}</strong></div><span class="badge b-sub">Temat</span></div>`+
+    <div class="rvrow"><div class="rvl"><div class="rvdot" style="background:${C(si)}"></div><strong>${sp.name}</strong><span class="badge b-sub" style="margin-left:8px">Temat</span></div><span class="badge b-yes">+${GS.players.filter((p,i)=>p&&i!==si&&GS.votes[i]==correct).length} pkt</span></div>`+
     GS.players.map((p,i)=>{if(!p||i===si)return'';const hit=GS.votes[i]==correct;
       return`<div class="rvrow${i===mySlot?' style="background:var(--rim);border-radius:8px;padding:9px 8px;margin:0 -8px"':''}"><div class="rvl"><div class="rvdot" style="background:${C(i)}"></div><span${i===mySlot?' style="font-weight:700"':''}>${p.name}${i===mySlot?' (ty)':''}</span></div><span class="badge ${hit?'b-yes':'b-no'}">${hit?'+1 pkt ✓':'Pudło ✗'}</span></div>`;}).join('');
 
@@ -1003,7 +1176,7 @@ async function nextRound(){
     const gs=await fbGet(`games/${gameId}`);
     GS=norm(dc(gs));
     if(GS.ri+1>=GS.rt){GS.phase='ended';}
-    else{GS.ri++;GS.votes={};GS.sa=-1;GS.phase='voting';_localVote=null;_confirmedVote=null;_sjPick=null;_sjPending=null;_allVotedAt=null;}
+    else{GS.ri++;GS.votes={};GS.sa=-1;GS.phase='voting';_localVote=null;_confirmedVote=null;_sjPick=null;_sjPending=null;_swapsLeft=2;_sjSwapsLeft=2;_allVotedAt=null;}
     await writeGS();render();
   }catch(e){console.error('nextRound',e);}
 }
@@ -1044,7 +1217,17 @@ function renderEnd(){
     }catch(e){}
   }
   show('s-home');
+  // Also fix theme-btn icon on s-actions
+  const tb2=document.querySelector('#s-actions .theme-btn');
+  if(tb2){
+    const saved=localStorage.getItem('ego_theme');
+    const isDark=saved?saved==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches;
+    tb2.textContent=isDark?'☀️':'🌙';
+  }
 })();
+
+function updateHomeActions(){ /* actions always visible */ }
+
 </script>
 </body>
 </html>
