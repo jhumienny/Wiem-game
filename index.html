@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>EGO</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e0e12;--card:#18181f;--rim:#26262f;--text:#f0eef8;--muted:#6a6a80;--c0:#ff4d4d;--c1:#4d8dff;--c2:#3dd68c;--c3:#ffb830;--rad:16px;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;justify-content:center;min-height:100dvh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--rim) 1px,transparent 1px),linear-gradient(90deg,var(--rim) 1px,transparent 1px);background-size:32px 32px;opacity:.18;pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;width:100%;max-width:440px;min-height:100dvh;display:flex;flex-direction:column;}
+.scr{display:none;flex-direction:column;flex:1;padding:20px 16px 32px;gap:16px;animation:pop .28s ease;}
+.scr.on{display:flex;}
+@keyframes pop{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:64px;letter-spacing:2px;line-height:1;}
+.logo em{color:var(--c0);font-style:normal;}
+.sub{color:var(--muted);font-size:13px;}
+.label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+.field{background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:13px 16px;display:flex;align-items:center;gap:10px;}
+.field label{font-size:13px;color:var(--muted);white-space:nowrap;}
+.field input{flex:1;background:none;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:16px;color:var(--text);}
+.field input::placeholder{color:var(--muted);}
+
+/* setup screen */
+.setup-card{background:var(--card);border:1.5px solid var(--rim);border-radius:var(--rad);padding:20px;}
+.setup-step{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--rim);}
+.setup-step:last-child{border-bottom:none;}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--c0);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-txt{font-size:14px;line-height:1.5;}
+.step-txt a{color:var(--c1);text-decoration:none;}
+.step-txt code{background:var(--rim);padding:2px 6px;border-radius:5px;font-size:12px;color:var(--c2);}
+
+/* slot grid */
+.slot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.slot{background:var(--card);border:2px solid var(--rim);border-radius:var(--rad);padding:18px 14px;text-align:center;cursor:pointer;transition:all .15s;position:relative;}
+.slot:active{transform:scale(.96);}
+.slot.taken{opacity:.4;pointer-events:none;}
+.slot-av{width:48px;height:48px;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:20px;}
+.slot-name{font-size:14px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.slot-pts{font-size:12px;color:var(--muted);}
+.slot-badge{position:absolute;top:8px;right:8px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;}
+.sb-you{background:var(--text);color:var(--bg);}
+.sb-free{background:var(--rim);color:var(--muted);}
+
+.codebox{background:var(--card);border:1.5px solid var(--rim);border-radius:var(--rad);padding:20px;text-align:center;}
+.codelbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.codelink{font-size:13px;color:var(--c1);word-break:break-all;line-height:1.5;cursor:pointer;}
+.codesub{font-size:11px;color:var(--muted);margin-top:8px;}
+.sbar{display:flex;gap:4px;background:var(--card);border-radius:10px;padding:8px 10px;}
+.sbi{flex:1;text-align:center;}
+.sbi-n{font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sbi-v{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
+.plist{display:flex;flex-direction:column;gap:8px;}
+.prow{background:var(--card);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:15px;font-weight:500;}
+.prow-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.ptag{margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;}
+.tag-host{background:var(--text);color:var(--bg);}
+.tag-you{background:var(--rim);color:var(--muted);}
+.rrow-cfg{background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;}
+.rrow-cfg label{flex:1;font-size:14px;color:var(--muted);}
+.rrow-cfg input{width:52px;text-align:right;background:none;border:none;outline:none;font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--text);}
+.qcard{background:var(--card);border:1.5px solid var(--rim);border-radius:var(--rad);padding:22px 18px;position:relative;overflow:hidden;}
+.qcard::after{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:var(--ac,#ff4d4d);opacity:.07;}
+.qmeta{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.qabout{font-size:13px;color:var(--muted);margin-bottom:6px;}
+.qabout strong{color:var(--text);}
+.qtext{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.5px;line-height:1.35;}
+.ans-list{display:flex;flex-direction:column;gap:9px;}
+.abtn{background:var(--card);border:2px solid var(--rim);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);text-align:left;width:100%;}
+.abtn:not(.locked):active{transform:scale(.98);background:var(--rim);}
+.anum{width:36px;height:36px;border-radius:9px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;flex-shrink:0;transition:all .15s;}
+.abtn.locked{pointer-events:none;}
+.abtn.chosen{border-color:var(--text);}
+.abtn.chosen .anum{background:var(--text);color:var(--bg);}
+.abtn.correct{border-color:var(--c2);}
+.abtn.correct .anum{background:var(--c2);color:var(--bg);}
+.voter-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+.vchip{font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;}
+.wmid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:20px 0;}
+.wav{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;margin:0 auto;}
+.wtitle{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;}
+.wdesc{font-size:14px;color:var(--muted);line-height:1.6;max-width:260px;}
+.wq{background:var(--card);border:1px solid var(--rim);border-radius:12px;padding:14px 16px;font-size:14px;color:var(--muted);font-style:italic;line-height:1.5;max-width:300px;}
+.pulse{animation:blink 1.6s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.rcard{background:var(--card);border:1.5px solid var(--rim);border-radius:var(--rad);padding:16px;}
+.rctitle{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.5px;margin-bottom:12px;}
+.rvrow{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--rim);font-size:14px;}
+.rvrow:last-child{border-bottom:none;}
+.rvl{display:flex;align-items:center;gap:8px;}
+.rvdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;}
+.b-yes{background:#1a3d2b;color:var(--c2);}
+.b-no{background:#2d1a1a;color:var(--c0);}
+.b-sub{background:var(--text);color:var(--bg);}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:6px;}
+.podcol{flex:1;text-align:center;}
+.podbar{border-radius:8px 8px 0 0;margin-bottom:8px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.vstatus{text-align:center;font-size:13px;color:var(--muted);min-height:20px;}
+.conn{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--muted);}
+.cdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dok{background:var(--c2);}
+.dwait{background:var(--c3);animation:blink .9s infinite;}
+.derr{background:var(--c0);}
+.btn{border-radius:12px;padding:15px;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;border:none;transition:all .15s;text-align:center;width:100%;display:block;}
+.btn:active{transform:scale(.98);}
+.btn-lit{background:var(--text);color:var(--bg);}
+.btn-dim{background:var(--card);color:var(--text);border:1.5px solid var(--rim);}
+.brow{display:flex;gap:8px;}
+.brow .btn{flex:1;}
+.err-msg{color:var(--c0);font-size:13px;text-align:center;display:none;padding:4px 0;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ HOME ══ -->
+<div class="scr" id="s-home">
+  <div style="padding-top:12px">
+    <div class="logo">EGO<em>.</em></div>
+    <div class="sub">Kto cię zna najlepiej?</div>
+  </div>
+  <div class="field">
+    <label>Imię:</label>
+    <input id="inp-name" type="text" placeholder="Wpisz swoje imię" maxlength="14" autocomplete="off">
+  </div>
+  <button class="btn btn-lit" onclick="createGame()">🎮 Utwórz nową grę</button>
+  <div style="text-align:center;color:var(--muted);font-size:13px">— lub —</div>
+  <div class="field">
+    <label>Kod:</label>
+    <input id="inp-code" type="text" placeholder="Wklej kod gry od hosta" autocomplete="off" style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;text-transform:uppercase;">
+  </div>
+  <button class="btn btn-dim" onclick="joinGame()">🔗 Dołącz do gry</button>
+  <div class="err-msg" id="home-err"></div>
+  <div class="sub" style="text-align:center;padding:0 12px">
+    Host tworzy grę → wysyła kod → każdy wybiera swój slot
+  </div>
+</div>
+
+<!-- ══ SLOT PICK ══ -->
+<div class="scr" id="s-slots">
+  <div style="padding-top:12px">
+    <div class="logo" style="font-size:42px">EGO<em>.</em></div>
+    <div class="sub" id="slots-sub">Wybierz swój slot</div>
+  </div>
+  <div class="label">Kto grasz?</div>
+  <div class="slot-grid" id="slot-grid"></div>
+  <div class="conn" id="slots-conn"><span class="cdot dwait"></span>Ładowanie…</div>
+</div>
+
+<!-- ══ LOBBY ══ -->
+<div class="scr" id="s-lobby">
+  <div style="padding-top:12px">
+    <div class="logo" style="font-size:42px">EGO<em>.</em></div>
+  </div>
+  <div class="codebox">
+    <div class="codelbl">Kod gry — wyślij znajomym</div>
+    <div class="codelink" id="lob-code" onclick="copyCode()">----</div>
+    <div class="codesub">Kliknij aby skopiować · Każdy wpisuje kod w aplikacji</div>
+  </div>
+  <div class="label" id="lob-cnt">Gracze (0/4)</div>
+  <div class="plist" id="lob-list"></div>
+
+  <!-- Name change row -->
+  <div class="field" id="lob-name-row" style="display:none">
+    <label>Twoje imię:</label>
+    <input id="lob-name-inp" type="text" maxlength="14" autocomplete="off" placeholder="Zmień imię">
+    <button onclick="changeName()" style="background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0">OK</button>
+  </div>
+
+  <!-- Ready button (everyone) -->
+  <button class="btn" id="btn-ready" style="display:none" onclick="toggleReady()"></button>
+
+  <!-- Host controls -->
+  <div id="lob-host" style="display:none;flex-direction:column;gap:10px;">
+    <div class="rrow-cfg">
+      <label>Rundy na gracza</label>
+      <input type="number" id="rpp" min="1" max="10" value="3">
+    </div>
+    <button class="btn btn-lit" id="btn-start" onclick="hostStart()">Rozpocznij grę ▶</button>
+  </div>
+  <div id="lob-guest" style="display:none;">
+    <div class="conn" id="lob-guest-conn"><span class="cdot dwait"></span>Czekaj aż host rozpocznie grę…</div>
+  </div>
+  <div class="conn"><span class="cdot dok"></span><span id="sync-st">Połączono</span></div>
+  <button class="btn btn-dim" style="color:var(--c0);border-color:var(--c0)44;margin-top:4px" onclick="leaveGame()">← Opuść grę</button>
+</div>
+
+<!-- ══ VOTE ══ -->
+<div class="scr" id="s-vote">
+  <div class="sbar" id="sb-v"></div>
+  <div class="qcard" id="qc-v">
+    <div class="qmeta" id="v-meta"></div>
+    <div class="qabout" id="v-about"></div>
+    <div class="qtext" id="v-q"></div>
+  </div>
+  <div class="ans-list" id="v-ans"></div>
+  <div class="vstatus" id="v-st"></div>
+  <button class="btn btn-lit" id="btn-vote" style="display:none" onclick="confirmVote()">Zatwierdź odpowiedź ✓</button>
+  <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33;margin-top:4px" onclick="leaveGame()">← Opuść grę</button>
+</div>
+
+<!-- ══ WAIT ══ -->
+<div class="scr" id="s-wait">
+  <div class="sbar" id="sb-w"></div>
+  <div class="wmid">
+    <div class="wav pulse" id="w-av"></div>
+    <div class="wtitle" id="w-title"></div>
+    <div class="wdesc" id="w-desc"></div>
+    <div class="wq" id="w-q"></div>
+  </div>
+  <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33" onclick="leaveGame()">← Opuść grę</button>
+</div>
+
+<!-- ══ SUBJECT ══ -->
+<div class="scr" id="s-subj">
+  <div class="sbar" id="sb-sj"></div>
+  <div class="qcard" id="qc-sj">
+    <div class="qmeta" id="sj-meta"></div>
+    <div class="qabout" id="sj-about" style="font-size:15px;font-weight:600;margin-bottom:8px;"></div>
+    <div class="qtext" id="sj-q"></div>
+  </div>
+  <div class="ans-list" id="sj-ans"></div>
+  <button class="btn btn-lit" id="btn-sj" style="display:none" onclick="submitSJ()">Pokaż wyniki! 🎉</button>
+</div>
+
+<!-- ══ REVEAL ══ -->
+<div class="scr" id="s-reveal">
+  <div class="sbar" id="sb-rv"></div>
+  <div id="rv-banner"></div>
+  <div class="qcard" id="qc-rv">
+    <div class="qmeta" id="rv-meta"></div>
+    <div class="qabout" id="rv-about"></div>
+    <div class="qtext" id="rv-q"></div>
+  </div>
+  <div class="ans-list" id="rv-ans"></div>
+  <div class="rcard" id="rv-res"></div>
+  <div id="rv-btn"></div>
+</div>
+
+<!-- ══ END ══ -->
+<div class="scr" id="s-end">
+  <div style="text-align:center;padding-top:12px">
+    <div style="font-size:48px;margin-bottom:4px">🏆</div>
+    <div class="logo" style="font-size:42px">Koniec!</div>
+  </div>
+  <div class="podium" id="end-pod"></div>
+  <div class="rcard" id="end-sc"></div>
+  <div id="end-btns" style="display:flex;flex-direction:column;gap:8px;"></div>
+</div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   📚  BAZA PYTAŃ — dodawaj tutaj!
+   Format: { q: "Pytanie o [imię]?", a: ["Opcja 1","Opcja 2","Opcja 3"] }
+═══════════════════════════════════════════════════════════════ */
+const QS=[
+  {q:"Jak [imię] najchętniej spędza wolny weekend?",                  a:["Leniuchując w domu","Wychodząc ze znajomymi","Aktywnie – sport lub wycieczka"]},
+  {q:"Co najbardziej stresuje [imię] w codziennym życiu?",            a:["Praca / szkoła","Relacje z innymi","Brak pieniędzy"]},
+  {q:"Gdyby [imię] wygrał/a milion złotych, co zrobi jako pierwsze?", a:["Odłoży lub zainwestuje","Wyjedzie w podróż marzeń","Kupi coś dużego"]},
+  {q:"Jaką rolę [imię] zwykle pełni w grupie znajomych?",            a:["Dusza towarzystwa","Spokojny obserwator","Organizator i lider"]},
+  {q:"Co [imię] ceni najbardziej w życiu?",                          a:["Lojalność i zaufanie","Wolność i niezależność","Bezpieczeństwo i stabilność"]},
+  {q:"Jak [imię] reaguje na konstruktywną krytykę?",                 a:["Bierze ją bardzo do serca","Analizuje spokojnie","Odpiera – wie swoje"]},
+  {q:"Jaki film najchętniej obejrzy [imię] wieczorem?",              a:["Komedia lub romans","Thriller lub horror","Dokument lub dramat"]},
+  {q:"Jak [imię] podejmuje ważne decyzje?",                          a:["Impulsywnie – działa od razu","Długo rozważa za i przeciw","Pyta bliskich o zdanie"]},
+  {q:"Czym [imię] najczęściej irytuje innych?",                      a:["Spóźnianiem się","Mówieniem bez końca","Zamknięciem się w sobie"]},
+  {q:"Co [imię] robi gdy jest zły/a?",                               a:["Wybucha i mówi wprost","Milczy i dąsa się","Zamyka się i potrzebuje czasu"]},
+  {q:"Jak [imię] zachowuje się na głośnej imprezie?",                a:["Bawi się do białego rana","Wychodzi po 2 godzinach","Siedzi z jedną osobą cały wieczór"]},
+  {q:"Co [imię] jest w stanie zjeść o 2 w nocy?",                   a:["Cokolwiek z lodówki","Zamawia pizzę lub kebaba","Nie je po 20:00 – zasada"]},
+  {q:"Jak [imię] radzi sobie z nudą?",                               a:["Scrolluje social media","Wymyśla nowe projekty","Śpi – nicnierobienie to szczyt"]},
+  {q:"Kiedy [imię] nie może zasnąć, to…",                           a:["Przegląda telefon","Rozmyśla o wszystkim naraz","Wstaje i coś robi"]},
+  {q:"Co [imię] myśli o sobie?",                                     a:["Jestem naprawdę wyjątkowy/a","Jestem zwykłym człowiekiem","Mógłbym/łabym być lepszy/a"]},
+  {q:"Jak [imię] reaguje na niespodziankę?",                         a:["Zachwyca się i głośno cieszy","Uśmiecha, ale woli wiedzieć wcześniej","Stresuje się zmianą planów"]},
+  {q:"Gdyby [imię] mógł/a zmienić jedną rzecz w swoim życiu…",      a:["Zmienił/a pracę lub kierunek","Przeprowadził/a się gdzie indziej","Naprawił/a ważną relację"]},
+  {q:"Co powie [imię] przyjacielowi w potrzebie?",                   a:["'Jak mogę pomóc? Mów!'","'Dasz radę, wierzę w ciebie'","'To twój problem, ogarnij to'"]},
+  {q:"Jakie jest ulubione miejsce [imię]?",                          a:["Dom – tu jest najlepiej","Gdzieś nowe, nieznane","Ulubiona kawiarnia lub park"]},
+  {q:"Jaka muzyka towarzyszy [imię] najczęściej?",                   a:["Pop i mainstream","Hip-hop, R&B lub electronic","Rock, metal lub alternatywa"]},
+  {q:"Co [imię] robi gdy słyszy złą nowinę?",                       a:["Reaguje emocjonalnie od razu","Zachowuje spokój zewnętrznie","Potrzebuje chwili sam/a"]},
+  {q:"Jak [imię] zachowuje się w kolejce?",                          a:["Cierpliwie czeka","Niecierpliwi się i wierci","Szuka drogi na skróty"]},
+  {q:"Gdyby [imię] był/a zwierzęciem, byłby/łaby…",                 a:["Psem – wierny i energiczny","Kotem – niezależny i leniwy","Wilkiem – samotny i tajemniczy"]},
+  {q:"Jak [imię] podchodzi do przepisów i zasad?",                   a:["Stosuje je ściśle","Nagina gdy trzeba","Ignoruje jeśli nie ma sensu"]},
+  {q:"Czego [imię] szuka w nowym znajomym?",                        a:["Poczucia humoru","Inteligencji i głębi","Szczerości i lojalności"]},
+  {q:"Co [imię] robi pierwszego ranka w weekend?",                   a:["Śpi jak najdłużej","Wstaje wcześnie i planuje dzień","Leży i scrolluje telefon"]},
+  {q:"Jak [imię] reaguje gdy ktoś się na niego/nią złości?",        a:["Przeprasza od razu","Tłumaczy swoje racje","Milczy i czeka aż minie"]},
+  {q:"Co [imię] chciałby/chciałaby umieć, a nie umie?",             a:["Grać na instrumencie","Mówić obcym językiem","Gotować jak szef kuchni"]},
+  {q:"Jak [imię] podchodzi do oszczędzania pieniędzy?",             a:["Odkłada regularnie","Wydaje i jakoś wychodzi","Żyje chwilą – oszczędności to mit"]},
+  {q:"Co [imię] myśli o social mediach?",                           a:["Uzależnienie – nie może bez tego","Narzędzie – używa świadomie","Przereklamowany syf"]},
+];
+/* ═══════════════════════════════════════════════════════════════ */
+
+const COLORS=['#a78bfa','#38bdf8','#fb923c','#e879f9'];
+const POLL_MS=2500;
+
+// ── utils ──
+const C=i=>COLORS[i%4];
+const $=id=>document.getElementById(id);
+const show=id=>{document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');};
+const shuf=a=>{const b=[...a];for(let i=b.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;};
+const dc=o=>JSON.parse(JSON.stringify(o));
+const CHARS='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const rnd4=()=>Array.from({length:4},()=>CHARS[Math.floor(Math.random()*CHARS.length)]).join('');
+function showErr(id,msg){const e=$(id);if(!e)return;e.textContent=msg;e.style.display='block';}
+function hideErr(id){const e=$(id);if(e)e.style.display='none';}
+
+// ── DB config ──
+let DB_URL='https://ego-gra-default-rtdb.europe-west1.firebasedatabase.app';
+
+function getDbUrl(){ return true; }
+function saveDbUrl(){}
+function resetDb(){}
+
+// ── Firebase REST ──
+async function fbGet(path){
+  const r=await fetch(`${DB_URL}/${path}.json`);
+  if(r.status===401||r.status===403){
+    throw new Error('PERMISSION_DENIED – sprawdź reguły Firebase ('+r.status+')');
+  }
+  if(!r.ok)throw new Error('GET '+r.status);
+  return r.json();
+}
+async function fbPut(path,data){
+  const r=await fetch(`${DB_URL}/${path}.json`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(r.status===401||r.status===403)throw new Error('PERMISSION_DENIED '+r.status);
+  if(!r.ok)throw new Error('PUT '+r.status);
+  return r.json();
+}
+async function fbPost(path,data){
+  const r=await fetch(`${DB_URL}/${path}.json`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(!r.ok)throw new Error('POST '+r.status);
+  return r.json();
+}
+async function fbPatch(path,data){
+  const r=await fetch(`${DB_URL}/${path}.json`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  if(!r.ok)throw new Error('PATCH '+r.status);
+  return r.json();
+}
+
+// ── Normalize GS (Firebase drops empty arrays/objects → null) ──
+function norm(gs){
+  if(!gs)return gs;
+  // Firebase returns arrays-with-nulls as plain objects — convert back to real arrays
+  const toArr4 = v => {
+    if(Array.isArray(v)) { while(v.length<4) v.push(null); return v; }
+    if(v && typeof v==='object') {
+      const a=[null,null,null,null];
+      Object.keys(v).forEach(k=>{ const n=parseInt(k); if(n>=0&&n<4) a[n]=v[k]; });
+      return a;
+    }
+    return [null,null,null,null];
+  };
+  const toArr = v => {
+    if(Array.isArray(v)) return v;
+    if(v && typeof v==='object') {
+      const max=Math.max(0,...Object.keys(v).map(Number))+1;
+      const a=new Array(max).fill(0);
+      Object.keys(v).forEach(k=>{ a[parseInt(k)]=v[k]; });
+      return a;
+    }
+    return [];
+  };
+  gs.players  = toArr4(gs.players);
+  gs.subjects = toArr(gs.subjects);
+  gs.qSeq     = toArr(gs.qSeq);
+  gs.votes    = gs.votes || {};
+  gs.ready    = gs.ready || {};
+  // Normalize vote keys AND values to integers
+  if(gs.votes && typeof gs.votes==='object'){
+    const v={};
+    Object.keys(gs.votes).forEach(k=>{ v[parseInt(k)]=parseInt(gs.votes[k]); });
+    gs.votes=v;
+  }
+  if(gs.sa!==undefined && gs.sa!==null && gs.sa!==-1) gs.sa=parseInt(gs.sa);
+  else if(gs.sa===undefined||gs.sa===null) gs.sa=-1;
+  if(gs.ri===undefined||gs.ri===null) gs.ri=0;
+  if(gs.rt===undefined||gs.rt===null) gs.rt=0;
+  return gs;
+}
+let gameId=null; // short 4-char code used as key
+let mySlot=null;
+let isHost=false;
+let GS=null;
+let pollTimer=null;
+let _sjPick=null;
+let _lastRi=null; // track round index to reset local state on round change
+let _allVotedAt=null; // timestamp when all votes first detected
+
+function startPoll(){
+  if(pollTimer)clearInterval(pollTimer);
+  pollTimer=setInterval(async()=>{
+    if(!gameId)return;
+    try{
+      const gs=await fbGet(`games/${gameId}`);
+      if(!gs){clearInterval(pollTimer);return;}
+      GS=norm(gs);
+
+      // Host only: manage phase transitions
+      if(isHost){
+        const si=GS.subjects[GS.ri]??0;
+
+        // Auto-start: all players ready in lobby
+        if(GS.phase==='lobby'){
+          const filled=GS.players.filter(Boolean);
+          const ready=GS.ready||{};
+          const allReady=filled.length>=2 && GS.players.every((p,i)=>!p||!!ready[i]);
+          if(allReady){
+            if(!_allVotedAt) _allVotedAt=Date.now();
+            const remaining=Math.ceil((3000-(Date.now()-_allVotedAt))/1000);
+            if(remaining>0){
+              if($('sync-st'))$('sync-st').textContent=`Wszyscy gotowi! Start za ${remaining}s…`;
+            } else {
+              _allVotedAt=null;
+              const rpp=Math.max(1,parseInt($('rpp')?.value)||3);
+              const idx=GS.players.map((p,i)=>p?i:null).filter(i=>i!==null);
+              let sub=[];for(let r=0;r<rpp;r++)sub=[...sub,...shuf([...idx])];
+              let qp=shuf(QS.map((_,i)=>i));
+              while(qp.length<sub.length)qp=[...qp,...shuf(QS.map((_,i)=>i))];
+              GS={...GS,phase:'voting',subjects:sub,qSeq:qp.slice(0,sub.length),rt:sub.length,ri:0,votes:{},sa:-1,ready:{}};
+              await writeGS();
+            }
+          } else {
+            _allVotedAt=null;
+          }
+        }
+
+        if(GS.phase==='voting'){
+          // All GUESSERS (not subject) voted → advance to subject phase
+          const guessers=GS.players.filter((p,i)=>p&&i!==si);
+          const allGuessersVoted=guessers.every((p,gi)=>{
+            const pi=GS.players.indexOf(p); return GS.votes[pi]!==undefined;
+          });
+          if(allGuessersVoted && guessers.length>0){
+            if(!_allVotedAt) _allVotedAt=Date.now();
+            const remaining=Math.ceil((3000-(Date.now()-_allVotedAt))/1000);
+            if(remaining>0){
+              if($('sync-st'))$('sync-st').textContent=`Wszyscy zagłosowali! Za ${remaining}s…`;
+            } else {
+              _allVotedAt=null;
+              await fbPatch(`games/${gameId}`,{phase:'subject'});
+              GS.phase='subject';
+            }
+          } else {
+            _allVotedAt=null;
+            const done=guessers.filter((p,gi)=>{const pi=GS.players.indexOf(p);return GS.votes[pi]!==undefined;}).length;
+            if($('sync-st'))$('sync-st').textContent=`Odpowiedzi: ${done}/${guessers.length}`;
+          }
+        }
+
+        if(GS.phase==='subject'){
+          // Subject answered (sa set) → advance to reveal and award points
+          if(GS.sa!==-1){
+            if(!_allVotedAt) _allVotedAt=Date.now();
+            const remaining=Math.ceil((2000-(Date.now()-_allVotedAt))/1000);
+            if(remaining<=0){
+              _allVotedAt=null;
+              const next=norm(dc(GS));
+              next.phase='reveal';
+              next.players.forEach((p,i)=>{
+                if(p&&i!==si&&next.votes[i]==next.sa) next.players[i].pts++;
+              });
+              GS=next;
+              await writeGS();
+            }
+          }
+        }
+      }
+
+      render();
+      if(GS.phase!=='voting' && $('sync-st'))$('sync-st').textContent='Połączono';
+    }catch(e){
+      console.error('poll error:',e.message);
+      if($('sync-st'))$('sync-st').textContent='Błąd: '+e.message;
+    }
+  },POLL_MS);
+}
+function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
+
+async function writeGS(){
+  await fbPut(`games/${gameId}`,GS);
+}
+
+// ── CREATE ──
+async function createGame(){
+  const name=($('inp-name').value.trim()||'Gracz 1');
+  hideErr('home-err');
+  showErr('home-err','⏳ Tworzę grę…');
+  $('home-err').style.color='var(--muted)';
+  try{
+    gameId=rnd4();
+    GS={phase:'lobby',players:[{name,pts:0},null,null,null],subjects:[],qSeq:[],rt:0,ri:0,votes:{},sa:-1};
+    await fbPut(`games/${gameId}`,GS);
+    mySlot=0;isHost=true;
+    sessionStorage.setItem('ego_sess',JSON.stringify({gameId,mySlot}));
+    hideErr('home-err');
+    renderLobby();show('s-lobby');
+    startPoll();
+  }catch(e){
+    showErr('home-err','❌ Błąd połączenia z Firebase. Sprawdź URL bazy danych.');
+    $('home-err').style.color='var(--c0)';
+    console.error(e);
+  }
+}
+
+// ── JOIN ──
+async function joinGame(){
+  const name=($('inp-name').value.trim()||'Gracz');
+  const code=$('inp-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(code.length<2){showErr('home-err','Wpisz kod gry od hosta');return;}
+  hideErr('home-err');
+  showErr('home-err','⏳ Łączę…');
+  $('home-err').style.color='var(--muted)';
+  try{
+    const gs=await fbGet(`games/${code}`);
+    if(!gs){showErr('home-err','❌ Nie znaleziono gry. Sprawdź kod.');$('home-err').style.color='var(--c0)';return;}
+    gameId=code;GS=norm(gs);
+    sessionStorage.setItem('ego_name',name);
+    hideErr('home-err');
+    renderSlots(gs,name);show('s-slots');
+    startPoll();
+  }catch(e){
+    console.error('joinGame error:',e);
+    showErr('home-err','❌ Błąd: '+e.message);
+    $('home-err').style.color='var(--c0)';
+  }
+}
+
+// ── SLOTS ──
+function renderSlots(gs,name){
+  $('slots-sub').textContent=name?`Cześć ${name}! Wybierz swój slot:`:'Wybierz swój slot';
+  const grid=$('slot-grid');grid.innerHTML='';
+  for(let i=0;i<4;i++){
+    const p=gs.players[i];
+    const isMine=mySlot===i;
+    const div=document.createElement('div');
+    div.className='slot'+(p&&!isMine?' taken':'')+(isMine?' mine':'');
+    div.style.borderColor=p?C(i)+'88':'var(--rim)';
+    div.innerHTML=`
+      <div class="slot-av" style="background:${C(i)}22;color:${C(i)}">${p?p.name.charAt(0).toUpperCase():(i+1)}</div>
+      <div class="slot-name" style="color:${p?C(i):'var(--muted)'}">${p?p.name:'Wolny slot'}</div>
+      <div class="slot-pts">${p?p.pts+' pkt':'Kliknij aby dołączyć'}</div>
+      ${isMine?'<span class="slot-badge sb-you">ty</span>':(p?'':'<span class="slot-badge sb-free">wolny</span>')}
+    `;
+    if(!p||isMine)div.onclick=()=>claimSlot(i,name||'Gracz');
+    grid.appendChild(div);
+  }
+  $('slots-conn').innerHTML=`<span class="cdot dok"></span>Połączono. Wybierz slot aby dołączyć.`;
+}
+
+async function claimSlot(slot,name){
+  try{
+    // re-fetch to avoid race
+    const gs=await fbGet(`games/${gameId}`);
+    if(gs.players[slot]&&mySlot!==slot){alert('Ten slot jest już zajęty!');GS=norm(gs);renderSlots(norm(gs),name);return;}
+    GS=norm(dc(gs));
+    GS.players[slot]={name:name||'Gracz',pts:gs.players[slot]?.pts??0};
+    await fbPut(`games/${gameId}`,GS);
+    mySlot=slot;isHost=(slot===0);
+    sessionStorage.setItem('ego_sess',JSON.stringify({gameId,mySlot}));
+    renderLobby();show('s-lobby');
+  }catch(e){alert('Błąd – spróbuj ponownie');}
+}
+
+// ── COPY CODE ──
+function copyCode(){
+  const code=$('lob-code').textContent;
+  navigator.clipboard?.writeText(code).catch(()=>{});
+  $('lob-code').textContent='✓ Skopiowano!';
+  setTimeout(()=>$('lob-code').textContent=code,2000);
+}
+
+// ── LOBBY ──
+function renderLobby(){
+  if(!GS)return;
+  $('lob-code').textContent=gameId||'----';
+  const ready=GS.ready||{};
+  const players=GS.players;
+  const filled=players.filter(Boolean).length;
+  $('lob-cnt').textContent=`Gracze (${filled}/4)`;
+
+  $('lob-list').innerHTML=players.map((p,i)=>{
+    if(!p)return`<div style="background:var(--card);border:1.5px dashed var(--rim);border-radius:12px;padding:12px 16px;font-size:13px;color:var(--muted)">Slot ${i+1} — wolny</div>`;
+    const isReady=!!ready[i];
+    const readyBadge=isReady
+      ? `<span style="margin-left:auto;background:#14532d;color:#4ade80;border:1.5px solid #16a34a;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;">✓ gotowy</span>`
+      : `<span style="margin-left:auto;background:#2d1a1a;color:#f87171;border:1.5px solid #dc262655;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;">⏳ czeka</span>`;
+    return`<div class="prow" style="border:1.5px solid ${isReady?'#16a34a':C(i)+'44'};">
+      <div class="prow-dot" style="background:${C(i)}"></div>
+      <span style="font-weight:500">${p.name}</span>
+      ${i===0?'<span class="ptag tag-host" style="margin-left:6px">HOST</span>':''}
+      ${i===mySlot?'<span class="ptag tag-you" style="margin-left:6px">ty</span>':''}
+      ${readyBadge}
+    </div>`;
+  }).join('');
+
+  // Name change field
+  if(mySlot!==null){
+    $('lob-name-row').style.display='flex';
+    const curName=players[mySlot]?.name||'';
+    if($('lob-name-inp').value==='') $('lob-name-inp').value=curName;
+  }
+
+  // Ready button
+  if(mySlot!==null){
+    const btn=$('btn-ready');
+    btn.style.display='block';
+    const iAmReady=!!ready[mySlot];
+    if(iAmReady){
+      btn.textContent='✅ Jesteś gotowy/a — kliknij aby cofnąć';
+      btn.style.cssText='background:#14532d;color:#4ade80;border:2px solid #16a34a;border-radius:12px;padding:15px;font-size:15px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;width:100%;';
+    } else {
+      btn.textContent='Jestem gotowy/a ✓';
+      btn.style.cssText='background:var(--text);color:var(--bg);border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;width:100%;';
+    }
+  }
+
+  // Host controls
+  if(isHost){
+    $('lob-host').style.display='flex';
+    $('lob-guest').style.display='none';
+    // Check if all players ready
+    const allReady=players.every((p,i)=>!p||!!ready[i]);
+    if(isHost){
+      // Keep button but mark auto-starting
+      const btn=$('btn-start');
+      if(allReady && filled>=2){
+        btn.disabled=false;
+        btn.style.opacity='1';
+        btn.textContent='▶ Gra startuje automatycznie…';
+      } else {
+        btn.disabled=true;
+        btn.style.opacity='0.4';
+        const readyCount=players.filter((p,i)=>p&&!!ready[i]).length;
+        btn.textContent=`Gotowych: ${readyCount}/${filled} — czekaj…`;
+      }
+      $('lob-host').style.display='flex';
+      $('lob-guest').style.display='none';
+    } else {
+      $('lob-host').style.display='none';
+      $('lob-guest').style.display='block';
+      const readyCount=players.filter((p,i)=>p&&!!ready[i]).length;
+      $('lob-guest-conn').innerHTML=allReady
+        ? `<span class="cdot dok"></span>Wszyscy gotowi! Gra startuje za chwilę…`
+        : `<span class="cdot dwait"></span>Gotowych: ${readyCount}/${filled} — czekaj na pozostałych`;
+    }
+  show('s-lobby');
+}
+
+async function toggleReady(){
+  if(mySlot===null)return;
+  try{
+    const gs=await fbGet(`games/${gameId}`);
+    GS=norm(dc(gs));
+    if(!GS.ready) GS.ready={};
+    GS.ready[mySlot]=!GS.ready[mySlot];
+    await fbPatch(`games/${gameId}`,{ready:GS.ready});
+    renderLobby();
+  }catch(e){console.error('toggleReady',e);}
+}
+
+async function changeName(){
+  const newName=$('lob-name-inp').value.trim();
+  if(!newName||mySlot===null)return;
+  try{
+    const patch={};
+    patch[`players/${mySlot}/name`]=newName;
+    // Reset own ready when changing name
+    if(!GS.ready) GS.ready={};
+    GS.ready[mySlot]=false;
+    patch[`ready/${mySlot}`]=false;
+    await fbPatch(`games/${gameId}`,patch);
+    GS.players[mySlot].name=newName;
+    $('lob-name-inp').value='';
+    renderLobby();
+  }catch(e){console.error('changeName',e);}
+}
+
+async function leaveGame(){
+  if(!confirm('Na pewno chcesz opuścić grę?'))return;
+  try{
+    if(mySlot!==null){
+      const patch={};
+      patch[`players/${mySlot}`]=null;
+      patch[`ready/${mySlot}`]=null;
+      await fbPatch(`games/${gameId}`,patch);
+    }
+  }catch(e){}
+  stopPoll();
+  sessionStorage.removeItem('ego_sess');
+  sessionStorage.removeItem('ego_name');
+  gameId=null; mySlot=null; isHost=false; GS=null;
+  _localVote=null; _confirmedVote=null; _sjPick=null; _lastRi=null;
+  show('s-home');
+}
+
+// ── HOST START ──
+async function hostStart(){
+  if(!isHost)return;
+  const ps=GS.players.filter(Boolean);
+  if(ps.length<2){alert('Potrzeba co najmniej 2 graczy!');return;}
+  const ready=GS.ready||{};
+  const allReady=GS.players.every((p,i)=>!p||!!ready[i]);
+  if(!allReady){alert('Nie wszyscy gracze są gotowi!');return;}
+  const rpp=Math.max(1,parseInt($('rpp').value)||3);
+  const idx=GS.players.map((p,i)=>p?i:null).filter(i=>i!==null);
+  let sub=[];for(let r=0;r<rpp;r++)sub=[...sub,...shuf([...idx])];
+  let qp=shuf(QS.map((_,i)=>i));
+  while(qp.length<sub.length)qp=[...qp,...shuf(QS.map((_,i)=>i))];
+  GS={...GS,phase:'voting',subjects:sub,qSeq:qp.slice(0,sub.length),rt:sub.length,ri:0,votes:{},sa:-1,ready:{}};
+  await writeGS();render();
+}
+
+// ── RENDER ──
+function render(){
+  if(!GS)return;
+
+  // Reset local per-round state whenever round changes (for all players, not just host)
+  const currentRi = GS.ri ?? 0;
+  if(_lastRi !== null && _lastRi !== currentRi){
+    _localVote=null; _confirmedVote=null; _sjPick=null; _sjPending=null;
+  }
+  _lastRi = currentRi;
+
+  // If on slots screen, keep updating it
+  if($('s-slots').classList.contains('on')){
+    renderSlots(GS,sessionStorage.getItem('ego_name')||'Gracz');
+    return;
+  }
+  // Always follow the game phase — even if currently on lobby screen
+  switch(GS.phase){
+    case'lobby':  renderLobby();  break;
+    case'voting': renderVoting(); break;
+    case'subject':renderSubj();   break;
+    case'reveal': renderReveal(); break;
+    case'ended':  renderEnd();    break;
+  }
+}
+
+// ── helpers ──
+const SI=()=>GS.subjects[GS.ri]??0;
+const SP=()=>GS.players[SI()];
+const CQ=()=>QS[GS.qSeq[GS.ri]];
+const amSJ=()=>mySlot===SI();
+
+function mkSbar(id){
+  const el=$(id);if(!el||!GS)return;
+  el.innerHTML=GS.players.map((p,i)=>p
+    ?`<div class="sbi"><div class="sbi-n" style="color:${C(i)}">${p.name}</div><div class="sbi-v" style="color:${C(i)}">${p.pts}</div></div>`
+    :''
+  ).join('');
+}
+
+function buildAns(cid,answers,locked,chosen,correct,cb){
+  const c=$(cid);if(!c)return;c.innerHTML='';
+  answers.forEach((a,i)=>{
+    const btn=document.createElement('button');
+    btn.className='abtn'+(locked||correct!==null?' locked':'');
+    if(correct!==null&&i==correct)btn.classList.add('correct');
+    if(locked&&i===chosen)btn.classList.add('chosen');
+    btn.innerHTML=`<div class="anum">${i+1}</div><span>${a}</span>`;
+    if(!locked&&correct===null&&cb)btn.onclick=()=>cb(i);
+    c.appendChild(btn);
+  });
+}
+
+function setWait(color,name,title,desc,qt){
+  const av=$('w-av');
+  av.style.cssText=`width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;background:${color}22;color:${color};margin:0 auto;`;
+  av.textContent=name.charAt(0).toUpperCase();
+  $('w-title').textContent=title;
+  $('w-desc').textContent=desc;
+  $('w-q').textContent=qt;
+}
+
+// ── VOTING (guessers only) ──
+let _localVote = null;
+let _confirmedVote = null;
+
+function renderVoting(){
+  const q=CQ();if(!q)return;
+  const si=SI(),sp=SP();
+  mkSbar('sb-v'); mkSbar('sb-w');
+  $('qc-v').style.setProperty('--ac',C(si));
+  const ri=GS.ri+1,tot=GS.rt;
+
+  // Subject waits on wait screen while others vote
+  if(amSJ()){
+    const guessers=GS.players.filter((p,i)=>p&&i!==si);
+    const done=guessers.filter((p,gi)=>{
+      const pi=GS.players.indexOf(p); return GS.votes[pi]!==undefined;
+    }).length;
+    setWait(C(si),sp.name,'Inni o Tobie zgadują…',
+      `Zagłosowało ${done} z ${guessers.length} graczy`,
+      q.q.replace('[imię]',sp.name));
+    show('s-wait'); return;
+  }
+  if(mySlot===null||!GS.players[mySlot]){
+    setWait('#888','?','Trwa głosowanie…','Czekaj',q.q.replace('[imię]',sp.name));
+    show('s-wait'); return;
+  }
+
+  $('v-meta').textContent=`Runda ${ri} / ${tot}`;
+  $('v-about').innerHTML=`Pytanie o: <strong style="color:${C(si)}">${sp.name}</strong>`;
+  $('v-q').textContent=q.q.replace('[imię]',sp.name);
+
+  const fbVote=GS.votes[mySlot];
+  const voted=fbVote!==undefined||_confirmedVote!==null;
+  const shownVote=fbVote!==undefined?fbVote:(_confirmedVote!==null?_confirmedVote:_localVote);
+
+  if(voted){
+    buildAns('v-ans',q.a,true,shownVote,null,null);
+    $('btn-vote').style.display='none';
+    const guessers=GS.players.filter((p,i)=>p&&i!==si);
+    const done=guessers.filter((p,gi)=>{const pi=GS.players.indexOf(p);return GS.votes[pi]!==undefined;}).length;
+    $('v-st').innerHTML=`<span style="color:var(--c2)">✓ Zatwierdzone!</span> Czekaj na pozostałych… (${done}/${guessers.length})`;
+  } else {
+    buildAns('v-ans',q.a,false,null,null,i=>{
+      _localVote=i; renderVoting();
+    });
+    if(_localVote!==null){
+      const btns=document.querySelectorAll('#v-ans .abtn');
+      btns.forEach((b,i)=>{if(i==_localVote){b.classList.add('chosen');b.querySelector('.anum').style.background='var(--text)';b.querySelector('.anum').style.color='var(--bg)';}});
+      $('btn-vote').style.display='block';
+      $('v-st').textContent='Możesz zmienić wybór lub zatwierdź';
+    } else {
+      $('btn-vote').style.display='none';
+      $('v-st').textContent='Jak twoim zdaniem odpowie?';
+    }
+  }
+  show('s-vote');
+}
+
+function confirmVote(){
+  if(_localVote===null)return;
+  _confirmedVote=_localVote;
+  $('btn-vote').style.display='none';
+  buildAns('v-ans',QS[GS.qSeq[GS.ri]].a,true,_confirmedVote,null,null);
+  $('v-st').innerHTML=`<span style="color:var(--c2)">✓ Zatwierdzone! Czekaj na pozostałych…</span>`;
+  castVote(_confirmedVote);
+}
+
+async function castVote(ans){
+  try{
+    const patch={};
+    patch[`votes/${mySlot}`]=ans;
+    await fbPatch(`games/${gameId}`,patch);
+    GS.votes[mySlot]=ans;
+    render();
+  }catch(e){console.error('castVote',e);}
+}
+
+// ── SUBJECT answers last ──
+let _sjPending=null;
+
+function renderSubj(){
+  const q=CQ();if(!q)return;
+  const si=SI(),sp=SP();
+  mkSbar('sb-sj'); mkSbar('sb-w');
+  $('qc-sj').style.setProperty('--ac',C(si));
+  const ri=GS.ri+1,tot=GS.rt;
+
+  // Non-subject players wait
+  if(!amSJ()){
+    setWait(C(si),sp.name,`${sp.name} teraz odpowiada…`,
+      'Zaraz zobaczysz wyniki!',
+      q.q.replace('[imię]',sp.name));
+    show('s-wait'); return;
+  }
+
+  $('sj-meta').textContent=`Runda ${ri} / ${tot} — To pytanie jest o Tobie!`;
+  $('sj-about').textContent=`Odpowiedz szczerze, ${sp.name}!`;
+  $('sj-q').textContent=q.q.replace('[imię]',sp.name);
+
+  if(_sjPending!==null){
+    // Already picked — keep locked, show confirm button
+    buildAns('sj-ans',q.a,true,_sjPending,null,null);
+    $('btn-sj').style.display='block';
+  } else {
+    buildAns('sj-ans',q.a,false,null,null,i=>{
+      _sjPending=i;
+      buildAns('sj-ans',q.a,true,i,null,null);
+      // Allow changing — re-enable buttons
+      const btns=document.querySelectorAll('#sj-ans .abtn');
+      btns.forEach((b,bi)=>{
+        b.classList.remove('locked');
+        if(bi!=i){b.onclick=()=>{_sjPending=bi;renderSubj();}}
+      });
+      $('btn-sj').style.display='block';
+    });
+    $('btn-sj').style.display='none';
+  }
+  show('s-subj');
+}
+
+async function submitSJ(){
+  if(_sjPending===null)return;
+  try{
+    const patch={sa:_sjPending};
+    await fbPatch(`games/${gameId}`,patch);
+    GS.sa=_sjPending;
+    render();
+  }catch(e){console.error('submitSJ',e);}
+}
+
+
+// ── REVEAL ──
+function renderReveal(){
+  const q=CQ();if(!q)return;
+  const si=SI(),sp=SP(),correct=GS.sa;
+  mkSbar('sb-rv');
+  $('qc-rv').style.setProperty('--ac',C(si));
+  const ri=GS.ri+1,tot=GS.rt;
+  $('rv-meta').textContent=`Runda ${ri} / ${tot}`;
+  $('rv-about').innerHTML=`Odpowiedź <strong style="color:${C(si)}">${sp.name}</strong>:`;
+  $('rv-q').textContent=q.q.replace('[imię]',sp.name);
+
+  // ── PERSONAL RESULT BANNER ──
+  const myVote=GS.votes[mySlot];
+  const amI=mySlot!==null&&GS.players[mySlot];
+  const iAmSubject=amSJ();
+  let bannerHtml='';
+
+  if(amI && !iAmSubject && myVote!==undefined){
+    const hit=myVote==correct;
+    bannerHtml=`
+    <div style="
+      border-radius:18px;
+      padding:24px 20px;
+      background:${hit?'#052e16':'#450a0a'};
+      border:3px solid ${hit?'#16a34a':'#dc2626'};
+      text-align:center;
+    ">
+      <div style="font-size:56px;margin-bottom:8px">${hit?'🎉':'😬'}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:2px;color:${hit?'#4ade80':'#f87171'};line-height:1">
+        ${hit?'TRAFIŁEŚ/AŚ!':'PUDŁO!'}
+      </div>
+      <div style="font-size:14px;color:${hit?'#86efac':'#fca5a5'};margin-top:10px;line-height:1.5">
+        ${hit
+          ? `Twoja odpowiedź zgadza się z odpowiedzią ${sp.name} 🎯<br><strong>+1 punkt dla Ciebie!</strong>`
+          : `Twój wybór: <strong style="color:#fff">${q.a[myVote]}</strong><br>Poprawna: <strong style="color:#4ade80">${q.a[correct]}</strong>`
+        }
+      </div>
+    </div>`;
+  } else if(iAmSubject){
+    // Show subject how many guessed correctly
+    const guessers=GS.players.filter((p,i)=>p&&i!==si);
+    const correct_cnt=guessers.filter((p,gi)=>{
+      const pi=GS.players.indexOf(p);
+      return GS.votes[pi]==correct;
+    }).length;
+    bannerHtml=`
+    <div style="
+      border-radius:18px;padding:24px 20px;
+      background:#1e1b4b;border:3px solid #818cf8;
+      text-align:center;
+    ">
+      <div style="font-size:48px;margin-bottom:8px">🎯</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;color:#a5b4fc;line-height:1">
+        TO TWOJE PYTANIE
+      </div>
+      <div style="font-size:14px;color:#c7d2fe;margin-top:10px">
+        <strong style="color:#fff">${correct_cnt} z ${guessers.length}</strong> graczy odgadło Twoją odpowiedź
+      </div>
+    </div>`;
+  }
+  $('rv-banner').innerHTML=bannerHtml;
+
+  // ── ANSWERS with voter chips ──
+  const ac=$('rv-ans');ac.innerHTML='';
+  q.a.forEach((a,i)=>{
+    const btn=document.createElement('button');
+    const isCorrect=i==correct;
+    const isMyVote=!iAmSubject&&i==myVote;
+    btn.className='abtn locked'+(isCorrect?' correct':'');
+    if(isMyVote&&!isCorrect){
+      btn.style.cssText='border-color:#dc2626;background:#450a0a;pointer-events:none;cursor:default;';
+    }
+    const myTag=isMyVote
+      ? `<span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:${isCorrect?'#16a34a':'#dc2626'};color:#fff">${isCorrect?'TY ✓':'TY ✗'}</span>`
+      : '';
+    btn.innerHTML=`<div class="anum">${i+1}</div><span>${a}</span>${myTag}`;
+    const voters=GS.players.filter((p,pi)=>p&&pi!==si&&GS.votes[pi]==i);
+    if(voters.length){
+      const ch=document.createElement('div');ch.className='voter-chips';
+      voters.forEach(v=>{const pi=GS.players.indexOf(v),hit=i==correct;
+        ch.innerHTML+=`<span class="vchip" style="background:${C(pi)}22;color:${C(pi)};border:1px solid ${C(pi)}44">${hit?'✓':'✗'} ${v.name}</span>`;
+      });
+      btn.appendChild(ch);
+    }
+    ac.appendChild(btn);
+  });
+
+  $('rv-res').innerHTML=`<div class="rctitle">Wyniki rundy</div>
+    <div class="rvrow"><div class="rvl"><div class="rvdot" style="background:${C(si)}"></div><strong>${sp.name}</strong></div><span class="badge b-sub">Temat</span></div>`+
+    GS.players.map((p,i)=>{if(!p||i===si)return'';const hit=GS.votes[i]==correct;
+      return`<div class="rvrow${i===mySlot?' style="background:var(--rim);border-radius:8px;padding:9px 8px;margin:0 -8px"':''}"><div class="rvl"><div class="rvdot" style="background:${C(i)}"></div><span${i===mySlot?' style="font-weight:700"':''}>${p.name}${i===mySlot?' (ty)':''}</span></div><span class="badge ${hit?'b-yes':'b-no'}">${hit?'+1 pkt ✓':'Pudło ✗'}</span></div>`;}).join('');
+
+  const isLast=GS.ri+1>=GS.rt;
+  $('rv-btn').innerHTML=`<button class="btn btn-lit" onclick="nextRound()">${isLast?'🏆 Wyniki końcowe':'Następna runda →'}</button>`;
+  show('s-reveal');
+}
+
+async function nextRound(){
+  try{
+    const gs=await fbGet(`games/${gameId}`);
+    GS=norm(dc(gs));
+    if(GS.ri+1>=GS.rt){GS.phase='ended';}
+    else{GS.ri++;GS.votes={};GS.sa=-1;GS.phase='voting';_localVote=null;_confirmedVote=null;_sjPick=null;_sjPending=null;_allVotedAt=null;}
+    await writeGS();render();
+  }catch(e){console.error('nextRound',e);}
+}
+
+// ── END ──
+function renderEnd(){
+  const ps=[...GS.players.entries()].filter(([,p])=>p).map(([i,p])=>({...p,i})).sort((a,b)=>b.pts-a.pts);
+  const med=['🥇','🥈','🥉',''],h=[120,90,70,55];
+  $('end-pod').innerHTML=ps.map((p,rank)=>
+    `<div class="podcol"><div class="podbar" style="height:${h[rank]||40}px;background:${C(p.i)};color:#fff;">${med[rank]||''}</div><div style="font-size:12px;font-weight:600;color:${C(p.i)}">${p.name}</div><div style="font-size:11px;color:var(--muted)">${p.pts} pkt</div></div>`
+  ).join('');
+  $('end-sc').innerHTML='<div class="rctitle">Wyniki końcowe</div>'+
+    ps.map(p=>`<div class="rvrow"><div class="rvl"><div class="rvdot" style="background:${C(p.i)}"></div><span>${p.name}</span></div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:${C(p.i)}">${p.pts}</div></div>`).join('');
+  const eb=$('end-btns');eb.innerHTML='';
+  if(isHost){
+    const b=document.createElement('button');b.className='btn btn-lit';b.textContent='Zagraj ponownie';
+    b.onclick=async()=>{
+      GS={...GS,phase:'lobby',subjects:[],qSeq:[],ri:0,votes:{},sa:-1};
+      GS.players.forEach(p=>{if(p)p.pts=0;});
+      await writeGS();render();
+    };
+    eb.appendChild(b);
+  }
+  const h2=document.createElement('button');h2.className='btn btn-dim';h2.textContent='← Wyjdź';
+  h2.onclick=()=>leaveGame();
+  eb.appendChild(h2);
+  show('s-end');
+}
+
+// ── INIT ──
+(async()=>{
+  const sess=sessionStorage.getItem('ego_sess');
+  if(sess){
+    try{
+      const{gameId:gid,mySlot:ms}=JSON.parse(sess);
+      const gs=await fbGet(`games/${gid}`);
+      if(gs){gameId=gid;mySlot=ms;isHost=(ms===0);GS=norm(gs);render();startPoll();return;}
+    }catch(e){}
+  }
+  show('s-home');
+})();
+</script>
+</body>
+</html>
