@@ -172,7 +172,11 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="logo" style="font-size:42px">EGO<em>.</em></div>
     <div class="sub" id="slots-sub">Wybierz swój slot</div>
   </div>
-  <div class="label">Kto grasz?</div>
+  <div class="field">
+    <label style="font-size:13px;color:var(--muted);white-space:nowrap">Imię:</label>
+    <input id="slots-name-inp" type="text" placeholder="Twoje imię" maxlength="14" autocomplete="off" style="font-size:16px;font-weight:600;">
+    <button onclick="changeSlotName()" style="background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0">Zmień</button>
+  </div>
   <div class="slot-grid" id="slot-grid"></div>
   <div class="conn" id="slots-conn"><span class="cdot dwait"></span>Ładowanie…</div>
 </div>
@@ -627,7 +631,10 @@ async function joinGame(){
 
 // ── SLOTS ──
 function renderSlots(gs,name){
-  $('slots-sub').textContent=name?`Cześć ${name}! Wybierz swój slot:`:'Wybierz swój slot';
+  $('slots-sub').textContent='Wybierz swój slot';
+  // Pre-fill name input
+  const ni=$('slots-name-inp');
+  if(ni && ni.value==='' && name) ni.value=name;
   const grid=$('slot-grid');grid.innerHTML='';
   const max=gs.maxPlayers||8;
   for(let i=0;i<8;i++){
@@ -643,10 +650,23 @@ function renderSlots(gs,name){
       <div class="slot-pts">${p?p.pts+' pkt':'Kliknij aby dołączyć'}</div>
       ${isMine?'<span class="slot-badge sb-you">ty</span>':(p?'':'<span class="slot-badge sb-free">wolny</span>')}
     `;
-    if(!p||isMine)div.onclick=()=>claimSlot(i,name||'Gracz');
+    if(!p||isMine)div.onclick=()=>{
+      const n=($('slots-name-inp')?.value||'').trim()||name||'Gracz';
+      claimSlot(i,n);
+    };
     grid.appendChild(div);
   }
   $('slots-conn').innerHTML=`<span class="cdot dok"></span>Połączono. Wybierz slot aby dołączyć.`;
+}
+
+function changeSlotName(){
+  const newName=($('slots-name-inp')?.value||'').trim();
+  if(!newName){$('slots-name-inp')?.focus();return;}
+  // Update inp-name so createGame/joinGame pick it up too
+  if($('inp-name')) $('inp-name').value=newName;
+  sessionStorage.setItem('ego_name',newName);
+  // Re-render with new name
+  if(GS) renderSlots(GS,newName);
 }
 
 async function claimSlot(slot,name){
