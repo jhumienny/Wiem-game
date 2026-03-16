@@ -126,6 +126,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .maxp-btn{width:36px;height:36px;border-radius:8px;border:1.5px solid var(--rim);background:var(--card);color:var(--muted);font-family:'Bebas Neue',sans-serif;font-size:18px;cursor:pointer;transition:all .15s;}
 .maxp-btn:active{transform:scale(.95);}
 .maxp-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.mode-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px;border-radius:12px;border:1.5px solid var(--rim);background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s;}
+.mode-btn:active{transform:scale(.97);}
+.mode-btn-active{border-color:#7F77DD;background:#1e1b4b;color:var(--text);}
 .theme-btn{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:10px;border:1.5px solid var(--rim);background:var(--card);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;transition:all .15s;}
 .theme-btn:active{transform:scale(.95);}
 </style>
@@ -299,19 +302,28 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
         <button class="maxp-btn" data-n="8" onclick="setMaxPlayers(8)">8</button>
       </div>
     </div>
-    <div class="rrow-cfg" style="flex-direction:column;align-items:flex-start;gap:8px">
-      <label>Tryb gry</label>
-      <div style="display:flex;gap:6px;width:100%">
-        <button id="mode-rounds" class="maxp-btn active" style="flex:1;padding:10px 6px;white-space:normal;text-align:center;line-height:1.3" onclick="setGameMode('rounds')">
-          🔢 Rundy<br><span style="font-size:10px;font-weight:400;opacity:.7">X rund na gracza</span>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Tryb gry</label>
+      <div style="display:flex;gap:8px">
+        <button id="mode-rounds" class="mode-btn mode-btn-active" onclick="setGameMode('rounds')">
+          <span style="font-size:18px">🔢</span>
+          <span style="font-size:13px;font-weight:700">Na rundy</span>
+          <span style="font-size:10px;opacity:.65">X rund na gracza</span>
         </button>
-        <button id="mode-pool" class="maxp-btn" style="flex:1;padding:10px 6px;white-space:normal;text-align:center;line-height:1.3" onclick="setGameMode('pool')">
-          🪙 Żetony<br><span style="font-size:10px;font-weight:400;opacity:.7">do zera</span>
+        <button id="mode-pool" class="mode-btn" onclick="setGameMode('pool')">
+          <span style="font-size:18px">🪙</span>
+          <span style="font-size:13px;font-weight:700">Żetonowy</span>
+          <span style="font-size:10px;opacity:.65">do bankructwa</span>
         </button>
       </div>
-      <div id="rpp-row" style="display:flex;align-items:center;gap:10px;width:100%">
-        <label style="font-size:13px;color:var(--muted);white-space:nowrap">Rundy na gracza</label>
-        <input type="number" id="rpp" min="1" max="10" value="3">
+      <div id="rpp-row" style="display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:10px;padding:10px 12px">
+        <span style="font-size:13px;color:var(--muted);flex:1">Rund na gracza</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button onclick="adjustRpp(-1)" style="width:28px;height:28px;border-radius:8px;border:1.5px solid var(--rim);background:var(--card);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
+          <span id="rpp-display" style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;min-width:24px;text-align:center">3</span>
+          <input type="number" id="rpp" value="3" min="1" max="10" style="display:none">
+          <button onclick="adjustRpp(1)" style="width:28px;height:28px;border-radius:8px;border:1.5px solid var(--rim);background:var(--card);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
+        </div>
       </div>
     </div>
     <button class="btn btn-lit" id="btn-start" onclick="hostStart()">Rozpocznij grę ▶</button>
@@ -1239,16 +1251,27 @@ function setGameMode(mode){
   _gameMode=mode;
   ['rounds','pool'].forEach(m=>{
     const b=$('mode-'+m);
-    if(b){ b.classList.toggle('active',m===mode); }
+    if(b){
+      b.classList.toggle('mode-btn-active', m===mode);
+    }
   });
   const rppRow=$('rpp-row');
   if(rppRow) rppRow.style.display=mode==='rounds'?'flex':'none';
   if(gameId) fbPatch(`games/${gameId}`,{gameMode:mode}).catch(()=>{});
 }
 
+function adjustRpp(delta){
+  const inp=$('rpp');
+  const display=$('rpp-display');
+  if(!inp)return;
+  const val=Math.min(10,Math.max(1,(parseInt(inp.value)||3)+delta));
+  inp.value=val;
+  if(display) display.textContent=val;
+}
+
 function setMaxPlayers(n){
   _maxPlayers=n;
-  document.querySelectorAll('.maxp-btn').forEach(b=>{
+  document.querySelectorAll('.maxp-btn[data-n]').forEach(b=>{
     b.classList.toggle('active', parseInt(b.dataset.n)===n);
   });
   if(gameId) fbPatch(`games/${gameId}`,{maxPlayers:n}).catch(()=>{});
@@ -1540,7 +1563,7 @@ function renderLobby(){
 
   // Sync maxp-btn active state for host
   if(isHost){
-    document.querySelectorAll('.maxp-btn').forEach(b=>{
+    document.querySelectorAll('.maxp-btn[data-n]').forEach(b=>{
       b.classList.toggle('active', parseInt(b.dataset.n)===max);
     });
     _maxPlayers=max;
