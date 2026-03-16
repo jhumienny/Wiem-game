@@ -2379,11 +2379,34 @@ function updateColorBtns(row, idx){
 }
 let _qFilter='all'; // kept for compatibility but not used in UI
 
-function openQBrowser(){
-  _qMarkedView=false;
-  setQTab(_qTab);
-  updateReportedTabCount();
-  show('s-qbrowser');
+const ADMIN_HASH='41455bd85390f866c132887d4ec3771240b21700c1b8de233ddab2d832c20c00';
+
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function openQBrowser(){
+  // Check session — already authenticated this session?
+  if(sessionStorage.getItem('admin_ok')==='1'){
+    _qMarkedView=false;
+    setQTab(_qTab);
+    updateReportedTabCount();
+    show('s-qbrowser');
+    return;
+  }
+  const pw=prompt('🔒 Hasło do panelu:');
+  if(!pw)return;
+  const hash=await sha256(pw);
+  if(hash===ADMIN_HASH){
+    sessionStorage.setItem('admin_ok','1');
+    _qMarkedView=false;
+    setQTab(_qTab);
+    updateReportedTabCount();
+    show('s-qbrowser');
+  } else {
+    alert('❌ Błędne hasło');
+  }
 }
 
 function setQFilter(f){ _qFilter=f; }
