@@ -327,7 +327,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="vstatus" id="v-st"></div>
   <button class="btn btn-lit" id="btn-vote" style="display:none" onclick="confirmVote()">Zatwierdź odpowiedź ✓</button>
   <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33;margin-top:4px" onclick="leaveGame()">← Opuść grę</button>
-  <button class="btn btn-dim" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim);margin-top:0" onclick="reportCurrentQuestion()">⚑ Zgłoś błąd w pytaniu</button>
+  <button class="btn btn-dim" id="report-btn-v" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim);margin-top:0" onclick="reportCurrentQuestion('v')">⚑ Zgłoś błąd w pytaniu</button>
+  <button class="btn btn-dim" id="swap-btn-v" style="display:none;font-size:11px;padding:8px;color:var(--c3);border-color:var(--c3)55" onclick="swapReported('v')">🔄 Zamień pytanie na inne</button>
 </div>
 
 <!-- ══ WAIT ══ -->
@@ -340,7 +341,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="wq" id="w-q"></div>
   </div>
   <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33" onclick="leaveGame()">← Opuść grę</button>
-  <button class="btn btn-dim" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim);margin-top:0" onclick="reportCurrentQuestion()">⚑ Zgłoś błąd w pytaniu</button>
+  <button class="btn btn-dim" id="report-btn-w" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim);margin-top:0" onclick="reportCurrentQuestion('w')">⚑ Zgłoś błąd w pytaniu</button>
+  <button class="btn btn-dim" id="swap-btn-w" style="display:none;font-size:11px;padding:8px;color:var(--c3);border-color:var(--c3)55" onclick="swapReported('w')">🔄 Zamień pytanie na inne</button>
 </div>
 
 <!-- ══ SUBJECT ══ -->
@@ -354,7 +356,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="ans-list" id="sj-ans"></div>
   <button class="btn btn-dim" id="btn-swap-sj" style="display:none" onclick="swapQuestionSJ()"></button>
   <button class="btn btn-lit" id="btn-sj" style="display:none" onclick="submitSJ()">Zatwierdź i pozwól innym odpowiedzieć →</button>
-  <button class="btn btn-dim" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim)" onclick="reportCurrentQuestion()">⚑ Zgłoś błąd w pytaniu</button>
+  <button class="btn btn-dim" id="report-btn-sj" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim)" onclick="reportCurrentQuestion('sj')">⚑ Zgłoś błąd w pytaniu</button>
+  <button class="btn btn-dim" id="swap-btn-sj" style="display:none;font-size:11px;padding:8px;color:var(--c3);border-color:var(--c3)55" onclick="swapReported('sj')">🔄 Zamień pytanie na inne</button>
 </div>
 
 <!-- ══ REVEAL ══ -->
@@ -364,7 +367,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="ans-list" id="rv-ans"></div>
   <div class="rcard" id="rv-res"></div>
   <div id="rv-btn"></div>
-  <button class="btn btn-dim" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim)" onclick="reportCurrentQuestion()">⚑ Zgłoś błąd w pytaniu</button>
+  <button class="btn btn-dim" id="report-btn-rv" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim)" onclick="reportCurrentQuestion('rv')">⚑ Zgłoś błąd w pytaniu</button>
+  <button class="btn btn-dim" id="swap-btn-rv" style="display:none;font-size:11px;padding:8px;color:var(--c3);border-color:var(--c3)55" onclick="swapReported('rv')">🔄 Zamień pytanie na inne</button>
 </div>
 
 <!-- ══ END ══ -->
@@ -1731,6 +1735,7 @@ function buildAns(cid,answers,locked,chosen,correct,cb){
 }
 
 function setWait(color,name,title,desc,qt){
+  resetReportBtns('w');
   const av=$('w-av');
   av.style.cssText=`width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;background:${color}22;color:${color};margin:0 auto;`;
   av.textContent=name.charAt(0).toUpperCase();
@@ -1745,6 +1750,7 @@ let _confirmedVote = null;
 let _localBet = 1; // 1 or 2 points bet
 
 function renderVoting(){
+  resetReportBtns('v');
   const q=CQ();if(!q)return;
   const si=SI(),sp=SP();
   mkSbar('sb-v'); mkSbar('sb-w');
@@ -1907,6 +1913,7 @@ let _swapsLeft=2;    // resets each round, shared between voter and subject scre
 let _sjSwapsLeft=2;  // for subject screen
 
 function renderSubj(){
+  resetReportBtns('sj');
   const q=CQ();if(!q)return;
   const si=SI(),sp=SP();
   mkSbar('sb-sj'); mkSbar('sb-w');
@@ -1964,6 +1971,7 @@ async function submitSJ(){
 
 // ── REVEAL ──
 function renderReveal(){
+  resetReportBtns('rv');
   const q=CQ();if(!q)return;
   const si=SI(),sp=SP(),correct=GS.sa;
   mkSbar('sb-rv');
@@ -2142,42 +2150,36 @@ let _qReported={}; // idx → true
   try{ _qReported=JSON.parse(localStorage.getItem('wiem_qreported')||'{}'); }catch(e){}
 })();
 
-function reportCurrentQuestion(){
+function resetReportBtns(screenSuffix){
+  const rb=$('report-btn-'+screenSuffix);
+  const sb=$('swap-btn-'+screenSuffix);
+  if(rb){ rb.textContent='⚑ Zgłoś błąd w pytaniu'; rb.style.color=''; rb.disabled=false; }
+  if(sb){ sb.style.display='none'; sb.textContent='🔄 Zamień pytanie na inne'; sb.style.color=''; sb.disabled=false; }
+}
+
+function reportCurrentQuestion(screenSuffix){
   if(!GS)return;
   const idx=GS.qSeq?.[GS.ri];
   if(idx===undefined||idx===null)return;
   _qReported[idx]=true;
   try{ localStorage.setItem('wiem_qreported',JSON.stringify(_qReported)); }catch(e){}
   updateReportedTabCount();
-
-  // Replace button with confirmation + swap option
-  const btn=event.target;
-  const parent=btn.parentNode;
-  btn.textContent='✓ Zgłoszono!';
-  btn.style.color='var(--c2)';
-  btn.disabled=true;
-
-  // Show swap button below
-  const swapId='btn-report-swap-'+Date.now();
-  const swapBtn=document.createElement('button');
-  swapBtn.className='btn btn-dim';
-  swapBtn.style.cssText='font-size:11px;padding:8px;color:var(--c3);border-color:var(--c3)55';
-  swapBtn.textContent='🔄 Zamień pytanie na inne';
-  swapBtn.onclick=()=>{ swapReported(swapBtn); };
-  parent.insertBefore(swapBtn, btn.nextSibling);
+  const rb=$('report-btn-'+screenSuffix);
+  const sb=$('swap-btn-'+screenSuffix);
+  if(rb){ rb.textContent='✓ Zgłoszono!'; rb.style.color='var(--c2)'; rb.disabled=true; }
+  if(sb){ sb.style.display='block'; }
 }
 
-async function swapReported(swapBtn){
+async function swapReported(screenSuffix){
   if(!GS||!gameId)return;
-  swapBtn.disabled=true;
-  swapBtn.textContent='⏳ Zamieniam…';
+  const sb=$('swap-btn-'+screenSuffix);
+  if(sb){ sb.disabled=true; sb.textContent='⏳ Zamieniam…'; }
 
-  // Same logic as swapQuestionSJ but WITHOUT decrementing _sjSwapsLeft
   const allUsed=new Set([...(GS.qSeq||[]),...(GS.usedQs||[])]);
   allUsed.add(GS.qSeq[GS.ri]);
   const available=QS.map((_,i)=>i).filter(i=>!allUsed.has(i));
   const pool=available.length>0?available:QS.map((_,i)=>i).filter(i=>i!==GS.qSeq[GS.ri]);
-  if(!pool.length){ swapBtn.textContent='Brak dostępnych pytań'; return; }
+  if(!pool.length){ if(sb){sb.textContent='Brak dostępnych pytań';} return; }
   const newQIdx=pool[Math.floor(Math.random()*pool.length)];
 
   const usedQs=[...(GS.usedQs||[]),GS.qSeq[GS.ri]];
@@ -2194,12 +2196,10 @@ async function swapReported(swapBtn){
   _sjPending=null; _localVote=null; _confirmedVote=null;
   try{
     await fbPut(`games/${gameId}`,GS);
-    swapBtn.textContent='✓ Zamieniono!';
-    swapBtn.style.color='var(--c2)';
-    renderSubj();
+    if(sb){ sb.textContent='✓ Zamieniono!'; sb.style.color='var(--c2)'; }
+    render();
   }catch(e){
-    swapBtn.textContent='Błąd – spróbuj ponownie';
-    swapBtn.disabled=false;
+    if(sb){ sb.textContent='Błąd – spróbuj ponownie'; sb.disabled=false; }
   }
 }
 
