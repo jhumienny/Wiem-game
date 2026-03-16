@@ -172,14 +172,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="field" style="background:var(--bg)">
       <label style="font-size:13px;color:var(--muted);white-space:nowrap">Imię:</label>
       <input id="inp-name" type="text" placeholder="Twoje imię" maxlength="14" autocomplete="off"
-        style="font-size:16px;font-weight:600;">
+        style="font-size:16px;font-weight:600;"
+        onkeydown="event.stopPropagation()"
+        onkeyup="event.stopPropagation()">
     </div>
     <div style="height:1px;background:var(--rim)"></div>
     <div class="field" style="background:var(--bg)">
       <label style="font-size:13px;color:var(--muted);white-space:nowrap">Kod:</label>
       <input id="inp-code" type="text" placeholder="np. AB3K"
+        maxlength="4"
         style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:6px;text-transform:uppercase;"
-        oninput="this.value=this.value.toUpperCase()"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)"
         onkeydown="if(event.key==='Enter')joinGame()">
     </div>
     <button class="btn btn-dim" onclick="joinGame()">→ Dołącz do gry</button>
@@ -246,7 +249,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
   <div class="field">
     <label style="font-size:13px;color:var(--muted);white-space:nowrap">Imię:</label>
-    <input id="slots-name-inp" type="text" placeholder="Twoje imię" maxlength="14" autocomplete="off" style="font-size:16px;font-weight:600;">
+    <input id="slots-name-inp" type="text" placeholder="Twoje imię" maxlength="14" autocomplete="off" style="font-size:16px;font-weight:600;"
+      onkeydown="event.stopPropagation();if(event.key==='Enter')changeSlotName()"
+      onkeyup="event.stopPropagation()">
     <button onclick="changeSlotName()" style="background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0">Zmień</button>
   </div>
   <div class="slot-grid" id="slot-grid"></div>
@@ -269,7 +274,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <!-- Name change row -->
   <div class="field" id="lob-name-row" style="display:none">
     <label>Twoje imię:</label>
-    <input id="lob-name-inp" type="text" maxlength="14" autocomplete="off" placeholder="Zmień imię">
+    <input id="lob-name-inp" type="text" maxlength="14" autocomplete="off" placeholder="Zmień imię"
+      onkeydown="event.stopPropagation();if(event.key==='Enter')changeName()"
+      onkeyup="event.stopPropagation()">
     <button onclick="changeName()" style="background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0">OK</button>
   </div>
 
@@ -1085,6 +1092,15 @@ function answerForSubject(a){
 const C=i=>COLORS[i%4];
 const POLL_MS=2500;
 const $=id=>document.getElementById(id);
+
+// Prevent browser back navigation when backspace is pressed in an empty input
+document.addEventListener('keydown', e=>{
+  if(e.key==='Backspace'){
+    const t=e.target;
+    const isInput=t.tagName==='INPUT'||t.tagName==='TEXTAREA';
+    if(!isInput) e.preventDefault();
+  }
+}, true);
 const show=id=>{document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');};
 const shuf=a=>{const b=[...a];for(let i=b.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;};
 const dc=o=>JSON.parse(JSON.stringify(o));
