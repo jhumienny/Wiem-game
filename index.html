@@ -497,7 +497,7 @@ const QS=[
   {q:"Jak [imię] reaguje na głośne dzieci w restauracji?",          a:["Irytuje się i traci cierpliwość","Rozumie rodziców – dzieci są dziećmi","Ignoruje i rozmawia dalej"]},
   {q:"Co [imię] robi gdy jest w złym nastroju?",                    a:["Mówi o tym i prosi o wsparcie","Chce zostać sam/a i poczekać aż minie","Idzie na trening lub spacer"]},
   {q:"Jak [imię] podchodzi do polityki?",                           a:["Aktywnie się interesuje i wyraża opinie","Śledzi ale nie angażuje się publicznie","Unika tematu – polityka to bagno"]},
-  {q:"Co [imię] robi gdy czuje że ktoś go/ją nie lubi?",           a:["Stara się zmienić jego/jej zdanie","Nie przejmuje się – nie wszystkim musi się podobać","Zastanawia się co zrobił/a źle"]},
+  {q:"Co [imię] robi gdy czuje że ktoś go/ją nie lubi?",           a:["Stara się zmienić jego/jej zdanie","Nie przejmuje się – nie wszystkim musi się podobać","Zastanawia się co zrobiłem/łam źle"]},
   {q:"Jak [imię] zachowuje się podczas świąt?",                     a:["Uwielbia rodzinne spotkania i tradycje","Wytrzymuje z rodziną bo tak wypada","Woli spokój – święta to dla niego/niej stres"]},
   {q:"Co [imię] wybiera gdy ma wybór między kawą a herbatą?",       a:["Kawa – bez niej nie istnieje","Herbata – ciepła i spokojna","Obojętne – zależy od nastroju"]},
   {q:"Jak [imię] reaguje na opóźnienia (np. pociąg, autobus)?",     a:["Traci cierpliwość szybko","Korzysta z czasu na telefon lub książkę","Stara się nie denerwować"]},
@@ -978,6 +978,7 @@ function gW(name,masc,fem){return isFeminine(name)?fem:masc;}
 function qForSubject(q){
   let s=q.replace(/\s*\[imię\]\s*/g,' ').trim();
   s=s.replace(/\bjego\/jej\b/gi,'twoje').replace(/\bjego\b/gi,'twoje').replace(/\bjej\b/gi,'twoje');
+  s=s.replace(/go\/ją/gi,'Cię').replace(/\bgo\b/gi,'Cię').replace(/\bją\b/gi,'Cię');
   // Fix specific patterns before verb mapping
   s=s.replace(/nie może zasnąć/i,'nie możesz zasnąć');
   s=s.replace(/gdyby wygrał\/a/i,'Gdybyś wygrał/a');
@@ -1036,6 +1037,9 @@ function answerForSubject(a){
     ['Wychodzi po 2 godzinach','Wychodzę po 2 godzinach'],
     ['Siedzi z jedną osobą','Siedzę z jedną osobą'],
     ['Stara się odzyskać','Staram się odzyskać'],
+    ['Stara się zmienić','Staram się zmienić'],
+    ['Zastanawia się co','Zastanawiam się co'],
+    ['Zastanawia się','Zastanawiam się'],
     ['Stara się','Staram się'],
     ['Pozwala chętnie','Pozwalam chętnie'],
     ['Pozwala','Pozwalam'],
