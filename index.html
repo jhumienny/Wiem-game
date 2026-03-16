@@ -1067,7 +1067,6 @@ function startPoll(){
       const gs=await fbGet(`games/${gameId}`);
       if(!gs){clearInterval(pollTimer);return;}
       GS=norm(gs);
-      console.log('[POLL] phase='+GS.phase+' players='+JSON.stringify(GS.players.filter(Boolean).map(p=>p?.name)));
 
       // Host only: manage phase transitions
       if(isHost){
@@ -1129,10 +1128,13 @@ function startPoll(){
               const next=norm(dc(GS));
               next.phase='reveal';
               next.players.forEach((p,i)=>{
-                if(p&&i!==si&&next.votes[i]==next.sa){
-                  const bet=parseInt(next.bets?.[i])||1;
-                  next.players[i].pts+=bet;   // guesser gets bet pts
-                  next.players[si].pts++;      // subject gets 1 pt per correct guesser
+                if(!p||i===si)return;
+                const bet=parseInt(next.bets?.[i])||1;
+                if(next.votes[i]==next.sa){
+                  next.players[i].pts+=bet;   // correct: +bet from pool
+                  next.players[si].pts++;      // subject: +1 per correct guesser
+                } else {
+                  next.players[i].pts-=bet;   // wrong: -bet to pool
                 }
               });
               GS=next;
@@ -1168,7 +1170,7 @@ async function createGame(){
   $('home-err').style.color='var(--muted)';
   try{
     gameId=rnd4();
-    GS={phase:'lobby',players:[{name,pts:0},null,null,null],subjects:[],qSeq:[],rt:0,ri:0,votes:{},bets:{},sa:-1,ready:{},maxPlayers:4};
+    GS={phase:'lobby',players:[{name,pts:10},null,null,null],subjects:[],qSeq:[],rt:0,ri:0,votes:{},bets:{},sa:-1,ready:{},maxPlayers:4};
     await fbPut(`games/${gameId}`,GS);
     mySlot=0;isHost=true;
     sessionStorage.setItem('ego_sess',JSON.stringify({gameId,mySlot}));
@@ -1275,7 +1277,7 @@ async function claimSlot(slot,name){
       return;
     }
     GS=norm(dc(gs));
-    GS.players[slot]={name:name||'Gracz',pts:gs.players[slot]?.pts??0};
+    GS.players[slot]={name:name||'Gracz',pts:gs.players[slot]?.pts??10};
     await fbPut(`games/${gameId}`,GS);
     mySlot=slot;isHost=(slot===0);
     sessionStorage.setItem('ego_sess',JSON.stringify({gameId,mySlot}));
@@ -1294,7 +1296,6 @@ function copyCode(){
 // ── LOBBY ──
 function renderLobby(){
   if(!GS)return;
-  console.log('[LOBBY] rendering, players:', GS.players.filter(Boolean).map(p=>p?.name), 'max:', GS.maxPlayers);
   $('lob-code').textContent=gameId||'----';
   const ready=GS.ready||{};
   const players=GS.players;
@@ -1521,7 +1522,7 @@ function mkSbar(id){
   const el=$(id);if(!el||!GS)return;
   const max=GS.maxPlayers||4;
   el.innerHTML=GS.players.slice(0,max).map((p,i)=>p
-    ?`<div class="sbi"><div class="sbi-n" style="color:${C(i)}">${p.name}</div><div class="sbi-v" style="color:${C(i)}">${p.pts}</div></div>`
+    ?`<div class="sbi"><div class="sbi-n" style="color:${C(i)}">${p.name}</div><div class="sbi-v" style="color:${C(i)}">${p.pts} 🪙</div></div>`
     :''
   ).join('');
 }
@@ -1779,6 +1780,7 @@ function renderReveal(){
   const ri=GS.ri+1,tot=GS.rt;
 
   const myVote=GS.votes[mySlot];
+  const myBet=parseInt((GS.bets||{})[mySlot])||1;
   const amI=mySlot!==null&&GS.players[mySlot];
   const iAmSubject=amSJ();
   const myName=GS.players[mySlot]?.name||'';
@@ -1791,8 +1793,8 @@ function renderReveal(){
       <div style="font-size:44px;margin-bottom:6px">${hit?'🎉':'😬'}</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;color:${hit?'#4ade80':'#f87171'};line-height:1">${hit?gW(myName,'TRAFIŁEŚ!','TRAFIŁAŚ!'):'PUDŁO!'}</div>
       <div style="font-size:13px;color:${hit?'#86efac':'#fca5a5'};margin-top:8px;line-height:1.5">${hit
-        ?`Twoja odpowiedź = odpowiedź ${sp.name} 🎯 &nbsp;<strong>+1 pkt</strong>`
-        :`${gW(myName,'Wybrałeś','Wybrałaś')}: <strong style="color:#fff">${q.a[myVote]}</strong> &nbsp;·&nbsp; Poprawna: <strong style="color:#4ade80">${q.a[correct]}</strong>`
+        ?`Twoja odpowiedź = odpowiedź ${sp.name} 🎯 &nbsp;<strong>+${myBet} ${myBet===1?'żeton':'żetony'} z puli!</strong>`
+        :`${gW(myName,'Wybrałeś','Wybrałaś')}: <strong style="color:#fff">${q.a[myVote]}</strong> &nbsp;·&nbsp; Poprawna: <strong style="color:#4ade80">${q.a[correct]}</strong><br><strong style="color:#f87171">-${myBet} ${myBet===1?'żeton':'żetony'} do puli</strong>`
       }</div>
     </div>`;
   } else if(iAmSubject){
@@ -1858,7 +1860,7 @@ function renderReveal(){
     <div class="rvrow"><div class="rvl"><div class="rvdot" style="background:${C(si)}"></div><strong>${sp.name}</strong><span class="badge b-sub" style="margin-left:8px">Temat</span></div><span class="badge ${subjPts>0?'b-yes':'b-no'}">+${subjPts} ${subjPts===1?'pkt':'pkt'}</span></div>`+
     GS.players.map((p,i)=>{if(!p||i===si)return'';const hit=GS.votes[i]==correct;
       const bet=parseInt((GS.bets||{})[i])||1;
-      return`<div class="rvrow${i===mySlot?' style="background:var(--rim);border-radius:8px;padding:9px 8px;margin:0 -8px"':''}"><div class="rvl"><div class="rvdot" style="background:${C(i)}"></div><span${i===mySlot?' style="font-weight:700"':''}>${p.name}${i===mySlot?' (ty)':''}</span><span style="font-size:11px;color:var(--muted);margin-left:6px">×${bet}</span></div><span class="badge ${hit?'b-yes':'b-no'}">${hit?`+${bet} pkt`:'Pudło'}</span></div>`;
+      return`<div class="rvrow${i===mySlot?' style="background:var(--rim);border-radius:8px;padding:9px 8px;margin:0 -8px"':''}"><div class="rvl"><div class="rvdot" style="background:${C(i)}"></div><span${i===mySlot?' style="font-weight:700"':''}>${p.name}${i===mySlot?' (ty)':''}</span><span style="font-size:11px;color:var(--muted);margin-left:6px">×${bet}</span></div><span class="badge ${hit?'b-yes':'b-no'}">${hit?`+${bet} 🪙`:`-${bet} 🪙`}</span></div>`;
     }).join('');
 
   const isLast=GS.ri+1>=GS.rt;
@@ -1890,7 +1892,7 @@ function renderEnd(){
     const b=document.createElement('button');b.className='btn btn-lit';b.textContent='Zagraj ponownie';
     b.onclick=async()=>{
       GS={...GS,phase:'lobby',subjects:[],qSeq:[],ri:0,votes:{},sa:-1};
-      GS.players.forEach(p=>{if(p)p.pts=0;});
+      GS.players.forEach(p=>{if(p)p.pts=10;});
       await writeGS();render();
     };
     eb.appendChild(b);
