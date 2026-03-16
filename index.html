@@ -266,8 +266,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="qtext" id="sj-q"></div>
   </div>
   <div class="ans-list" id="sj-ans"></div>
-  <button class="btn btn-lit" id="btn-sj" style="display:none" onclick="submitSJ()">Pokaż wyniki! 🎉</button>
   <button class="btn btn-dim" id="btn-swap-sj" style="display:none" onclick="swapQuestionSJ()"></button>
+  <button class="btn btn-lit" id="btn-sj" style="display:none" onclick="submitSJ()">Pokaż wyniki! 🎉</button>
 </div>
 
 <!-- ══ REVEAL ══ -->
@@ -515,7 +515,7 @@ function startPoll(){
               let sub=[];for(let r=0;r<rpp;r++)sub=[...sub,...shuf([...idx])];
               let qp=shuf(QS.map((_,i)=>i));
               while(qp.length<sub.length)qp=[...qp,...shuf(QS.map((_,i)=>i))];
-              GS={...GS,phase:'voting',subjects:sub,qSeq:qp.slice(0,sub.length),rt:sub.length,ri:0,votes:{},sa:-1,ready:{}};
+              GS={...GS,phase:'subject',subjects:sub,qSeq:qp.slice(0,sub.length),rt:sub.length,ri:0,votes:{},sa:-1,ready:{}};
               await writeGS();
             }
           } else {
@@ -523,8 +523,23 @@ function startPoll(){
           }
         }
 
+        if(GS.phase==='subject'){
+          // Subject answered (sa set) → advance to voting so guessers can answer
+          if(GS.sa!==-1){
+            if(!_allVotedAt) _allVotedAt=Date.now();
+            const remaining=Math.ceil((2000-(Date.now()-_allVotedAt))/1000);
+            if(remaining>0){
+              if($('sync-st'))$('sync-st').textContent=`Temat odpowiedział! Zagłosujcie za ${remaining}s…`;
+            } else {
+              _allVotedAt=null;
+              await fbPatch(`games/${gameId}`,{phase:'voting'});
+              GS.phase='voting';
+            }
+          }
+        }
+
         if(GS.phase==='voting'){
-          // All GUESSERS (not subject) voted → advance to subject phase
+          // All GUESSERS voted → advance to reveal and award points
           const guessers=GS.players.filter((p,i)=>p&&i!==si);
           const allGuessersVoted=guessers.every((p,gi)=>{
             const pi=GS.players.indexOf(p); return GS.votes[pi]!==undefined;
@@ -533,39 +548,24 @@ function startPoll(){
             if(!_allVotedAt) _allVotedAt=Date.now();
             const remaining=Math.ceil((3000-(Date.now()-_allVotedAt))/1000);
             if(remaining>0){
-              if($('sync-st'))$('sync-st').textContent=`Wszyscy zagłosowali! Za ${remaining}s…`;
+              if($('sync-st'))$('sync-st').textContent=`Wszyscy zagłosowali! Wyniki za ${remaining}s…`;
             } else {
               _allVotedAt=null;
-              await fbPatch(`games/${gameId}`,{phase:'subject'});
-              GS.phase='subject';
+              const next=norm(dc(GS));
+              next.phase='reveal';
+              next.players.forEach((p,i)=>{
+                if(p&&i!==si&&next.votes[i]==next.sa){
+                  next.players[i].pts++;   // guesser gets 1 pt
+                  next.players[si].pts++;  // subject gets 1 pt per correct guesser
+                }
+              });
+              GS=next;
+              await writeGS();
             }
           } else {
             _allVotedAt=null;
             const done=guessers.filter((p,gi)=>{const pi=GS.players.indexOf(p);return GS.votes[pi]!==undefined;}).length;
             if($('sync-st'))$('sync-st').textContent=`Odpowiedzi: ${done}/${guessers.length}`;
-          }
-        }
-
-        if(GS.phase==='subject'){
-          // Subject answered (sa set) → advance to reveal and award points
-          if(GS.sa!==-1){
-            if(!_allVotedAt) _allVotedAt=Date.now();
-            const remaining=Math.ceil((2000-(Date.now()-_allVotedAt))/1000);
-            if(remaining<=0){
-              _allVotedAt=null;
-              const next=norm(dc(GS));
-              next.phase='reveal';
-              next.players.forEach((p,i)=>{
-                next.players.forEach((p,i)=>{
-                  if(p&&i!==si&&next.votes[i]==next.sa){
-                    next.players[i].pts++;   // guesser gets 1 pt
-                    next.players[si].pts++;  // subject gets 1 pt per correct guesser
-                  }
-                });
-              });
-              GS=next;
-              await writeGS();
-            }
           }
         }
       }
@@ -858,7 +858,7 @@ async function hostStart(){
   let sub=[];for(let r=0;r<rpp;r++)sub=[...sub,...shuf([...idx])];
   let qp=shuf(QS.map((_,i)=>i));
   while(qp.length<sub.length)qp=[...qp,...shuf(QS.map((_,i)=>i))];
-  GS={...GS,phase:'voting',subjects:sub,qSeq:qp.slice(0,sub.length),rt:sub.length,ri:0,votes:{},sa:-1,ready:{}};
+  GS={...GS,phase:'subject',subjects:sub,qSeq:qp.slice(0,sub.length),rt:sub.length,ri:0,votes:{},sa:-1,ready:{}};
   await writeGS();render();
 }
 
@@ -972,7 +972,7 @@ function renderVoting(){
   $('qc-v').style.setProperty('--ac',C(si));
   const ri=GS.ri+1,tot=GS.rt;
 
-  // Subject sees question + locked answers while others vote
+  // In voting phase subject already answered — show them a wait screen
   if(amSJ()){
     const guessers=GS.players.filter((p,i)=>p&&i!==si);
     const done=guessers.filter((p,gi)=>{
@@ -981,16 +981,15 @@ function renderVoting(){
     mkSbar('sb-v');
     $('qc-v').style.setProperty('--ac',C(si));
     $('v-meta').textContent=`Runda ${ri} / ${tot}`;
-    $('v-about').innerHTML=`To pytanie jest o <strong style="color:${C(si)}">Tobie</strong>!`;
+    $('v-about').innerHTML=`Inni zgadują Twoją odpowiedź…`;
     $('v-q').textContent=q.q.replace('[imię]',sp.name);
-    // Show answers locked — subject can see options but can't pick yet
     buildAns('v-ans',q.a,true,null,null,null);
     $('btn-vote').style.display='none';
     $('v-st').innerHTML=`
       <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:14px 16px;text-align:center;margin-top:4px">
         <div style="font-size:20px;margin-bottom:6px">🤫</div>
-        <div style="font-weight:600;font-size:14px;margin-bottom:4px">Poczekaj na pozostałych!</div>
-        <div style="color:var(--muted);font-size:13px">Twoja kolej po nich — zagłosowało ${done} z ${guessers.length}</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">Już odpowiedziałeś/aś!</div>
+        <div style="color:var(--muted);font-size:13px">Zagłosowało ${done} z ${guessers.length} graczy</div>
       </div>`;
     show('s-vote'); return;
   }
@@ -1048,14 +1047,14 @@ async function swapQuestionSJ(){
   GS.qSeq=newSeq;
   GS.votes={};
   GS.sa=-1;
-  GS.phase='voting';
+  GS.phase='subject'; // subject must answer the new question first
   const swapAt=Date.now();
   GS.swapAt=swapAt;
   _lastSwapAt=swapAt;
   _allVotedAt=null;
   _sjPending=null; _localVote=null; _confirmedVote=null;
   try{ await fbPut(`games/${gameId}`,GS); } catch(e){ console.error('swap write',e); }
-  renderVoting(); // subject now waits on vote screen like others
+  renderSubj(); // subject answers the new question
 }
 
 function _swapBtnLabel(left){ return left>0 ? `🔄 Zmień pytanie (zostało: ${left})` : '🔄 Brak wymian'; }
@@ -1094,8 +1093,8 @@ function renderSubj(){
 
   // Non-subject players wait
   if(!amSJ()){
-    setWait(C(si),sp.name,`${sp.name} teraz odpowiada…`,
-      'Zaraz zobaczysz wyniki!',
+    setWait(C(si),sp.name,`${sp.name} wybiera odpowiedź…`,
+      'Twoja kolej zaraz — poczekaj!',
       q.q.replace('[imię]',sp.name));
     show('s-wait'); return;
   }
@@ -1104,28 +1103,33 @@ function renderSubj(){
   $('sj-about').textContent=`Odpowiedz szczerze, ${sp.name}!`;
   $('sj-q').textContent=q.q.replace('[imię]',sp.name);
 
+  // Swap button always shown at top (before or after selection, until confirmed)
+  const sb=$('btn-swap-sj');
+  sb.style.display='block';
+  sb.textContent=_swapBtnLabel(_sjSwapsLeft);
+  sb.disabled=_sjSwapsLeft<=0;
+  sb.style.opacity=_sjSwapsLeft>0?'1':'0.4';
+
   if(_sjPending!==null){
-    buildAns('sj-ans',q.a,true,_sjPending,null,null);
+    // Already picked — allow changing + show confirm
+    buildAns('sj-ans',q.a,false,null,null,i=>{
+      _sjPending=i; renderSubj();
+    });
+    // Highlight chosen
+    const btns=document.querySelectorAll('#sj-ans .abtn');
+    btns.forEach((b,bi)=>{
+      if(bi==_sjPending){
+        b.classList.add('chosen');
+        b.querySelector('.anum').style.background='var(--text)';
+        b.querySelector('.anum').style.color='var(--bg)';
+      }
+    });
     $('btn-sj').style.display='block';
-    $('btn-swap-sj').style.display='none';
   } else {
     buildAns('sj-ans',q.a,false,null,null,i=>{
-      _sjPending=i;
-      buildAns('sj-ans',q.a,true,i,null,null);
-      const btns=document.querySelectorAll('#sj-ans .abtn');
-      btns.forEach((b,bi)=>{
-        b.classList.remove('locked');
-        if(bi!=i){b.onclick=()=>{_sjPending=bi;renderSubj();}}
-      });
-      $('btn-sj').style.display='block';
+      _sjPending=i; renderSubj();
     });
     $('btn-sj').style.display='none';
-    // Swap button — only before answering
-    const sb=$('btn-swap-sj');
-    sb.style.display='block';
-    sb.textContent=_swapBtnLabel(_sjSwapsLeft);
-    sb.disabled=_sjSwapsLeft<=0;
-    sb.style.opacity=_sjSwapsLeft>0?'1':'0.4';
   }
   show('s-subj');
 }
@@ -1248,7 +1252,7 @@ async function nextRound(){
     const gs=await fbGet(`games/${gameId}`);
     GS=norm(dc(gs));
     if(GS.ri+1>=GS.rt){GS.phase='ended';}
-    else{GS.ri++;GS.votes={};GS.sa=-1;GS.phase='voting';_localVote=null;_confirmedVote=null;_sjPick=null;_sjPending=null;_swapsLeft=2;_sjSwapsLeft=2;_lastSwapAt=null;_allVotedAt=null;}
+    else{GS.ri++;GS.votes={};GS.sa=-1;GS.phase='subject';_localVote=null;_confirmedVote=null;_sjPick=null;_sjPending=null;_swapsLeft=2;_sjSwapsLeft=2;_lastSwapAt=null;_allVotedAt=null;}
     await writeGS();render();
   }catch(e){console.error('nextRound',e);}
 }
