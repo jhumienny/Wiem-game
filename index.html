@@ -904,147 +904,134 @@ function setMaxPlayers(n){
   renderLobby();
 }
 
+// ── Firebase Realtime listener (SSE) instead of polling ──
+let _sseSource=null;
+
 function startPoll(){
-  if(pollTimer)clearInterval(pollTimer);
-  pollTimer=setInterval(async()=>{
-    if(!gameId)return;
+  stopPoll();
+  if(!gameId)return;
+  _sseSource=new EventSource(`${DB_URL}/games/${gameId}.json?stream=true`);
+  _sseSource.addEventListener('put',async(ev)=>{
+    try{
+      const msg=JSON.parse(ev.data);
+      if(!msg||msg.data===null){stopPoll();return;}
+      if(msg.path==='/'||!msg.path){GS=norm(msg.data);}
+      else{const gs=await fbGet(`games/${gameId}`);if(!gs){stopPoll();return;}GS=norm(gs);}
+      await handleGSUpdate();
+    }catch(e){console.error('SSE error',e.message);}
+  });
+  _sseSource.addEventListener('patch',async()=>{
     try{
       const gs=await fbGet(`games/${gameId}`);
-      if(!gs){clearInterval(pollTimer);return;}
-      GS=norm(gs);
-
-      // Always re-render lobby immediately when in lobby phase — but only if player is in lobby, not on slot-pick screen
-      if(GS.phase==='lobby' && mySlot!==null && !$('s-slots').classList.contains('on')){
-        renderLobby();
-      }
-
-      // Host only: manage phase transitions
-      if(isHost){
-        const si=GS.subjects[GS.ri]??0;
-
-        // Auto-start: all players ready in lobby
-        if(GS.phase==='lobby'){
-          const filled=GS.players.filter(Boolean);
-          const ready=GS.ready||{};
-          const allReady=filled.length>=2 && GS.players.every((p,i)=>!p||!!ready[i]);
-          if(allReady){
-            if(!_allVotedAt) _allVotedAt=Date.now();
-            const remaining=Math.ceil((3000-(Date.now()-_allVotedAt))/1000);
-            if(remaining>0){
-              if($('sync-st'))$('sync-st').textContent=`Wszyscy gotowi! Start za ${remaining}s…`;
-            } else {
-              _allVotedAt=null;
-              const mode=_gameMode;
-              const idx=GS.players.map((p,i)=>p?i:null).filter(i=>i!==null);
-              let sub=[];
-              if(mode==='rounds'){
-                const rpp=Math.max(1,parseInt($('rpp')?.value)||3);
-                for(let r=0;r<rpp;r++)sub=[...sub,...shuf([...idx])];
-              } else {
-                for(let r=0;r<100;r++)sub=[...sub,...shuf([...idx])];
-              }
-              const qPool=_selectedCat
-                ? QS.map((_,i)=>i).filter(i=>(_qCatMap[i]||[]).includes(_selectedCat))
-                : QS.map((_,i)=>i);
-              const qPoolFinal=qPool.length>0?qPool:QS.map((_,i)=>i);
-              if(qPoolFinal.length===0) return; // no questions yet
-              let qp=shuf([...qPoolFinal]);
-              let _safety=0;
-              while(qp.length<sub.length && _safety++<200)qp=[...qp,...shuf([...qPoolFinal])];
-              const qSeq=qp.slice(0,sub.length);
-              const playerCount=GS.players.filter(Boolean).length;
-              const playerNames=GS.players.map((p,i)=>p?{name:p.name,slot:i}:null).filter(Boolean);
-              const qAnswers={};
-              qSeq.forEach((qIdx,ri)=>{
-                const qq=QS[qIdx];
-                if(qq&&qq.type==='players'){
-                  const subjSlot=sub[ri];
-                  const opts=playerNames.map(p=>p.name);
-                  if(opts.length>0) qAnswers[ri]=opts;
-                }
-              });
-              GS={...GS,phase:'subject',gameMode:mode,subjects:sub,qSeq,qAnswers,rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:playerCount*10};
-              await writeGS();
-            }
-          } else {
-            _allVotedAt=null;
-          }
-        }
-
-        if(GS.phase==='subject'){
-          // Subject answered (sa set) → advance to voting so guessers can answer
-          if(GS.sa!==-1){
-            if(!_allVotedAt) _allVotedAt=Date.now();
-            const remaining=Math.ceil((2000-(Date.now()-_allVotedAt))/1000);
-            if(remaining>0){
-              if($('sync-st'))$('sync-st').textContent=`Temat odpowiedział! Zagłosujcie za ${remaining}s…`;
-            } else {
-              _allVotedAt=null;
-              await fbPatch(`games/${gameId}`,{phase:'voting'});
-              GS.phase='voting';
-            }
-          }
-        }
-
-        if(GS.phase==='voting'){
-          // All GUESSERS voted → advance to reveal and award points
-          const guessers=GS.players.filter((p,i)=>p&&i!==si);
-          const allGuessersVoted=guessers.every((p,gi)=>{
-            const pi=GS.players.indexOf(p); return GS.votes[pi]!==undefined;
-          });
-          if(allGuessersVoted && guessers.length>0){
-            if(!_allVotedAt) _allVotedAt=Date.now();
-            const remaining=Math.ceil((3000-(Date.now()-_allVotedAt))/1000);
-            if(remaining>0){
-              if($('sync-st'))$('sync-st').textContent=`Wszyscy zagłosowali! Wyniki za ${remaining}s…`;
-            } else {
-              _allVotedAt=null;
-              const next=norm(dc(GS));
-              next.phase='reveal';
-              let poolDelta=0;
-              next.players.forEach((p,i)=>{
-                if(!p||i===si)return;
-                const bet=parseInt(next.bets?.[i])||1;
-                if(next.votes[i]==next.sa){
-                  next.players[i].pts+=bet;   // correct: +bet from pool
-                  next.players[si].pts++;      // subject: +1 per correct guesser
-                  poolDelta-=bet;             // pool loses bet tokens
-                  poolDelta--;                // pool loses 1 for subject too
-                } else {
-                  const actual=Math.min(bet, next.players[i].pts);
-                  next.players[i].pts=Math.max(0, next.players[i].pts-actual);
-                  poolDelta+=actual;          // pool gains what guesser loses
-                }
-              });
-              next.pool=Math.max(0,(next.pool||0)+poolDelta);
-              // End game check based on mode
-              const mode=next.gameMode||'rounds';
-              const anyBroke=next.players.some(p=>p&&p.pts<=0);
-              if(mode==='pool' && (next.pool<=0||anyBroke)){next.phase='ended';}
-              else if(mode==='rounds' && next.ri+1>=next.rt){next.phase='ended';}
-              GS=next;
-              await writeGS();
-            }
-          } else {
-            _allVotedAt=null;
-            const done=guessers.filter((p,gi)=>{const pi=GS.players.indexOf(p);return GS.votes[pi]!==undefined;}).length;
-            if($('sync-st'))$('sync-st').textContent=`Odpowiedzi: ${done}/${guessers.length}`;
-          }
-        }
-      }
-
-      render();
-      if(GS.phase!=='voting' && $('sync-st'))$('sync-st').textContent='Połączono';
-    }catch(e){
-      console.error('poll error:',e.message);
-      if($('sync-st'))$('sync-st').textContent='Błąd: '+e.message;
-    }
-  },POLL_MS);
+      if(!gs){stopPoll();return;}
+      GS=norm(gs);await handleGSUpdate();
+    }catch(e){console.error('SSE patch error',e.message);}
+  });
+  _sseSource.onerror=()=>{
+    if(_sseSource){_sseSource.close();_sseSource=null;}
+    pollTimer=setInterval(async()=>{
+      if(!gameId)return;
+      try{const gs=await fbGet(`games/${gameId}`);if(!gs){stopPoll();return;}GS=norm(gs);await handleGSUpdate();}
+      catch(e){console.error('fallback poll',e.message);}
+    },3000);
+  };
 }
-function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
+
+function stopPoll(){
+  if(_sseSource){_sseSource.close();_sseSource=null;}
+  if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
+}
 
 async function writeGS(){
+  // Full PUT only for major phase transitions that reset many fields at once
   await fbPut(`games/${gameId}`,GS);
+}
+
+// Minimal PATCH for single-field updates during gameplay
+async function patchGS(fields){
+  await fbPatch(`games/${gameId}`,fields);
+  Object.assign(GS,fields);
+}
+
+async function handleGSUpdate(){
+  if(GS.phase==='lobby' && mySlot!==null && !$('s-slots').classList.contains('on')) renderLobby();
+
+  if(isHost){
+    const si=GS.subjects[GS.ri]??0;
+
+    if(GS.phase==='lobby'){
+      const filled=GS.players.filter(Boolean);
+      const ready=GS.ready||{};
+      const allReady=filled.length>=2 && GS.players.every((p,i)=>!p||!!ready[i]);
+      if(allReady){
+        if(!_allVotedAt) _allVotedAt=Date.now();
+        const remaining=Math.ceil((3000-(Date.now()-_allVotedAt))/1000);
+        if(remaining>0){
+          if($('sync-st'))$('sync-st').textContent=`Wszyscy gotowi! Start za ${remaining}s…`;
+        } else {
+          _allVotedAt=null;
+          const mode=_gameMode;
+          const idx=GS.players.map((p,i)=>p?i:null).filter(i=>i!==null);
+          let sub=[];
+          if(mode==='rounds'){const rpp=Math.max(1,parseInt($('rpp')?.value)||3);for(let r=0;r<rpp;r++)sub=[...sub,...shuf([...idx])];}
+          else{for(let r=0;r<100;r++)sub=[...sub,...shuf([...idx])];}
+          const qPool=_selectedCat?QS.map((_,i)=>i).filter(i=>(_qCatMap[i]||[]).includes(_selectedCat)):QS.map((_,i)=>i);
+          const qPoolFinal=qPool.length>0?qPool:QS.map((_,i)=>i);
+          if(qPoolFinal.length===0) return;
+          let qp=shuf([...qPoolFinal]),_safety=0;
+          while(qp.length<sub.length&&_safety++<200)qp=[...qp,...shuf([...qPoolFinal])];
+          const qSeq=qp.slice(0,sub.length);
+          const playerCount=GS.players.filter(Boolean).length;
+          const playerNames=GS.players.map((p,i)=>p?{name:p.name,slot:i}:null).filter(Boolean);
+          const qAnswers={};
+          qSeq.forEach((qIdx,ri)=>{const qq=QS[qIdx];if(qq&&qq.type==='players'){const opts=playerNames.map(p=>p.name);if(opts.length>0)qAnswers[ri]=opts;}});
+          GS={...GS,phase:'subject',gameMode:mode,subjects:sub,qSeq,qAnswers,rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:playerCount*10};
+          await writeGS();
+        }
+      } else { _allVotedAt=null; }
+    }
+
+    if(GS.phase==='subject' && GS.sa!==-1){
+      if(!_allVotedAt) _allVotedAt=Date.now();
+      const remaining=Math.ceil((2000-(Date.now()-_allVotedAt))/1000);
+      if(remaining>0){if($('sync-st'))$('sync-st').textContent=`Temat odpowiedział! Zagłosujcie za ${remaining}s…`;}
+      else{_allVotedAt=null;await fbPatch(`games/${gameId}`,{phase:'voting'});GS.phase='voting';}
+    }
+
+    if(GS.phase==='voting'){
+      const guessers=GS.players.filter((p,i)=>p&&i!==si);
+      const allVoted=guessers.every((p,gi)=>{const pi=GS.players.indexOf(p);return GS.votes[pi]!==undefined;});
+      if(allVoted&&guessers.length>0){
+        if(!_allVotedAt) _allVotedAt=Date.now();
+        const remaining=Math.ceil((3000-(Date.now()-_allVotedAt))/1000);
+        if(remaining>0){if($('sync-st'))$('sync-st').textContent=`Wszyscy zagłosowali! Wyniki za ${remaining}s…`;}
+        else{
+          _allVotedAt=null;
+          const next=norm(dc(GS));next.phase='reveal';
+          let poolDelta=0;
+          next.players.forEach((p,i)=>{
+            if(!p||i===si)return;
+            const bet=parseInt(next.bets?.[i])||1;
+            if(next.votes[i]==next.sa){next.players[i].pts+=bet;next.players[si].pts++;poolDelta-=bet;poolDelta--;}
+            else{const actual=Math.min(bet,next.players[i].pts);next.players[i].pts=Math.max(0,next.players[i].pts-actual);poolDelta+=actual;}
+          });
+          next.pool=Math.max(0,(next.pool||0)+poolDelta);
+          const mode=next.gameMode||'rounds';
+          const anyBroke=next.players.some(p=>p&&p.pts<=0);
+          if(mode==='pool'&&(next.pool<=0||anyBroke))next.phase='ended';
+          else if(mode==='rounds'&&next.ri+1>=next.rt)next.phase='ended';
+          GS=next;await writeGS();
+        }
+      } else {
+        _allVotedAt=null;
+        const done=guessers.filter((p,gi)=>{const pi=GS.players.indexOf(p);return GS.votes[pi]!==undefined;}).length;
+        if($('sync-st'))$('sync-st').textContent=`Odpowiedzi: ${done}/${guessers.length}`;
+      }
+    }
+  }
+
+  render();
+  if(GS.phase!=='voting'&&$('sync-st'))$('sync-st').textContent='Połączono';
 }
 
 // ── CREATE ──
@@ -1154,18 +1141,22 @@ function renderSlotsGrid(gs,name){
 
 async function claimSlot(slot,name){
   try{
+    // Re-fetch fresh state to prevent race condition
     const gs=await fbGet(`games/${gameId}`);
-    if(gs.players[slot]&&mySlot!==slot){alert('Ten slot jest już zajęty!');GS=norm(gs);renderSlots(norm(gs),name);return;}
-    // Check for duplicate name
-    const normalName=(name||'Gracz').trim().toLowerCase();
-    const duplicate=gs.players.some((p,i)=>p&&i!==slot&&p.name.trim().toLowerCase()===normalName);
-    if(duplicate){
-      alert(`Imię "${name}" jest już zajęte przez innego gracza. Wpisz inne imię.`);
-      return;
+    const fresh=norm(gs);
+    if(fresh.players[slot]&&mySlot!==slot){
+      alert('Ten slot jest właśnie zajęty przez kogoś innego!');
+      GS=fresh;renderSlots(fresh,name);return;
     }
-    GS=norm(dc(gs));
-    GS.players[slot]={name:name||'Gracz',pts:10};
-    await fbPut(`games/${gameId}`,GS);
+    const normalName=(name||'Gracz').trim().toLowerCase();
+    const duplicate=fresh.players.some((p,i)=>p&&i!==slot&&p.name.trim().toLowerCase()===normalName);
+    if(duplicate){alert(`Imię "${name}" jest już zajęte. Wpisz inne imię.`);return;}
+    // Use PATCH with only the changed player slot — minimal write, atomic
+    const patch={};
+    patch[`players/${slot}`]={name:name||'Gracz',pts:fresh.players[slot]?.pts??10};
+    await fbPatch(`games/${gameId}`,patch);
+    GS=norm(dc(fresh));
+    GS.players[slot]={name:name||'Gracz',pts:fresh.players[slot]?.pts??10};
     mySlot=slot;isHost=(slot===0);
     sessionStorage.setItem('ego_sess',JSON.stringify({gameId,mySlot}));
     renderLobby();show('s-lobby');
@@ -1635,11 +1626,20 @@ async function swapQuestionSJ(){
   GS.sa=-1;
   GS.phase='subject';
   const swapAt=Date.now();
-  GS.swapAt=swapAt;
-  // DON'T set _lastSwapAt here — let render() detect it for everyone including subject
   _allVotedAt=null;
   _sjPending=null; _localVote=null; _confirmedVote=null;
-  try{ await fbPut(`games/${gameId}`,GS); } catch(e){ console.error('swap write',e); }
+  try{
+    await fbPatch(`games/${gameId}`,{
+      [`qSeq`]:newSeq,
+      usedQs,
+      votes:{},
+      bets:{},
+      sa:-1,
+      phase:'subject',
+      swapAt
+    });
+    GS.qSeq=newSeq;GS.usedQs=usedQs;GS.votes={};GS.bets={};GS.sa=-1;GS.phase='subject';GS.swapAt=swapAt;
+  }catch(e){console.error('swap write',e);}
   renderSubj();
 }
 
@@ -2172,11 +2172,12 @@ async function swapReported(screenSuffix){
   GS.bets={};
   GS.sa=-1;
   GS.phase='subject';
-  GS.swapAt=Date.now();
+  const swapAt=Date.now();
   _allVotedAt=null;
   _sjPending=null; _localVote=null; _confirmedVote=null;
   try{
-    await fbPut(`games/${gameId}`,GS);
+    await fbPatch(`games/${gameId}`,{qSeq:newSeq,usedQs,votes:{},bets:{},sa:-1,phase:'subject',swapAt});
+    GS.swapAt=swapAt;
     _reportedThisQ=false;
     if(sb){ sb.textContent='✓ Zamieniono!'; sb.style.color='var(--c2)'; }
     render();
