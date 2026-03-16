@@ -133,6 +133,24 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 <body>
 <div class="app">
 
+<!-- hidden question browser trigger -->
+<button onclick="openQBrowser()" style="position:fixed;top:0;left:0;width:44px;height:44px;background:transparent;border:none;cursor:pointer;z-index:100;opacity:0" aria-label="Przeglądaj pytania"></button>
+
+<!-- ══ QUESTION BROWSER ══ -->
+<div class="scr" id="s-qbrowser">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button onclick="show('s-home')" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">←</button>
+    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Baza pytań</div>
+  </div>
+  <div style="display:flex;gap:6px">
+    <button id="qf-all"  onclick="setQFilter('all')"  style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;background:var(--text);color:var(--bg);border:none">Wszystkie</button>
+    <button id="qf-subj" onclick="setQFilter('subj')" style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;background:var(--card);color:var(--muted);border:1.5px solid var(--rim)">Dla Tematu</button>
+    <button id="qf-other" onclick="setQFilter('other')" style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;background:var(--card);color:var(--muted);border:1.5px solid var(--rim)">Dla innych</button>
+  </div>
+  <div style="font-size:11px;color:var(--muted);text-align:center" id="qb-count"></div>
+  <div id="qb-list" style="display:flex;flex-direction:column;gap:10px"></div>
+</div>
+
 <!-- ══ HOME ══ -->
 <div class="scr on" id="s-home">
   <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Zmień motyw">🌙</button>
@@ -913,70 +931,41 @@ function gW(name,masc,fem){return isFeminine(name)?fem:masc;}
 
 // Transforms question from 3rd person to 2nd person for subject screen
 function qForSubject(q){
-  // Step 1: Remove [imię] with surrounding space
   let s=q.replace(/\s*\[imię\]\s*/g,' ').trim();
-  // Replace 3rd person possessives with 2nd person
   s=s.replace(/\bjego\/jej\b/gi,'twoje').replace(/\bjego\b/gi,'twoje').replace(/\bjej\b/gi,'twoje');
-  // Capitalize first letter
+  // Fix specific patterns before verb mapping
+  s=s.replace(/nie może zasnąć/i,'nie możesz zasnąć');
+  s=s.replace(/wygrał\/a/i,'wygrałeś/aś');
+  s=s.replace(/\s+/g,' '); // collapse multiple spaces after name removal
+  s=s.replace(/obejrzy\b/i,'obejrzysz');
+  s=s.replace(/jest zły\/a/i,'jesteś zły/a');
+  s=s.replace(/najbardziej stresuje\b/i,'najbardziej Cię stresuje');
   s=s.charAt(0).toUpperCase()+s.slice(1);
 
-  // Step 2: Replace 3rd→2nd person verb (simple, position-agnostic)
   const verbs=[
     ['zachowuje się','zachowujesz się'],
     ['podchodzi do','podchodzisz do'],
-    ['reaguje na','reagujesz na'],
-    ['reaguje gdy','reagujesz gdy'],
-    ['reaguje, gdy','reagujesz, gdy'],
-    ['reaguje','reagujesz'],
-    ['zachowuje','zachowujesz'],
-    ['podchodzi','podchodzisz'],
-    ['myśli o','myślisz o'],
-    ['myśli gdy','myślisz gdy'],
-    ['myśli','myślisz'],
-    ['robi gdy','robisz gdy'],
-    ['robi co','robisz co'],
-    ['robi','robisz'],
-    ['wybiera','wybierasz'],
-    ['czuje się','czujesz się'],
-    ['czuje','czujesz'],
-    ['ceni','cenisz'],
-    ['pełni','pełnisz'],
-    ['traktuje','traktujesz'],
-    ['radzi sobie','radzisz sobie'],
-    ['radzi','radzisz'],
-    ['podejmuje','podejmujesz'],
-    ['irytuje innych','irytujesz innych'],
-    ['irytuje','irytujesz'],
-    ['spędza','spędzasz'],
-    ['stresuje','stresujesz'],
-    ['mówi','mówisz'],
-    ['chce','chcesz'],
-    ['lubi','lubisz'],
-    ['kocha','kochasz'],
-    ['uważa','uważasz'],
-    ['szuka','szukasz'],
-    ['woli','wolisz'],
-    ['daje','dajesz'],
-    ['bierze','bierzesz'],
-    ['bywa','bywasz'],
-    ['wstaje','wstajesz'],
-    ['słucha','słuchasz'],
-    ['ogląda','oglądasz'],
-    ['planuje','planujesz'],
-    ['angażuje','angażujesz'],
-    ['pije','pijesz'],
-    ['jest','jesteś'],
-    ['ma ','masz '],
-    ['wie','wiesz'],
-    ['powie','powiesz'],
-    ['mógł/a','możesz'],
+    ['reaguje na','reagujesz na'],['reaguje gdy','reagujesz gdy'],
+    ['reaguje, gdy','reagujesz, gdy'],['reaguje','reagujesz'],
+    ['zachowuje','zachowujesz'],['podchodzi','podchodzisz'],
+    ['myśli o','myślisz o'],['myśli gdy','myślisz gdy'],['myśli','myślisz'],
+    ['robi gdy','robisz gdy'],['robi co','robisz co'],['robi','robisz'],
+    ['wybiera','wybierasz'],['czuje się','czujesz się'],['czuje','czujesz'],
+    ['ceni','cenisz'],['pełni','pełnisz'],['traktuje','traktujesz'],
+    ['radzi sobie','radzisz sobie'],['radzi','radzisz'],['podejmuje','podejmujesz'],
+    ['irytuje innych','irytujesz innych'],['irytuje','irytujesz'],
+    ['spędza','spędzasz'],['mówi','mówisz'],
+    ['chce','chcesz'],['lubi','lubisz'],['kocha','kochasz'],
+    ['uważa','uważasz'],['szuka','szukasz'],['woli','wolisz'],
+    ['daje','dajesz'],['bierze','bierzesz'],['bywa','bywasz'],
+    ['wstaje','wstajesz'],['słucha','słuchasz'],['ogląda','oglądasz'],
+    ['planuje','planujesz'],['angażuje','angażujesz'],['pije','pijesz'],
+    ['jest','jesteś'],['ma ','masz '],['wie','wiesz'],
+    ['powie','powiesz'],['mógł/a','możesz'],
   ];
   for(const [from,to] of verbs){
     const idx=s.toLowerCase().indexOf(from.toLowerCase());
-    if(idx>=0){
-      s=s.slice(0,idx)+to+s.slice(idx+from.length);
-      break;
-    }
+    if(idx>=0){ s=s.slice(0,idx)+to+s.slice(idx+from.length); break; }
   }
   return s;
 }
@@ -1036,6 +1025,7 @@ function answerForSubject(a){
     ['Reaguje','Reaguję'],['Zachowuje','Zachowuję'],['Potrzebuje','Potrzebuję'],
     ['Szuka','Szukam'],['Stosuje','Stosuję'],['Ignoruje','Ignoruję'],
     ['Odkłada','Odkładam'],['Wydaje','Wydaję'],['Bierze','Biorę'],
+    ['Odpiera – wie swoje','Odpieram – wiem swoje'],
     ['Analizuje','Analizuję'],['Odpiera','Odpieram'],['Działa','Działam'],
     ['Rozważa','Rozważam'],['Pyta','Pytam'],['Milczy','Milczę'],
     ['Zamyka','Zamykam'],['Wychodzi','Wychodzę'],
@@ -1048,6 +1038,7 @@ function answerForSubject(a){
     ['Ogląda','Oglądam'],['Planuje','Planuję'],['Gotuje','Gotuję'],
     ['Lubi','Lubię'],['Woli','Wolę'],['Kocha','Kocham'],
     ['Daje','Daję'],['Idzie','Idę'],['Wraca','Wracam'],
+    ['Wyjedzie w podróż marzeń','Wyjeżdżam w podróż marzeń'],
     ['Próbuje','Próbuję'],['Czuje','Czuję'],['Irytuje','Irytuję'],
     ['Musi','Muszę'],['Może','Mogę'],['Chce','Chcę'],
     ['Myśli','Myślę'],['Uważa','Uważam'],['Twierdzi','Twierdzę'],
@@ -1057,7 +1048,10 @@ function answerForSubject(a){
   for(const [from,to] of verbs){
     const idx=s.toLowerCase().indexOf(from.toLowerCase());
     if(idx>=0){
-      // Preserve original capitalization of first char
+      // Check word boundary after match to avoid partial matches (e.g. "Mówi" in "Mówieniem")
+      const after=idx+from.length;
+      const nextChar=s[after]||'';
+      if(nextChar && /[a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ]/.test(nextChar)) continue;
       const wasUpper=s[idx]===s[idx].toUpperCase();
       const result=wasUpper?(to.charAt(0).toUpperCase()+to.slice(1)):to;
       return s.slice(0,idx)+result+s.slice(idx+from.length);
@@ -2104,6 +2098,56 @@ function renderEnd(){
 })();
 
 function updateHomeActions(){ /* actions always visible */ }
+
+// ── QUESTION BROWSER ──
+let _qFilter='all';
+function openQBrowser(){
+  _qFilter='all';
+  renderQBrowser();
+  show('s-qbrowser');
+}
+function setQFilter(f){
+  _qFilter=f;
+  ['all','subj','other'].forEach(k=>{
+    const b=$('qf-'+k);
+    if(!b)return;
+    const active=k===f;
+    b.style.background=active?'var(--text)':'var(--card)';
+    b.style.color=active?'var(--bg)':'var(--muted)';
+    b.style.border=active?'none':'1.5px solid var(--rim)';
+  });
+  renderQBrowser();
+}
+function renderQBrowser(){
+  const list=$('qb-list');
+  const countEl=$('qb-count');
+  if(!list)return;
+  list.innerHTML='';
+  const filtered=QS.filter((_,i)=>{
+    if(_qFilter==='all')return true;
+    // "For subject" — questions where [imię] appears (personal questions)
+    const hasName=QS[i].q.includes('[imię]');
+    return _qFilter==='subj'?hasName:!hasName;
+  });
+  if(countEl)countEl.textContent=filtered.length+' pytań';
+  filtered.forEach((item,i)=>{
+    const div=document.createElement('div');
+    div.style.cssText='background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px';
+    const qText=_qFilter==='subj'?qForSubject(item.q):item.q.replace(/\[imię\]/g,'[Temat]');
+    div.innerHTML=`
+      <div style="font-size:12px;font-weight:700;line-height:1.4;text-transform:uppercase;letter-spacing:.3px">${qText}</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        ${item.a.map((a,j)=>{
+          const aText=_qFilter==='subj'?answerForSubject(a):a;
+          return`<div style="display:flex;align-items:center;gap:8px;font-size:12px">
+            <div style="width:22px;height:22px;border-radius:5px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">${j+1}</div>
+            <span style="color:var(--muted)">${aText}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    list.appendChild(div);
+  });
+}
 
 </script>
 </body>
