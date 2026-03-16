@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="format-detection" content="telephone=no, date=no, email=no, address=no">
 <meta name="translation" content="no">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://fonts.gstatic.com https://ego-gra-default-rtdb.europe-west1.firebasedatabase.app; img-src 'self' data:;">
@@ -26,7 +26,7 @@ html,body{height:100%;}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;justify-content:center;min-height:100dvh;}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--rim) 1px,transparent 1px),linear-gradient(90deg,var(--rim) 1px,transparent 1px);background-size:32px 32px;opacity:.18;pointer-events:none;z-index:0;}
 .app{position:relative;z-index:1;width:100%;max-width:440px;min-height:100dvh;display:flex;flex-direction:column;}
-.scr{display:none;flex-direction:column;flex:1;padding:20px 16px 32px;gap:16px;animation:pop .28s ease;overflow-y:auto;}
+.scr{display:none;flex-direction:column;flex:1;padding:20px 16px max(32px,calc(env(safe-area-inset-bottom) + 24px));gap:16px;animation:pop .28s ease;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .scr.on{display:flex;}
 @keyframes pop{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .logo{font-family:'Syne',sans-serif;font-size:62px;font-weight:800;letter-spacing:-1px;line-height:1;}
@@ -81,7 +81,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .qmeta{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
 .qabout{font-size:13px;color:var(--muted);margin-bottom:6px;}
 .qabout strong{color:var(--text);}
-.qtext{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.5px;line-height:1.35;}
+.qtext{font-family:'Bebas Neue',sans-serif;font-size:clamp(16px,5.5vw,24px);letter-spacing:.5px;line-height:1.35;word-break:break-word;overflow-wrap:break-word;}
 .ans-list{display:flex;flex-direction:column;gap:9px;}
 .abtn{background:var(--card);border:2px solid var(--rim);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);text-align:left;width:100%;}
 .abtn:not(.locked):active{transform:scale(.98);background:var(--rim);}
@@ -1498,6 +1498,18 @@ const SP=()=>GS.players[SI()];
 const CQ=()=>QS[GS.qSeq[GS.ri]];
 const amSJ=()=>mySlot===SI();
 
+// Dynamically scale question text font size based on character count
+function setQText(elId, text){
+  const el=$(elId); if(!el) return;
+  el.textContent=text;
+  const len=text.length;
+  // Bebas Neue is condensed — thresholds tuned for ~343px content width on iPhone
+  if(len>110)      el.style.fontSize='15px';
+  else if(len>80)  el.style.fontSize='17px';
+  else if(len>55)  el.style.fontSize='20px';
+  else             el.style.fontSize=''; // let CSS clamp() take over
+}
+
 function mkSbar(id){
   const el=$(id);if(!el||!GS)return;
   const max=GS.maxPlayers||4;
@@ -1588,7 +1600,7 @@ function renderVoting(){
     $('qc-v').style.setProperty('--ac',C(si));
     $('v-meta').textContent=`Runda ${ri} / ${tot}`;
     $('v-about').innerHTML=`Inni zgadują Twoją odpowiedź…`;
-    $('v-q').textContent=q.q.replace('[imię]',sp.name);
+    setQText('v-q',q.q.replace('[imię]',sp.name));
     buildAns('v-ans',getQAnswers(GS.ri),true,GS.sa,null,null);
     $('btn-vote').style.display='none';
     $('v-bet').style.display='none';
@@ -1607,7 +1619,7 @@ function renderVoting(){
 
   $('v-meta').textContent=`Runda ${ri} / ${tot}`;
   $('v-about').innerHTML=`Pytanie o: <strong style="color:${C(si)}">${sp.name}</strong>`;
-  $('v-q').textContent=q.q.replace('[imię]',sp.name);
+  setQText('v-q',q.q.replace('[imię]',sp.name));
 
   const fbVote=GS.votes[mySlot];
   const voted=fbVote!==undefined||_confirmedVote!==null;
@@ -1803,7 +1815,7 @@ function renderSubj(){
   const ac=$('sj-ans'); ac.innerHTML='';
   const isPlayerType=q.type==='players';
   const answers=getQAnswers(GS.ri);
-  $('sj-q').textContent=q.qs;
+  setQText('sj-q',q.qs);
   answers.forEach((a,i)=>{
     const btn=document.createElement('button');
     btn.className='abtn';
@@ -1879,9 +1891,11 @@ function renderReveal(){
   }
 
   // ── QUESTION (compact, under banner) ──
+  const rvQText=q.q.replace('[imię]',sp.name);
+  const rvQSize=rvQText.length>90?'14px':rvQText.length>65?'15px':'18px';
   bannerHtml+=`<div style="background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:14px 16px;margin-top:12px">
     <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Runda ${ri} / ${tot} · Pytanie o <strong style="color:${C(si)}">${sp.name}</strong></div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.3px;line-height:1.35">${q.q.replace('[imię]',sp.name)}</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:${rvQSize};letter-spacing:.3px;line-height:1.35;word-break:break-word">${rvQText}</div>
   </div>`;
 
   $('rv-banner').innerHTML=bannerHtml;
