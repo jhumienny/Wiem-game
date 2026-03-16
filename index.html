@@ -142,14 +142,13 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <button onclick="show('s-home')" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">←</button>
     <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)">Baza pytań</div>
   </div>
-  <div style="display:flex;gap:6px">
-    <button id="qf-all"  onclick="setQFilter('all')"  style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;background:var(--text);color:var(--bg);border:none">Wszystkie</button>
-    <button id="qf-subj" onclick="setQFilter('subj')" style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;background:var(--card);color:var(--muted);border:1.5px solid var(--rim)">Dla Tematu</button>
-    <button id="qf-other" onclick="setQFilter('other')" style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;background:var(--card);color:var(--muted);border:1.5px solid var(--rim)">Dla innych</button>
-  </div>
   <div style="display:flex;align-items:center;gap:8px">
-    <div style="font-size:11px;color:var(--muted);text-align:center;flex:1" id="qb-count"></div>
-    <button id="qb-marked-btn" onclick="toggleMarkedView()" style="display:none;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:#1e1b4b;color:#a5b4fc;border:1.5px solid #534AB7;white-space:nowrap">Zobacz zaznaczone (<span id="qb-marked-count">0</span>)</button>
+    <div style="font-size:11px;color:var(--muted);flex:1" id="qb-count"></div>
+    <button id="qb-marked-btn" onclick="toggleMarkedView()" style="display:none;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:#1e1b4b;color:#a5b4fc;border:1.5px solid #534AB7;white-space:nowrap">Zaznaczone (<span id="qb-marked-count">0</span>)</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;color:var(--muted);padding:0 2px">
+    <div>Dla innych graczy</div>
+    <div>Dla gracza Temat</div>
   </div>
   <div id="qb-list" style="display:flex;flex-direction:column;gap:10px"></div>
 </div>
@@ -2114,48 +2113,35 @@ function updateHomeActions(){ /* actions always visible */ }
 })();
 
 // ── QUESTION BROWSER ──
-let _qFilter='all';
-let _qMarked={all:new Set(),subj:new Set(),other:new Set()};
+let _qMarked=new Set();
 let _qMarkedView=false;
+let _qFilter='all'; // kept for compatibility but not used in UI
 
 function openQBrowser(){
-  _qFilter='all';
   _qMarkedView=false;
   renderQBrowser();
   show('s-qbrowser');
 }
 
-function setQFilter(f){
-  _qFilter=f;
-  _qMarkedView=false;
-  ['all','subj','other'].forEach(k=>{
-    const b=$('qf-'+k);
-    if(!b)return;
-    const active=k===f;
-    b.style.background=active?'var(--text)':'var(--card)';
-    b.style.color=active?'var(--bg)':'var(--muted)';
-    b.style.border=active?'none':'1.5px solid var(--rim)';
-  });
-  renderQBrowser();
-}
+function setQFilter(f){ _qFilter=f; }
 
 function toggleMarkedView(){
   _qMarkedView=!_qMarkedView;
   const btn=$('qb-marked-btn');
   if(btn){
     btn.style.background=_qMarkedView?'#534AB7':'#1e1b4b';
-    btn.style.color=_qMarkedView?'#fff':'#a5b4fc';
+    btn.style.color='#fff';
   }
   renderQBrowser();
 }
 
 function toggleCheck(idx){
-  const s=_qMarked[_qFilter];
-  if(s.has(idx)) s.delete(idx); else s.add(idx);
+  if(_qMarked.has(idx)) _qMarked.delete(idx);
+  else _qMarked.add(idx);
   const cb=$('qcb-'+idx);
-  if(cb) cb.checked=s.has(idx);
+  if(cb) cb.checked=_qMarked.has(idx);
   const card=$('qcard-'+idx);
-  if(card) card.style.borderColor=s.has(idx)?'#7F77DD':'var(--rim)';
+  if(card) card.style.borderColor=_qMarked.has(idx)?'#7F77DD':'var(--rim)';
   updateMarkedBtn();
 }
 
@@ -2163,7 +2149,7 @@ function updateMarkedBtn(){
   const btn=$('qb-marked-btn');
   const countEl=$('qb-marked-count');
   if(!btn)return;
-  const n=_qMarked[_qFilter].size;
+  const n=_qMarked.size;
   btn.style.display=n>0?'block':'none';
   if(countEl)countEl.textContent=n;
 }
@@ -2173,22 +2159,14 @@ function renderQBrowser(){
   const countEl=$('qb-count');
   if(!list)return;
   list.innerHTML='';
-  const ms=_qMarked[_qFilter];
 
-  let indices=QS.map((_,i)=>i).filter(i=>{
-    if(_qMarkedView) return ms.has(i);
-    if(_qFilter==='all') return true;
-    const hasName=QS[i].q.includes('[imię]');
-    return _qFilter==='subj'?hasName:!hasName;
-  });
-
-  const label=_qMarkedView?`${indices.length} zaznaczonych`:`${indices.length} pytań`;
-  if(countEl) countEl.textContent=label;
+  const indices=QS.map((_,i)=>i).filter(i=>_qMarkedView?_qMarked.has(i):true);
+  if(countEl) countEl.textContent=_qMarkedView?`${indices.length} zaznaczonych`:`${indices.length} pytań`;
 
   indices.forEach(realIdx=>{
     const div=document.createElement('div');
     div.id='qcard-'+realIdx;
-    div.style.cssText=`background:var(--card);border:1.5px solid ${ms.has(realIdx)?'#7F77DD':'var(--rim)'};border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px`;
+    div.style.cssText=`background:var(--card);border:1.5px solid ${_qMarked.has(realIdx)?'#7F77DD':'var(--rim)'};border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px`;
     renderQCard(div, realIdx, _qMarkedView);
     list.appendChild(div);
   });
@@ -2198,47 +2176,71 @@ function renderQBrowser(){
 
 function renderQCard(div, idx, editing){
   const item=QS[idx];
-  const qText=_qFilter==='subj'?qForSubject(item.q):item.q.replace(/\[imię\]/g,'[Temat]');
-  const ms=_qMarked[_qFilter];
-  const checked=ms.has(idx);
+  // Both versions
+  const qOther=item.q.replace(/\[imię\]/g,'[Temat]');
+  const qSubj=qForSubject(item.q);
+  const hasName=item.q.includes('[imię]');
 
   if(!editing){
     div.innerHTML=`
-      <div style="display:flex;align-items:flex-start;gap:10px">
-        <input type="checkbox" id="qcb-${idx}" ${checked?'checked':''} onchange="toggleCheck(${idx})"
-          style="margin-top:3px;width:16px;height:16px;accent-color:#7F77DD;flex-shrink:0;cursor:pointer">
-        <div style="font-size:12px;font-weight:700;line-height:1.4;text-transform:uppercase;letter-spacing:.3px;flex:1">${qText}</div>
-        <button onclick="startEditQ(${idx})" style="background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;flex-shrink:0;padding:0;line-height:1" title="Edytuj">✏️</button>
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        <input type="checkbox" id="qcb-${idx}" ${_qMarked.has(idx)?'checked':''} onchange="toggleCheck(${idx})"
+          style="margin-top:2px;width:15px;height:15px;accent-color:#7F77DD;flex-shrink:0;cursor:pointer">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1">
+          <div style="font-size:11px;font-weight:700;line-height:1.4;text-transform:uppercase;letter-spacing:.3px;color:var(--text)">${qOther}</div>
+          <div style="font-size:11px;font-weight:700;line-height:1.4;text-transform:uppercase;letter-spacing:.3px;color:${hasName?'#a78bfa':'var(--muted)'}">${hasName?qSubj:'—'}</div>
+        </div>
+        <button onclick="startEditQ(${idx})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;flex-shrink:0;padding:0;line-height:1" title="Edytuj">✏️</button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:5px">
-        ${item.a.map((a,j)=>{
-          const aText=_qFilter==='subj'?answerForSubject(a):a;
-          return`<div style="display:flex;align-items:center;gap:8px;font-size:12px">
-            <div style="width:22px;height:22px;border-radius:5px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">${j+1}</div>
-            <span style="color:var(--muted)">${aText}</span>
-          </div>`;
-        }).join('')}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--rim);padding-top:8px">
+        ${[0,1,2].map(j=>`
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px">
+            <div style="width:18px;height:18px;border-radius:4px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${j+1}</div>
+            <span style="color:var(--muted)">${item.a[j]}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px">
+            <div style="width:18px;height:18px;border-radius:4px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${j+1}</div>
+            <span style="color:${hasName?'#a78bfa66':'var(--muted)'}">${hasName?answerForSubject(item.a[j]):'—'}</span>
+          </div>`).join('')}
       </div>`;
   } else {
     div.style.borderColor='#7F77DD';
     div.innerHTML=`
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+      <div style="display:flex;align-items:center;gap:8px">
         <input type="checkbox" id="qcb-${idx}" checked onchange="toggleCheck(${idx})"
-          style="width:16px;height:16px;accent-color:#7F77DD;cursor:pointer">
-        <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Pytanie (z [imię])</div>
+          style="width:15px;height:15px;accent-color:#7F77DD;cursor:pointer">
+        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#a78bfa;font-weight:700">Edycja pytania</div>
       </div>
-      <textarea id="eq-q-${idx}" style="width:100%;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:12px;color:var(--text);font-family:inherit;resize:vertical;min-height:60px">${item.q}</textarea>
-      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:4px">Odpowiedzi</div>
-      ${item.a.map((a,j)=>`
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:22px;height:22px;border-radius:5px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">${j+1}</div>
-          <input id="eq-a-${idx}-${j}" type="text" value="${a.replace(/"/g,'&quot;')}" style="flex:1;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text);font-family:inherit">
+      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Treść pytania <span style="color:var(--c3)">(użyj [imię] dla gracza Temat)</span></div>
+      <textarea id="eq-q-${idx}" style="width:100%;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:12px;color:var(--text);font-family:inherit;resize:vertical;min-height:56px">${item.q}</textarea>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Odpowiedzi</div>
+        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#a78bfa66">Podgląd dla Tematu</div>
+      </div>
+      ${[0,1,2].map(j=>`
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:18px;height:18px;border-radius:4px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${j+1}</div>
+            <input id="eq-a-${idx}-${j}" type="text" value="${item.a[j].replace(/"/g,'&quot;')}"
+              oninput="updateSubjPreview(${idx})"
+              style="flex:1;min-width:0;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:6px 8px;font-size:11px;color:var(--text);font-family:inherit">
+          </div>
+          <div id="eq-prev-${idx}-${j}" style="font-size:11px;color:#a78bfa66;padding:0 4px;line-height:1.4">${hasName?answerForSubject(item.a[j]):'—'}</div>
         </div>`).join('')}
-      <div style="display:flex;gap:8px;margin-top:4px">
+      <div style="display:flex;gap:8px;margin-top:2px">
         <button onclick="saveEditQ(${idx})" style="flex:1;background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Zapisz</button>
         <button onclick="cancelEditQ(${idx})" style="flex:1;background:var(--card);color:var(--muted);border:1.5px solid var(--rim);border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Anuluj</button>
       </div>`;
   }
+}
+
+function updateSubjPreview(idx){
+  // Live update subject previews while typing answers
+  [0,1,2].forEach(j=>{
+    const inp=$('eq-a-'+idx+'-'+j);
+    const prev=$('eq-prev-'+idx+'-'+j);
+    if(inp&&prev) prev.textContent=QS[idx].q.includes('[imię]')?answerForSubject(inp.value):'—';
+  });
 }
 
 function startEditQ(idx){
@@ -2248,17 +2250,14 @@ function startEditQ(idx){
 
 function cancelEditQ(idx){
   const div=$('qcard-'+idx);
-  if(div){ div.style.borderColor=_qMarked[_qFilter].has(idx)?'#7F77DD':'var(--rim)'; renderQCard(div, idx, false); }
+  if(div){ div.style.borderColor=_qMarked.has(idx)?'#7F77DD':'var(--rim)'; renderQCard(div, idx, false); }
 }
 
 function saveEditQ(idx){
   const qEl=$('eq-q-'+idx);
   const newQ=qEl?qEl.value.trim():'';
   if(!newQ)return;
-  const newA=[0,1,2].map(j=>{
-    const el=$('eq-a-'+idx+'-'+j);
-    return el?el.value.trim():'';
-  });
+  const newA=[0,1,2].map(j=>{ const el=$('eq-a-'+idx+'-'+j); return el?el.value.trim():''; });
   if(newA.some(a=>!a))return;
   QS[idx]={q:newQ,a:newA};
   try{
@@ -2270,7 +2269,7 @@ function saveEditQ(idx){
   if(div){
     div.style.borderColor='var(--c2)';
     renderQCard(div, idx, _qMarkedView);
-    setTimeout(()=>{if(div)div.style.borderColor=_qMarked[_qFilter].has(idx)?'#7F77DD':'var(--rim)';},1500);
+    setTimeout(()=>{if(div)div.style.borderColor=_qMarked.has(idx)?'#7F77DD':'var(--rim)';},1500);
   }
 }
 
