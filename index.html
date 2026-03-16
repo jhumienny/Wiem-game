@@ -932,8 +932,85 @@ function qForSubject(q){
   return s;
 }
 
-// ── utils ──
-const POLL_MS=2500;
+// Converts answer from 3rd person to 1st person for subject screen
+function answerForSubject(a){
+  // Map of 3rd→1st person verb phrases (most common in our answers)
+  // Order matters — longer matches first
+  const verbs=[
+    // compound phrases
+    ['Wybucha i mówi wprost','Wybucham i mówię wprost'],
+    ['Milczy i dąsa się','Milczę i dąsam się'],
+    ['Zamyka się i potrzebuje czasu','Zamykam się i potrzebuję czasu'],
+    ['Bawi się do białego rana','Bawię się do białego rana'],
+    ['Wychodzi po 2 godzinach','Wychodzę po 2 godzinach'],
+    ['Siedzi z jedną osobą','Siedzę z jedną osobą'],
+    ['Zamawia pizzę lub kebaba','Zamawiam pizzę lub kebaba'],
+    ['Nie je po 20:00','Nie jem po 20:00'],
+    ['Scrolluje social media','Scrolluję social media'],
+    ['Wymyśla nowe projekty','Wymyślam nowe projekty'],
+    ['Śpi – nicnierobienie','Śpię – nicnierobienie'],
+    ['Przegląda telefon','Przeglądam telefon'],
+    ['Rozmyśla o wszystkim','Rozmyślam o wszystkim'],
+    ['Wstaje i coś robi','Wstaję i coś robię'],
+    ['Zachwyca się i głośno cieszy','Zachwycam się i głośno cieszę'],
+    ['Uśmiecha, ale woli','Uśmiecham się, ale wolę'],
+    ['Stresuje się zmianą planów','Stresuję się zmianą planów'],
+    ['Reaguje emocjonalnie od razu','Reaguję emocjonalnie od razu'],
+    ['Zachowuje spokój zewnętrznie','Zachowuję spokój zewnętrznie'],
+    ['Potrzebuje chwili sam/a','Potrzebuję chwili sam/a'],
+    ['Cierpliwie czeka','Cierpliwie czekam'],
+    ['Niecierpliwi się i wierci','Niecierpliwię się i wiercę'],
+    ['Szuka drogi na skróty','Szukam drogi na skróty'],
+    ['Stosuje je ściśle','Stosuję je ściśle'],
+    ['Nagina gdy trzeba','Naginam gdy trzeba'],
+    ['Ignoruje jeśli nie ma sensu','Ignoruję jeśli nie ma sensu'],
+    ['Odkłada regularnie','Odkładam regularnie'],
+    ['Wydaje i jakoś wychodzi','Wydaję i jakoś wychodzi'],
+    ['Żyje chwilą','Żyję chwilą'],
+    ['Bierze ją bardzo do serca','Biorę ją bardzo do serca'],
+    ['Analizuje spokojnie','Analizuję spokojnie'],
+    ['Odpiera – wie swoje','Odpierام – wiem swoje'],
+    ['Impulsywnie – działa od razu','Impulsywnie – działam od razu'],
+    ['Długo rozważa za i przeciw','Długo rozważam za i przeciw'],
+    ['Pyta bliskich o zdanie','Pytam bliskich o zdanie'],
+    ['Odłoży lub zainwestuje','Odłożę lub zainwestuję'],
+    ['Wyjedzie w podróż marzeń','Wyjedzieem w podróż marzeń'],
+    ['Kupi coś dużego','Kupię coś dużego'],
+    ['Leniuchując w domu','Leniuchuję w domu'],
+    ['Wychodząc ze znajomymi','Wychodzę ze znajomymi'],
+    ['Cokolwiek z lodówki','Cokolwiek z lodówki'],
+    // single verbs — applied if no compound match
+    ['Scrolluje','Scrolluję'],['Zamawia','Zamawiam'],['Przegląda','Przeglądam'],
+    ['Rozmyśla','Rozmyślam'],['Zachwyca','Zachwycam'],['Stresuje','Stresuję'],
+    ['Reaguje','Reaguję'],['Zachowuje','Zachowuję'],['Potrzebuje','Potrzebuję'],
+    ['Szuka','Szukam'],['Stosuje','Stosuję'],['Ignoruje','Ignoruję'],
+    ['Odkłada','Odkładam'],['Wydaje','Wydaję'],['Bierze','Biorę'],
+    ['Analizuje','Analizuję'],['Odpiera','Odpieram'],['Działa','Działam'],
+    ['Rozważa','Rozważam'],['Pyta','Pytam'],['Milczy','Milczę'],
+    ['Zamyka','Zamykam'],['Wychodzi','Wychodzę'],['Siedzę','Siedzę'],
+    ['Bawi','Bawię'],['Wstaje','Wstaję'],['Wymyśla','Wymyślam'],
+    ['Cierpliwie','Cierpliwie'],['Niecierpliwi','Niecierpliwię'],
+    ['Nagina','Naginam'],['Uśmiecha','Uśmiecham'],
+    ['Żyje','Żyję'],['Odłoży','Odłożę'],['Kupi','Kupię'],
+    ['Chodzi','Chodzę'],['Robi','Robię'],['Mówi','Mówię'],
+    ['Siedzi','Siedzę'],['Śpi','Śpię'],['Je ','Jem '],
+    ['Pije','Piję'],['Czyta','Czytam'],['Słucha','Słucham'],
+    ['Ogląda','Oglądam'],['Planuje','Planuję'],['Gotuje','Gotuję'],
+    ['Lubi','Lubię'],['Woli','Wolę'],['Kocha','Kocham'],
+    ['Daje','Daję'],['Idzie','Idę'],['Wraca','Wracam'],
+    ['Próbuje','Próbuję'],['Czuje','Czuję'],['Wie','Wiem'],
+    ['Musi','Muszę'],['Może','Mogę'],['Chce','Chcę'],
+    ['Myśli','Myślę'],['Uważa','Uważam'],['Twierdzi','Twierdzę'],
+    ['Piecze','Piekę'],['Biega','Biegam'],['Ćwiczy','Ćwiczę'],
+    ['Gotuje','Gotuję'],['Sprząta','Sprzątam'],['Pracuje','Pracuję'],
+    ['Mieszka','Mieszkam'],['Podróżuje','Podróżuję'],
+  ];
+  for(const [from,to] of verbs){
+    const idx=a.toLowerCase().indexOf(from.toLowerCase());
+    if(idx>=0) return a.slice(0,idx)+to+a.slice(idx+from.length);
+  }
+  return a;
+}
 const C=i=>COLORS[i%4];
 const $=id=>document.getElementById(id);
 const show=id=>{document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));$(id).classList.add('on');};
@@ -1746,12 +1823,8 @@ function renderSubj(){
   q.a.forEach((a,i)=>{
     const btn=document.createElement('button');
     btn.className='abtn';
-    if(i==_sjPending){
-      btn.classList.add('chosen');
-      btn.style.borderColor='var(--text)';
-      btn.querySelector?.('.anum')?.style; // will set below
-    }
-    btn.innerHTML=`<div class="anum" style="${i==_sjPending?'background:var(--text);color:var(--bg);border-color:var(--text);':''}">${i+1}</div><span>${a}</span>`;
+    const displayAnswer=answerForSubject(a);
+    btn.innerHTML=`<div class="anum" style="${i==_sjPending?'background:var(--text);color:var(--bg);border-color:var(--text);':''}">${i+1}</div><span>${displayAnswer}</span>`;
     btn.onclick=()=>{ _sjPending=i; renderSubj(); };
     ac.appendChild(btn);
   });
