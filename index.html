@@ -147,7 +147,10 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <button id="qf-subj" onclick="setQFilter('subj')" style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;background:var(--card);color:var(--muted);border:1.5px solid var(--rim)">Dla Tematu</button>
     <button id="qf-other" onclick="setQFilter('other')" style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;background:var(--card);color:var(--muted);border:1.5px solid var(--rim)">Dla innych</button>
   </div>
-  <div style="font-size:11px;color:var(--muted);text-align:center" id="qb-count"></div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="font-size:11px;color:var(--muted);text-align:center;flex:1" id="qb-count"></div>
+    <button id="qb-marked-btn" onclick="toggleMarkedView()" style="display:none;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:#1e1b4b;color:#a5b4fc;border:1.5px solid #534AB7;white-space:nowrap">Zobacz zaznaczone (<span id="qb-marked-count">0</span>)</button>
+  </div>
   <div id="qb-list" style="display:flex;flex-direction:column;gap:10px"></div>
 </div>
 
@@ -2112,13 +2115,19 @@ function updateHomeActions(){ /* actions always visible */ }
 
 // ── QUESTION BROWSER ──
 let _qFilter='all';
+let _qMarked={all:new Set(),subj:new Set(),other:new Set()};
+let _qMarkedView=false;
+
 function openQBrowser(){
   _qFilter='all';
+  _qMarkedView=false;
   renderQBrowser();
   show('s-qbrowser');
 }
+
 function setQFilter(f){
   _qFilter=f;
+  _qMarkedView=false;
   ['all','subj','other'].forEach(k=>{
     const b=$('qf-'+k);
     if(!b)return;
@@ -2129,34 +2138,75 @@ function setQFilter(f){
   });
   renderQBrowser();
 }
+
+function toggleMarkedView(){
+  _qMarkedView=!_qMarkedView;
+  const btn=$('qb-marked-btn');
+  if(btn){
+    btn.style.background=_qMarkedView?'#534AB7':'#1e1b4b';
+    btn.style.color=_qMarkedView?'#fff':'#a5b4fc';
+  }
+  renderQBrowser();
+}
+
+function toggleCheck(idx){
+  const s=_qMarked[_qFilter];
+  if(s.has(idx)) s.delete(idx); else s.add(idx);
+  const cb=$('qcb-'+idx);
+  if(cb) cb.checked=s.has(idx);
+  const card=$('qcard-'+idx);
+  if(card) card.style.borderColor=s.has(idx)?'#7F77DD':'var(--rim)';
+  updateMarkedBtn();
+}
+
+function updateMarkedBtn(){
+  const btn=$('qb-marked-btn');
+  const countEl=$('qb-marked-count');
+  if(!btn)return;
+  const n=_qMarked[_qFilter].size;
+  btn.style.display=n>0?'block':'none';
+  if(countEl)countEl.textContent=n;
+}
+
 function renderQBrowser(){
   const list=$('qb-list');
   const countEl=$('qb-count');
   if(!list)return;
   list.innerHTML='';
-  // Build index map: filtered index → QS real index
-  const indices=QS.map((_,i)=>i).filter(i=>{
-    if(_qFilter==='all')return true;
+  const ms=_qMarked[_qFilter];
+
+  let indices=QS.map((_,i)=>i).filter(i=>{
+    if(_qMarkedView) return ms.has(i);
+    if(_qFilter==='all') return true;
     const hasName=QS[i].q.includes('[imię]');
     return _qFilter==='subj'?hasName:!hasName;
   });
-  if(countEl)countEl.textContent=indices.length+' pytań';
+
+  const label=_qMarkedView?`${indices.length} zaznaczonych`:`${indices.length} pytań`;
+  if(countEl) countEl.textContent=label;
+
   indices.forEach(realIdx=>{
-    const item=QS[realIdx];
     const div=document.createElement('div');
     div.id='qcard-'+realIdx;
-    div.style.cssText='background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px';
-    renderQCard(div, realIdx, false);
+    div.style.cssText=`background:var(--card);border:1.5px solid ${ms.has(realIdx)?'#7F77DD':'var(--rim)'};border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px`;
+    renderQCard(div, realIdx, _qMarkedView);
     list.appendChild(div);
   });
+
+  updateMarkedBtn();
 }
 
 function renderQCard(div, idx, editing){
   const item=QS[idx];
   const qText=_qFilter==='subj'?qForSubject(item.q):item.q.replace(/\[imię\]/g,'[Temat]');
+  const ms=_qMarked[_qFilter];
+  const checked=ms.has(idx);
+
   if(!editing){
     div.innerHTML=`
-      <div style="display:flex;align-items:flex-start;gap:8px">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <input type="checkbox" id="qcb-${idx}" ${checked?'checked':''} onchange="toggleCheck(${idx})"
+          style="margin-top:3px;width:16px;height:16px;accent-color:#7F77DD;flex-shrink:0;cursor:pointer">
         <div style="font-size:12px;font-weight:700;line-height:1.4;text-transform:uppercase;letter-spacing:.3px;flex:1">${qText}</div>
         <button onclick="startEditQ(${idx})" style="background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;flex-shrink:0;padding:0;line-height:1" title="Edytuj">✏️</button>
       </div>
@@ -2170,9 +2220,13 @@ function renderQCard(div, idx, editing){
         }).join('')}
       </div>`;
   } else {
-    div.style.border='1.5px solid var(--text)';
+    div.style.borderColor='#7F77DD';
     div.innerHTML=`
-      <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:2px">Pytanie (oryginalne z [imię])</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+        <input type="checkbox" id="qcb-${idx}" checked onchange="toggleCheck(${idx})"
+          style="width:16px;height:16px;accent-color:#7F77DD;cursor:pointer">
+        <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Pytanie (z [imię])</div>
+      </div>
       <textarea id="eq-q-${idx}" style="width:100%;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:12px;color:var(--text);font-family:inherit;resize:vertical;min-height:60px">${item.q}</textarea>
       <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:4px">Odpowiedzi</div>
       ${item.a.map((a,j)=>`
@@ -2194,7 +2248,7 @@ function startEditQ(idx){
 
 function cancelEditQ(idx){
   const div=$('qcard-'+idx);
-  if(div){ div.style.border='1.5px solid var(--rim)'; renderQCard(div, idx, false); }
+  if(div){ div.style.borderColor=_qMarked[_qFilter].has(idx)?'#7F77DD':'var(--rim)'; renderQCard(div, idx, false); }
 }
 
 function saveEditQ(idx){
@@ -2207,14 +2261,17 @@ function saveEditQ(idx){
   });
   if(newA.some(a=>!a))return;
   QS[idx]={q:newQ,a:newA};
-  // Persist to localStorage
   try{
     const saved=JSON.parse(localStorage.getItem('wiem_qs')||'{}');
     saved[idx]={q:newQ,a:newA};
     localStorage.setItem('wiem_qs',JSON.stringify(saved));
   }catch(e){}
   const div=$('qcard-'+idx);
-  if(div){ div.style.border='1.5px solid var(--c2)'; renderQCard(div, idx, false); setTimeout(()=>{if(div)div.style.border='1.5px solid var(--rim)';},1500); }
+  if(div){
+    div.style.borderColor='var(--c2)';
+    renderQCard(div, idx, _qMarkedView);
+    setTimeout(()=>{if(div)div.style.borderColor=_qMarked[_qFilter].has(idx)?'#7F77DD':'var(--rim)';},1500);
+  }
 }
 
 </script>
