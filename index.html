@@ -2124,6 +2124,41 @@ function updateHomeActions(){ /* actions always visible */ }
 // ── QUESTION BROWSER ──
 let _qMarked=new Set();
 let _qMarkedView=false;
+let _qColors={}; // idx → 'green'|'red'
+
+// Load saved colors
+(()=>{
+  try{
+    const saved=JSON.parse(localStorage.getItem('wiem_qcolors')||'{}');
+    _qColors=saved;
+  }catch(e){}
+})();
+
+function getCardBorder(idx){
+  if(_qColors[idx]==='green') return '#16a34a';
+  if(_qColors[idx]==='red') return '#dc2626';
+  if(_qMarked.has(idx)) return '#7F77DD';
+  return 'var(--rim)';
+}
+
+function setQColor(idx, color){
+  if(_qColors[idx]===color) delete _qColors[idx];
+  else _qColors[idx]=color;
+  try{ localStorage.setItem('wiem_qcolors',JSON.stringify(_qColors)); }catch(e){}
+  const card=$('qcard-'+idx);
+  if(card) card.style.borderColor=getCardBorder(idx);
+  // Re-render just the color buttons row
+  const colorRow=$('qcolor-'+idx);
+  if(colorRow) updateColorBtns(colorRow, idx);
+}
+
+function updateColorBtns(row, idx){
+  const c=_qColors[idx];
+  row.innerHTML=`
+    <button onclick="setQColor(${idx},'green')" title="Poprawne" style="width:20px;height:20px;border-radius:50%;border:2px solid ${c==='green'?'#fff':'#16a34a'};background:${c==='green'?'#16a34a':'transparent'};cursor:pointer;flex-shrink:0"></button>
+    <button onclick="setQColor(${idx},'red')" title="Błędne" style="width:20px;height:20px;border-radius:50%;border:2px solid ${c==='red'?'#fff':'#dc2626'};background:${c==='red'?'#dc2626':'transparent'};cursor:pointer;flex-shrink:0"></button>
+    ${c?`<button onclick="setQColor(${idx},'${c}')" title="Usuń zaznaczenie" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:0;line-height:1">✕</button>`:''}`;
+}
 let _qFilter='all'; // kept for compatibility but not used in UI
 
 function openQBrowser(){
@@ -2202,7 +2237,7 @@ function renderQBrowser(){
   indices.forEach(realIdx=>{
     const div=document.createElement('div');
     div.id='qcard-'+realIdx;
-    div.style.cssText=`background:var(--card);border:1.5px solid ${_qMarked.has(realIdx)?'#7F77DD':'var(--rim)'};border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px`;
+    div.style.cssText=`background:var(--card);border:1.5px solid ${getCardBorder(realIdx)};border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px`;
     renderQCard(div, realIdx, _qMarkedView);
     list.appendChild(div);
   });
@@ -2226,7 +2261,10 @@ function renderQCard(div, idx, editing){
           <div style="font-size:11px;font-weight:700;line-height:1.4;text-transform:uppercase;letter-spacing:.3px;color:var(--text)">${qOther}</div>
           <div style="font-size:11px;font-weight:700;line-height:1.4;text-transform:uppercase;letter-spacing:.3px;color:${hasName?'#a78bfa':'var(--muted)'}">${hasName?qSubj:'—'}</div>
         </div>
-        <button onclick="startEditQ(${idx})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;flex-shrink:0;padding:0;line-height:1" title="Edytuj">✏️</button>
+        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+          <div id="qcolor-${idx}" style="display:flex;align-items:center;gap:4px"></div>
+          <button onclick="startEditQ(${idx})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0;line-height:1" title="Edytuj">✏️</button>
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--rim);padding-top:8px">
         ${[0,1,2].map(j=>`
@@ -2239,6 +2277,9 @@ function renderQCard(div, idx, editing){
             <span style="color:${hasName?'#a78bfa66':'var(--muted)'}">${hasName?answerForSubject(item.a[j]):'—'}</span>
           </div>`).join('')}
       </div>`;
+    // Init color buttons after innerHTML set
+    const colorRow=$('qcolor-'+idx);
+    if(colorRow) updateColorBtns(colorRow, idx);
   } else {
     div.style.borderColor='#7F77DD';
     div.innerHTML=`
@@ -2286,7 +2327,7 @@ function startEditQ(idx){
 
 function cancelEditQ(idx){
   const div=$('qcard-'+idx);
-  if(div){ div.style.borderColor=_qMarked.has(idx)?'#7F77DD':'var(--rim)'; renderQCard(div, idx, false); }
+  if(div){ div.style.borderColor=getCardBorder(idx); renderQCard(div, idx, false); }
 }
 
 function saveEditQ(idx){
@@ -2305,7 +2346,7 @@ function saveEditQ(idx){
   if(div){
     div.style.borderColor='var(--c2)';
     renderQCard(div, idx, _qMarkedView);
-    setTimeout(()=>{if(div)div.style.borderColor=_qMarked.has(idx)?'#7F77DD':'var(--rim)';},1500);
+    setTimeout(()=>{if(div)div.style.borderColor=getCardBorder(idx);},1500);
   }
 }
 
