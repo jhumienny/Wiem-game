@@ -299,9 +299,20 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
         <button class="maxp-btn" data-n="8" onclick="setMaxPlayers(8)">8</button>
       </div>
     </div>
-    <div class="rrow-cfg">
-      <label>Rundy na gracza</label>
-      <input type="number" id="rpp" min="1" max="10" value="3">
+    <div class="rrow-cfg" style="flex-direction:column;align-items:flex-start;gap:8px">
+      <label>Tryb gry</label>
+      <div style="display:flex;gap:6px;width:100%">
+        <button id="mode-rounds" class="maxp-btn active" style="flex:1;padding:10px 6px;white-space:normal;text-align:center;line-height:1.3" onclick="setGameMode('rounds')">
+          🔢 Rundy<br><span style="font-size:10px;font-weight:400;opacity:.7">X rund na gracza</span>
+        </button>
+        <button id="mode-pool" class="maxp-btn" style="flex:1;padding:10px 6px;white-space:normal;text-align:center;line-height:1.3" onclick="setGameMode('pool')">
+          🪙 Żetony<br><span style="font-size:10px;font-weight:400;opacity:.7">do zera</span>
+        </button>
+      </div>
+      <div id="rpp-row" style="display:flex;align-items:center;gap:10px;width:100%">
+        <label style="font-size:13px;color:var(--muted);white-space:nowrap">Rundy na gracza</label>
+        <input type="number" id="rpp" min="1" max="10" value="3">
+      </div>
     </div>
     <button class="btn btn-lit" id="btn-start" onclick="hostStart()">Rozpocznij grę ▶</button>
   </div>
@@ -1199,6 +1210,7 @@ function norm(gs){
   gs.ready      = gs.ready || {};
   gs.maxPlayers = gs.maxPlayers || 4;
   gs.swapAt     = gs.swapAt || null;
+  gs.gameMode   = gs.gameMode || 'rounds';
   gs.usedQs     = gs.usedQs ? (Array.isArray(gs.usedQs)?gs.usedQs:Object.values(gs.usedQs)) : [];
   // Normalize vote keys AND values to integers
   if(gs.votes && typeof gs.votes==='object'){
@@ -1221,6 +1233,18 @@ let _sjPick=null;
 let _lastRi=null; // track round index to reset local state on round change
 let _allVotedAt=null; // timestamp when all votes first detected
 let _maxPlayers=4; // host-controlled, 2-8
+let _gameMode='rounds'; // 'rounds' | 'pool'
+
+function setGameMode(mode){
+  _gameMode=mode;
+  ['rounds','pool'].forEach(m=>{
+    const b=$('mode-'+m);
+    if(b){ b.classList.toggle('active',m===mode); }
+  });
+  const rppRow=$('rpp-row');
+  if(rppRow) rppRow.style.display=mode==='rounds'?'flex':'none';
+  if(gameId) fbPatch(`games/${gameId}`,{gameMode:mode}).catch(()=>{});
+}
 
 function setMaxPlayers(n){
   _maxPlayers=n;
@@ -1261,13 +1285,19 @@ function startPoll(){
               if($('sync-st'))$('sync-st').textContent=`Wszyscy gotowi! Start za ${remaining}s…`;
             } else {
               _allVotedAt=null;
-              const rpp=Math.max(1,parseInt($('rpp')?.value)||3);
+              const mode=_gameMode;
               const idx=GS.players.map((p,i)=>p?i:null).filter(i=>i!==null);
-              let sub=[];for(let r=0;r<rpp;r++)sub=[...sub,...shuf([...idx])];
+              let sub=[];
+              if(mode==='rounds'){
+                const rpp=Math.max(1,parseInt($('rpp')?.value)||3);
+                for(let r=0;r<rpp;r++)sub=[...sub,...shuf([...idx])];
+              } else {
+                for(let r=0;r<100;r++)sub=[...sub,...shuf([...idx])];
+              }
               let qp=shuf(QS.map((_,i)=>i));
               while(qp.length<sub.length)qp=[...qp,...shuf(QS.map((_,i)=>i))];
               const playerCount=GS.players.filter(Boolean).length;
-              GS={...GS,phase:'subject',subjects:sub,qSeq:qp.slice(0,sub.length),rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:playerCount*10};
+              GS={...GS,phase:'subject',gameMode:mode,subjects:sub,qSeq:qp.slice(0,sub.length),rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:playerCount*10};
               await writeGS();
             }
           } else {
@@ -1321,8 +1351,11 @@ function startPoll(){
                 }
               });
               next.pool=Math.max(0,(next.pool||0)+poolDelta);
-              // End game if pool is empty
-              if(next.pool<=0){next.phase='ended';}
+              // End game check based on mode
+              const mode=next.gameMode||'rounds';
+              const anyBroke=next.players.some(p=>p&&p.pts<=0);
+              if(mode==='pool' && (next.pool<=0||anyBroke)){next.phase='ended';}
+              else if(mode==='rounds' && next.ri+1>=next.rt){next.phase='ended';}
               GS=next;
               await writeGS();
             }
@@ -1511,6 +1544,9 @@ function renderLobby(){
       b.classList.toggle('active', parseInt(b.dataset.n)===max);
     });
     _maxPlayers=max;
+    // Sync game mode
+    const savedMode=GS.gameMode||'rounds';
+    if(savedMode!==_gameMode) setGameMode(savedMode);
   }
 
   $('lob-list').innerHTML=activePlayers.map((p,i)=>{
@@ -1642,12 +1678,20 @@ async function hostStart(){
   const ready=GS.ready||{};
   const allReady=GS.players.every((p,i)=>!p||!!ready[i]);
   if(!allReady){alert('Nie wszyscy gracze są gotowi!');return;}
-  const rpp=Math.max(1,parseInt($('rpp').value)||3);
+  const mode=_gameMode;
   const idx=GS.players.map((p,i)=>p?i:null).filter(i=>i!==null);
-  let sub=[];for(let r=0;r<rpp;r++)sub=[...sub,...shuf([...idx])];
-  let qp=shuf(QS.map((_,i)=>i));
-  while(qp.length<sub.length)qp=[...qp,...shuf(QS.map((_,i)=>i))];
-  GS={...GS,phase:'subject',subjects:sub,qSeq:qp.slice(0,sub.length),rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:GS.players.filter(Boolean).length*10};
+  const playerCount=GS.players.filter(Boolean).length;
+  let sub,qp;
+  if(mode==='rounds'){
+    const rpp=Math.max(1,parseInt($('rpp').value)||3);
+    for(let r=0;r<rpp;r++) sub=[...(sub||[]),...shuf([...idx])];
+  } else {
+    // Pool mode: pre-generate a big queue (100 rounds max), game ends by token logic
+    for(let r=0;r<100;r++) sub=[...(sub||[]),...shuf([...idx])];
+  }
+  qp=shuf(QS.map((_,i)=>i));
+  while(qp.length<sub.length) qp=[...qp,...shuf(QS.map((_,i)=>i))];
+  GS={...GS,phase:'subject',gameMode:mode,subjects:sub,qSeq:qp.slice(0,sub.length),rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:playerCount*10};
   await writeGS();render();
 }
 
@@ -2095,9 +2139,14 @@ function renderReveal(){
     }).join('');
 
   const poolLeft=GS.pool??0;
-  const isLast=GS.ri+1>=GS.rt || poolLeft<=0;
+  const mode=GS.gameMode||'rounds';
+  const anyBroke=GS.players.some(p=>p&&p.pts<=0);
+  const isLast=mode==='pool'?(poolLeft<=0||anyBroke):(GS.ri+1>=GS.rt);
+  const modeInfo=mode==='pool'
+    ? `W puli pozostało: <strong style="color:var(--c3)">${poolLeft} 🪙</strong>${anyBroke?' · <span style="color:var(--c0)">Ktoś zbankrutował!</span>':''}`
+    : `Runda <strong>${GS.ri+1}</strong> z <strong>${GS.rt}</strong>`;
   $('rv-btn').innerHTML=`
-    <div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:8px">W puli pozostało: <strong style="color:var(--c3)">${poolLeft} 🪙</strong></div>
+    <div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:8px">${modeInfo}</div>
     <button class="btn btn-lit" onclick="nextRound()">${isLast?'🏆 Wyniki końcowe':'Następna runda →'}</button>`;
   show('s-reveal');
 }
@@ -2106,7 +2155,12 @@ async function nextRound(){
   try{
     const gs=await fbGet(`games/${gameId}`);
     GS=norm(dc(gs));
-    if(GS.ri+1>=GS.rt || (GS.pool??0)<=0){GS.phase='ended';}
+    const mode=GS.gameMode||'rounds';
+    const anyBroke=GS.players.some(p=>p&&p.pts<=0);
+    const poolGone=(GS.pool??0)<=0;
+    const roundsDone=GS.ri+1>=GS.rt;
+    const isEnd=(mode==='pool')?(poolGone||anyBroke):roundsDone;
+    if(isEnd){GS.phase='ended';}
     else{GS.ri++;GS.votes={};GS.bets={};GS.sa=-1;GS.phase='subject';_localVote=null;_confirmedVote=null;_sjPick=null;_sjPending=null;_swapsLeft=2;_sjSwapsLeft=2;_lastSwapAt=null;_localBet=1;_allVotedAt=null;}
     await writeGS();render();
   }catch(e){console.error('nextRound',e);}
