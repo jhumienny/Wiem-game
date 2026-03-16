@@ -2148,13 +2148,59 @@ function reportCurrentQuestion(){
   if(idx===undefined||idx===null)return;
   _qReported[idx]=true;
   try{ localStorage.setItem('wiem_qreported',JSON.stringify(_qReported)); }catch(e){}
-  // Flash feedback
+  updateReportedTabCount();
+
+  // Replace button with confirmation + swap option
   const btn=event.target;
-  const orig=btn.textContent;
+  const parent=btn.parentNode;
   btn.textContent='✓ Zgłoszono!';
   btn.style.color='var(--c2)';
-  setTimeout(()=>{btn.textContent=orig;btn.style.color='';},2000);
-  updateReportedTabCount();
+  btn.disabled=true;
+
+  // Show swap button below
+  const swapId='btn-report-swap-'+Date.now();
+  const swapBtn=document.createElement('button');
+  swapBtn.className='btn btn-dim';
+  swapBtn.style.cssText='font-size:11px;padding:8px;color:var(--c3);border-color:var(--c3)55';
+  swapBtn.textContent='🔄 Zamień pytanie na inne';
+  swapBtn.onclick=()=>{ swapReported(swapBtn); };
+  parent.insertBefore(swapBtn, btn.nextSibling);
+}
+
+async function swapReported(swapBtn){
+  if(!GS||!gameId)return;
+  swapBtn.disabled=true;
+  swapBtn.textContent='⏳ Zamieniam…';
+
+  // Same logic as swapQuestionSJ but WITHOUT decrementing _sjSwapsLeft
+  const allUsed=new Set([...(GS.qSeq||[]),...(GS.usedQs||[])]);
+  allUsed.add(GS.qSeq[GS.ri]);
+  const available=QS.map((_,i)=>i).filter(i=>!allUsed.has(i));
+  const pool=available.length>0?available:QS.map((_,i)=>i).filter(i=>i!==GS.qSeq[GS.ri]);
+  if(!pool.length){ swapBtn.textContent='Brak dostępnych pytań'; return; }
+  const newQIdx=pool[Math.floor(Math.random()*pool.length)];
+
+  const usedQs=[...(GS.usedQs||[]),GS.qSeq[GS.ri]];
+  const newSeq=[...GS.qSeq];
+  newSeq[GS.ri]=newQIdx;
+  GS.qSeq=newSeq;
+  GS.usedQs=usedQs;
+  GS.votes={};
+  GS.bets={};
+  GS.sa=-1;
+  GS.phase='subject';
+  GS.swapAt=Date.now();
+  _allVotedAt=null;
+  _sjPending=null; _localVote=null; _confirmedVote=null;
+  try{
+    await fbPut(`games/${gameId}`,GS);
+    swapBtn.textContent='✓ Zamieniono!';
+    swapBtn.style.color='var(--c2)';
+    renderSubj();
+  }catch(e){
+    swapBtn.textContent='Błąd – spróbuj ponownie';
+    swapBtn.disabled=false;
+  }
 }
 
 function updateReportedTabCount(){
