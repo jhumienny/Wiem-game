@@ -1067,6 +1067,7 @@ function startPoll(){
       const gs=await fbGet(`games/${gameId}`);
       if(!gs){clearInterval(pollTimer);return;}
       GS=norm(gs);
+      console.log('[POLL] phase='+GS.phase+' players='+JSON.stringify(GS.players.filter(Boolean).map(p=>p?.name)));
 
       // Host only: manage phase transitions
       if(isHost){
@@ -1293,6 +1294,7 @@ function copyCode(){
 // ── LOBBY ──
 function renderLobby(){
   if(!GS)return;
+  console.log('[LOBBY] rendering, players:', GS.players.filter(Boolean).map(p=>p?.name), 'max:', GS.maxPlayers);
   $('lob-code').textContent=gameId||'----';
   const ready=GS.ready||{};
   const players=GS.players;
