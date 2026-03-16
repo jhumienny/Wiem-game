@@ -2277,8 +2277,8 @@ function renderQCard(div, idx, editing){
             <span style="color:${hasName?'#a78bfa66':'var(--muted)'}">${hasName?answerForSubject(item.a[j]):'—'}</span>
           </div>`).join('')}
       </div>`;
-    // Init color buttons after innerHTML set
-    const colorRow=$('qcolor-'+idx);
+    // Init color buttons - use querySelector since div may not be in DOM yet
+    const colorRow=div.querySelector('[id^="qcolor-"]');
     if(colorRow) updateColorBtns(colorRow, idx);
   } else {
     div.style.borderColor='#7F77DD';
