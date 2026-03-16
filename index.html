@@ -839,6 +839,7 @@ function norm(gs){
   gs.swapAt     = gs.swapAt || null;
   gs.gameMode   = gs.gameMode || 'rounds';
   gs.qAnswers   = gs.qAnswers || {};
+  gs.kicked     = gs.kicked || {};
   gs.usedQs     = gs.usedQs ? (Array.isArray(gs.usedQs)?gs.usedQs:Object.values(gs.usedQs)) : [];
   // Normalize vote keys AND values to integers
   // Skip null/undefined values — parseInt(null)=NaN would falsely pass allVoted checks
@@ -1005,6 +1006,18 @@ async function patchGS(fields){
 
 async function handleGSUpdate(){
   if(GS.phase==='lobby' && mySlot!==null && !$('s-slots').classList.contains('on')) renderLobby();
+
+  // Detect if this client was kicked
+  if(mySlot!==null && !isHost && GS.kicked && GS.kicked[mySlot]){
+    stopPoll();
+    sessionStorage.removeItem('ego_sess');
+    sessionStorage.removeItem('ego_name');
+    gameId=null; mySlot=null; isHost=false; GS=null;
+    _localVote=null; _confirmedVote=null; _sjPick=null; _lastRi=null;
+    alert('Zostałeś/aś wyrzucony/a z lobby przez hosta.');
+    show('s-home');
+    return;
+  }
 
   if(isHost){
     const si=GS.subjects[GS.ri]??0;
@@ -1260,14 +1273,18 @@ function renderLobby(){
     if(!p)return`<div style="background:var(--card);border:1.5px dashed var(--rim);border-radius:12px;padding:12px 16px;font-size:13px;color:var(--muted)">Slot ${i+1} — wolny</div>`;
     const isReady=!!ready[i];
     const readyBadge=isReady
-      ? `<span style="margin-left:auto;background:#14532d;color:#4ade80;border:1.5px solid #16a34a;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;">✓ ${gW(p.name,'gotowy','gotowa')}</span>`
-      : `<span style="margin-left:auto;background:#2d1a1a;color:#f87171;border:1.5px solid #dc262655;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;">⏳ czeka</span>`;
+      ? `<span style="margin-left:auto;background:#14532d;color:#4ade80;border:1.5px solid #16a34a;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap">✓ ${gW(p.name,'gotowy','gotowa')}</span>`
+      : `<span style="margin-left:auto;background:#2d1a1a;color:#f87171;border:1.5px solid #dc262655;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap">⏳ czeka</span>`;
+    const kickBtn=isHost&&i!==0&&i!==mySlot
+      ? `<button onclick="kickPlayer(${i})" style="flex-shrink:0;background:#2d1a1a;border:1.5px solid #dc262655;color:#f87171;font-size:12px;font-weight:700;cursor:pointer;padding:4px 10px;line-height:1.4;border-radius:8px;white-space:nowrap">Wyrzuć</button>`
+      : '';
     return`<div class="prow" style="border:1.5px solid ${isReady?'#16a34a':C(i)+'44'};">
       <div class="prow-dot" style="background:${C(i)}"></div>
-      <span style="font-weight:500">${p.name}</span>
-      ${i===0?'<span class="ptag tag-host" style="margin-left:6px">HOST</span>':''}
-      ${i===mySlot?'<span class="ptag tag-you" style="margin-left:6px">ty</span>':''}
+      <span style="font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${p.name}</span>
+      ${i===0?'<span class="ptag tag-host" style="flex-shrink:0">HOST</span>':''}
+      ${i===mySlot?'<span class="ptag tag-you" style="flex-shrink:0">ty</span>':''}
       ${readyBadge}
+      ${kickBtn}
     </div>`;
   }).join('');
 
@@ -1375,6 +1392,23 @@ async function leaveGame(){
   _localVote=null; _confirmedVote=null; _sjPick=null; _lastRi=null;
   const name=($('inp-name')?.value||'').trim();
   name ? show('s-home') : show('s-home');
+}
+
+async function kickPlayer(slot){
+  if(!isHost||slot===0||slot===mySlot)return;
+  const name=GS.players[slot]?.name||`Gracz ${slot+1}`;
+  if(!confirm(`Wyrzucić ${name} z lobby?`))return;
+  try{
+    const patch={};
+    patch[`players/${slot}`]=null;
+    patch[`ready/${slot}`]=null;
+    // Write a kicked marker so the kicked client can detect it
+    patch[`kicked/${slot}`]=Date.now();
+    await fbPatch(`games/${gameId}`,patch);
+    GS.players[slot]=null;
+    if(GS.ready) GS.ready[slot]=null;
+    renderLobby();
+  }catch(e){console.error('kickPlayer',e);}
 }
 
 // ── HOST START ──
