@@ -442,7 +442,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <button class="btn btn-lit" id="btn-vote" style="display:none" onclick="confirmVote()">Zatwierdź odpowiedź ✓</button>
   <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33;margin-top:4px" onclick="leaveGame()">← Opuść grę</button>
   <button class="btn btn-dim" id="report-btn-v" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim);margin-top:0" onclick="reportCurrentQuestion('v')">⚑ Zgłoś błąd w pytaniu</button>
-  <button class="btn btn-dim" id="swap-btn-v" style="display:none;font-size:11px;padding:8px;color:var(--c3);border-color:var(--c3)55" onclick="swapReported('v')">🔄 Zamień pytanie na inne</button>
 </div>
 
 <!-- ══ WAIT ══ -->
@@ -456,7 +455,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
   <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33" onclick="leaveGame()">← Opuść grę</button>
   <button class="btn btn-dim" id="report-btn-w" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim);margin-top:0" onclick="reportCurrentQuestion('w')">⚑ Zgłoś błąd w pytaniu</button>
-  <button class="btn btn-dim" id="swap-btn-w" style="display:none;font-size:11px;padding:8px;color:var(--c3);border-color:var(--c3)55" onclick="swapReported('w')">🔄 Zamień pytanie na inne</button>
 </div>
 
 <!-- ══ SUBJECT ══ -->
@@ -2194,17 +2192,27 @@ function resetReportBtns(screenSuffix){
 }
 
 function reportCurrentQuestion(screenSuffix){
-  if(!GS)return;
-  const idx=GS.qSeq?.[GS.ri];
-  if(idx===undefined||idx===null)return;
-  _qReported[idx]=true;
-  _reportedThisQ=true;
-  try{ localStorage.setItem('wiem_qreported',JSON.stringify(_qReported)); }catch(e){}
-  updateReportedTabCount();
   const rb=$('report-btn-'+screenSuffix);
-  const sb=$('swap-btn-'+screenSuffix);
   if(rb){ rb.textContent='✓ Zgłoszono!'; rb.style.color='var(--c2)'; rb.disabled=true; }
-  if(sb){ sb.style.display='block'; }
+  if(!GS){ return; }
+  // Firebase may return qSeq as object with string keys
+  const seq=GS.qSeq;
+  const ri=GS.ri;
+  let idx;
+  if(Array.isArray(seq)){ idx=seq[ri]; }
+  else if(seq&&typeof seq==='object'){ idx=seq[String(ri)]; }
+  if(idx!==undefined&&idx!==null&&!isNaN(Number(idx))){
+    idx=Number(idx);
+    _qReported[idx]=true;
+    _reportedThisQ=true;
+    try{ localStorage.setItem('wiem_qreported',JSON.stringify(_qReported)); }catch(e){}
+    updateReportedTabCount();
+  }
+  // Only show swap button for subject screen — others just report silently
+  if(screenSuffix==='sj'){
+    const sb=$('swap-btn-sj');
+    if(sb){ sb.style.display='block'; }
+  }
 }
 
 async function swapReported(screenSuffix){
