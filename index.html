@@ -271,14 +271,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 </div>
 
 <!-- ══ REVEAL ══ -->
-<div class="scr" id="s-reveal">
+<div class="scr" id="s-reveal" style="gap:12px">
   <div class="sbar" id="sb-rv"></div>
   <div id="rv-banner"></div>
-  <div class="qcard" id="qc-rv">
-    <div class="qmeta" id="rv-meta"></div>
-    <div class="qabout" id="rv-about"></div>
-    <div class="qtext" id="rv-q"></div>
-  </div>
   <div class="ans-list" id="rv-ans"></div>
   <div class="rcard" id="rv-res"></div>
   <div id="rv-btn"></div>
@@ -983,12 +978,13 @@ function renderVoting(){
     $('v-meta').textContent=`Runda ${ri} / ${tot}`;
     $('v-about').innerHTML=`Inni zgadują Twoją odpowiedź…`;
     $('v-q').textContent=q.q.replace('[imię]',sp.name);
-    buildAns('v-ans',q.a,true,null,null,null);
+    // Show chosen answer highlighted
+    buildAns('v-ans',q.a,true,GS.sa,null,null);
     $('btn-vote').style.display='none';
     $('v-st').innerHTML=`
       <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:14px 16px;text-align:center;margin-top:4px">
         <div style="font-size:20px;margin-bottom:6px">🤫</div>
-        <div style="font-weight:600;font-size:14px;margin-bottom:4px">Już odpowiedziałeś/aś!</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">${gW(GS.players[mySlot]?.name||'','Już odpowiedziałeś!','Już odpowiedziałaś!')}</div>
         <div style="color:var(--muted);font-size:13px">Zagłosowało ${done} z ${guessers.length} graczy</div>
       </div>`;
     show('s-vote'); return;
@@ -1148,82 +1144,57 @@ function renderReveal(){
   const q=CQ();if(!q)return;
   const si=SI(),sp=SP(),correct=GS.sa;
   mkSbar('sb-rv');
-  $('qc-rv').style.setProperty('--ac',C(si));
   const ri=GS.ri+1,tot=GS.rt;
-  $('rv-meta').textContent=`Runda ${ri} / ${tot}`;
-  $('rv-about').innerHTML=`Odpowiedź <strong style="color:${C(si)}">${sp.name}</strong>:`;
-  $('rv-q').textContent=q.q.replace('[imię]',sp.name);
 
-  // ── PERSONAL RESULT BANNER ──
   const myVote=GS.votes[mySlot];
   const amI=mySlot!==null&&GS.players[mySlot];
   const iAmSubject=amSJ();
-  let bannerHtml='';
+  const myName=GS.players[mySlot]?.name||'';
 
+  // ── BANNER ──
+  let bannerHtml='';
   if(amI && !iAmSubject && myVote!==undefined){
     const hit=myVote==correct;
-    const myName=GS.players[mySlot]?.name||'';
-    bannerHtml=`
-    <div style="
-      border-radius:18px;
-      padding:24px 20px;
-      background:${hit?'#052e16':'#450a0a'};
-      border:3px solid ${hit?'#16a34a':'#dc2626'};
-      text-align:center;
-    ">
-      <div style="font-size:56px;margin-bottom:8px">${hit?'🎉':'😬'}</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:2px;color:${hit?'#4ade80':'#f87171'};line-height:1">
-        ${hit?gW(myName,'TRAFIŁEŚ!','TRAFIŁAŚ!'):'PUDŁO!'}
-      </div>
-      <div style="font-size:14px;color:${hit?'#86efac':'#fca5a5'};margin-top:10px;line-height:1.5">
-        ${hit
-          ? `Twoja odpowiedź zgadza się z odpowiedzią ${sp.name} 🎯<br><strong>+1 punkt dla Ciebie!</strong>`
-          : `${gW(myName,'Wybrałeś','Wybrałaś')}: <strong style="color:#fff">${q.a[myVote]}</strong><br>Poprawna: <strong style="color:#4ade80">${q.a[correct]}</strong>`
-        }
-      </div>
+    bannerHtml=`<div style="border-radius:16px;padding:20px;background:${hit?'#052e16':'#450a0a'};border:2px solid ${hit?'#16a34a':'#dc2626'};text-align:center">
+      <div style="font-size:44px;margin-bottom:6px">${hit?'🎉':'😬'}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;color:${hit?'#4ade80':'#f87171'};line-height:1">${hit?gW(myName,'TRAFIŁEŚ!','TRAFIŁAŚ!'):'PUDŁO!'}</div>
+      <div style="font-size:13px;color:${hit?'#86efac':'#fca5a5'};margin-top:8px;line-height:1.5">${hit
+        ?`Twoja odpowiedź = odpowiedź ${sp.name} 🎯 &nbsp;<strong>+1 pkt</strong>`
+        :`${gW(myName,'Wybrałeś','Wybrałaś')}: <strong style="color:#fff">${q.a[myVote]}</strong> &nbsp;·&nbsp; Poprawna: <strong style="color:#4ade80">${q.a[correct]}</strong>`
+      }</div>
     </div>`;
   } else if(iAmSubject){
     const guessers=GS.players.filter((p,i)=>p&&i!==si);
-    const correct_cnt=guessers.filter((p,gi)=>{
-      const pi=GS.players.indexOf(p);
-      return GS.votes[pi]==correct;
-    }).length;
-    const subjectPts=correct_cnt; // 1 pt per correct guesser
-    bannerHtml=`
-    <div style="
-      border-radius:18px;padding:24px 20px;
-      background:${correct_cnt>0?'#1e1b4b':'#1a1a24'};
-      border:3px solid ${correct_cnt>0?'#818cf8':'#3f3f50'};
-      text-align:center;
-    ">
-      <div style="font-size:48px;margin-bottom:8px">${correct_cnt===guessers.length?'🏆':correct_cnt>0?'🎯':'😮'}</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;color:${correct_cnt>0?'#a5b4fc':'#6b6b80'};line-height:1">
-        TO TWOJE PYTANIE
-      </div>
-      <div style="font-size:14px;color:#c7d2fe;margin-top:10px;line-height:1.6">
-        <strong style="color:#fff">${correct_cnt} z ${guessers.length}</strong> graczy odgadło Twoją odpowiedź<br>
-        ${correct_cnt>0
-          ? `<strong style="color:#a5b4fc;font-size:16px">+${subjectPts} ${subjectPts===1?'punkt':'punkty'} dla Ciebie!</strong>`
-          : `<span style="color:#6b6b80">Nikt nie trafił — 0 punktów</span>`}
+    const cnt=guessers.filter((p,gi)=>GS.votes[GS.players.indexOf(p)]==correct).length;
+    bannerHtml=`<div style="border-radius:16px;padding:20px;background:${cnt>0?'#1e1b4b':'#1a1a24'};border:2px solid ${cnt>0?'#818cf8':'#3f3f50'};text-align:center">
+      <div style="font-size:44px;margin-bottom:6px">${cnt===guessers.length?'🏆':cnt>0?'🎯':'😮'}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;color:${cnt>0?'#a5b4fc':'#6b6b80'};line-height:1">TO TWOJE PYTANIE</div>
+      <div style="font-size:13px;color:#c7d2fe;margin-top:8px;line-height:1.6">
+        <strong style="color:#fff">${cnt} z ${guessers.length}</strong> graczy odgadło Twoją odpowiedź<br>
+        ${cnt>0?`<strong style="color:#a5b4fc">+${cnt} ${cnt===1?'punkt':cnt<5?'punkty':'punktów'} dla Ciebie!</strong>`:`<span style="color:#6b6b80">Nikt nie trafił — 0 punktów</span>`}
       </div>
     </div>`;
   }
+
+  // ── QUESTION (compact, under banner) ──
+  bannerHtml+=`<div style="background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:14px 16px">
+    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Runda ${ri} / ${tot} · Pytanie o <strong style="color:${C(si)}">${sp.name}</strong></div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.3px;line-height:1.35">${q.q.replace('[imię]',sp.name)}</div>
+  </div>`;
+
   $('rv-banner').innerHTML=bannerHtml;
 
-  // ── ANSWERS with voter chips ──
-  const ac=$('rv-ans');ac.innerHTML='';
+  // ── ANSWERS ──
+  const ac=$('rv-ans'); ac.innerHTML='';
   q.a.forEach((a,i)=>{
     const btn=document.createElement('button');
     const isCorrect=i==correct;
     const isMyVote=!iAmSubject&&i==myVote;
     btn.className='abtn locked'+(isCorrect?' correct':'');
-    if(isMyVote&&!isCorrect){
-      btn.style.cssText='border-color:#dc2626;background:#450a0a;pointer-events:none;cursor:default;';
-    }
+    if(isMyVote&&!isCorrect) btn.style.cssText='border-color:#dc2626;background:#450a0a;pointer-events:none;cursor:default;';
     const myTag=isMyVote
-      ? `<span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:${isCorrect?'#16a34a':'#dc2626'};color:#fff">${isCorrect?'TY ✓':'TY ✗'}</span>`
-      : '';
-    btn.innerHTML=`<div class="anum">${i+1}</div><span>${a}</span>${myTag}`;
+      ?`<span style="margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:${isCorrect?'#16a34a':'#dc2626'};color:#fff;flex-shrink:0">${isCorrect?'TY ✓':'TY ✗'}</span>`:'';
+    btn.innerHTML=`<div class="anum">${i+1}</div><span style="flex:1">${a}</span>${myTag}`;
     const voters=GS.players.filter((p,pi)=>p&&pi!==si&&GS.votes[pi]==i);
     if(voters.length){
       const ch=document.createElement('div');ch.className='voter-chips';
@@ -1235,10 +1206,13 @@ function renderReveal(){
     ac.appendChild(btn);
   });
 
+  // ── RESULTS TABLE ──
+  const subjPts=GS.players.filter((p,i)=>p&&i!==si&&GS.votes[i]==correct).length;
   $('rv-res').innerHTML=`<div class="rctitle">Wyniki rundy</div>
-    <div class="rvrow"><div class="rvl"><div class="rvdot" style="background:${C(si)}"></div><strong>${sp.name}</strong><span class="badge b-sub" style="margin-left:8px">Temat</span></div><span class="badge b-yes">+${GS.players.filter((p,i)=>p&&i!==si&&GS.votes[i]==correct).length} pkt</span></div>`+
+    <div class="rvrow"><div class="rvl"><div class="rvdot" style="background:${C(si)}"></div><strong>${sp.name}</strong><span class="badge b-sub" style="margin-left:8px">Temat</span></div><span class="badge ${subjPts>0?'b-yes':'b-no'}">+${subjPts} ${subjPts===1?'pkt':'pkt'}</span></div>`+
     GS.players.map((p,i)=>{if(!p||i===si)return'';const hit=GS.votes[i]==correct;
-      return`<div class="rvrow${i===mySlot?' style="background:var(--rim);border-radius:8px;padding:9px 8px;margin:0 -8px"':''}"><div class="rvl"><div class="rvdot" style="background:${C(i)}"></div><span${i===mySlot?' style="font-weight:700"':''}>${p.name}${i===mySlot?' (ty)':''}</span></div><span class="badge ${hit?'b-yes':'b-no'}">${hit?'+1 pkt ✓':'Pudło ✗'}</span></div>`;}).join('');
+      return`<div class="rvrow${i===mySlot?' style="background:var(--rim);border-radius:8px;padding:9px 8px;margin:0 -8px"':''}"><div class="rvl"><div class="rvdot" style="background:${C(i)}"></div><span${i===mySlot?' style="font-weight:700"':''}>${p.name}${i===mySlot?' (ty)':''}</span></div><span class="badge ${hit?'b-yes':'b-no'}">${hit?'+1 pkt ✓':'Pudło ✗'}</span></div>`;
+    }).join('');
 
   const isLast=GS.ri+1>=GS.rt;
   $('rv-btn').innerHTML=`<button class="btn btn-lit" onclick="nextRound()">${isLast?'🏆 Wyniki końcowe':'Następna runda →'}</button>`;
