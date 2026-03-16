@@ -250,6 +250,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="field">
     <label style="font-size:13px;color:var(--muted);white-space:nowrap">Imię:</label>
     <input id="slots-name-inp" type="text" placeholder="Twoje imię" maxlength="14" autocomplete="off" style="font-size:16px;font-weight:600;"
+      oninput="this.dataset.touched='1'"
       onkeydown="event.stopPropagation();if(event.key==='Enter')changeSlotName()"
       onkeyup="event.stopPropagation()">
     <button onclick="changeSlotName()" style="background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0">Zmień</button>
@@ -275,6 +276,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="field" id="lob-name-row" style="display:none">
     <label>Twoje imię:</label>
     <input id="lob-name-inp" type="text" maxlength="14" autocomplete="off" placeholder="Zmień imię"
+      oninput="this.dataset.touched='1'"
       onkeydown="event.stopPropagation();if(event.key==='Enter')changeName()"
       onkeyup="event.stopPropagation()">
     <button onclick="changeName()" style="background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0">OK</button>
@@ -1398,10 +1400,13 @@ async function joinGame(){
 // ── SLOTS ──
 function renderSlots(gs,name){
   const ni=$('slots-name-inp');
-  if(ni && name) ni.value=name;
+  // Only set input value on first load, never overwrite while user is typing
+  if(ni && name && document.activeElement!==ni && !ni.dataset.touched){
+    ni.value=name;
+  }
   const displayName=(ni?.value||name||'').trim();
   $('slots-sub').textContent=displayName?`Cześć ${displayName}! Wybierz swój slot`:'Wybierz swój slot';
-  renderSlotsGrid(gs, displayName);
+  renderSlotsGrid(gs, displayName||name||'Gracz');
   $('slots-conn').innerHTML=`<span class="cdot dok"></span>Połączono. Wybierz slot aby dołączyć.`;
 }
 
@@ -1409,15 +1414,13 @@ function changeSlotName(){
   const ni=$('slots-name-inp');
   const newName=(ni?.value||'').trim();
   if(!newName){ni?.focus();return;}
-  // Update global name sources
   if($('inp-name')) $('inp-name').value=newName;
   sessionStorage.setItem('ego_name',newName);
-  // Visual feedback on button
+  // Clear touched flag so polling can update after name change
+  if(ni) delete ni.dataset.touched;
   const btn=ni?.nextElementSibling;
   if(btn){btn.textContent='✓';setTimeout(()=>{btn.textContent='Zmień';},1500);}
-  // Update subtitle
   $('slots-sub').textContent=`Cześć ${newName}! Wybierz swój slot`;
-  // Re-render slots with new name (don't reset input)
   if(GS){
     const grid=$('slot-grid');
     if(grid) renderSlotsGrid(GS,newName);
@@ -1606,7 +1609,7 @@ async function changeName(){
     await fbPatch(`games/${gameId}`,patch);
     GS.players[mySlot].name=newName;
     // Clear input, update placeholder
-    if(inp){ inp.value=''; inp.dataset.touched='1'; inp.placeholder=newName; }
+    if(inp){ inp.value=''; delete inp.dataset.touched; inp.placeholder=newName; }
     renderLobby();
   }catch(e){console.error('changeName',e);}
 }
