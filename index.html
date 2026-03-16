@@ -394,7 +394,7 @@ const QS=[
   {q:"Kiedy [imię] nie może zasnąć, to…",                           a:["Przegląda telefon","Rozmyśla o wszystkim naraz","Wstaje i coś robi"]},
   {q:"Co [imię] myśli o sobie?",                                     a:["Jestem naprawdę wyjątkowy/a","Jestem zwykłym człowiekiem","Mógłbym/łabym być lepszy/a"]},
   {q:"Jak [imię] reaguje na niespodziankę?",                         a:["Zachwyca się i głośno cieszy","Uśmiecha, ale woli wiedzieć wcześniej","Stresuje się zmianą planów"]},
-  {q:"Gdyby [imię] mógł/a zmienić jedną rzecz w swoim życiu…",      a:["Zmienił/a pracę lub kierunek","Przeprowadził/a się gdzie indziej","Naprawił/a ważną relację"]},
+  {q:"Gdyby [imię] mógł/a zmienić jedną rzecz w swoim życiu…",      a:["Zmieniłbym/łabym pracę lub kierunek","Przeprowadziłbym/łabym się gdzie indziej","Naprawiłbym/łabym ważną relację"]},
   {q:"Co powie [imię] przyjacielowi w potrzebie?",                   a:["'Jak mogę pomóc? Mów!'","'Dasz radę, wierzę w ciebie'","'To twój problem, ogarnij to'"]},
   {q:"Jakie jest ulubione miejsce [imię]?",                          a:["Dom – tu jest najlepiej","Gdzieś nowe, nieznane","Ulubiona kawiarnia lub park"]},
   {q:"Jaka muzyka towarzyszy [imię] najczęściej?",                   a:["Pop i mainstream","Hip-hop, R&B lub electronic","Rock, metal lub alternatywa"]},
@@ -939,7 +939,11 @@ function qForSubject(q){
   // Fix specific patterns before verb mapping
   s=s.replace(/nie może zasnąć/i,'nie możesz zasnąć');
   s=s.replace(/gdyby wygrał\/a/i,'Gdybyś wygrał/a');
-  s=s.replace(/\s+/g,' '); // collapse multiple spaces after name removal
+  s=s.replace(/co zrobi jako pierwsze/i,'co zrobisz jako pierwsze');
+  s=s.replace(/gdyby mógł\/a zmienić/i,'Gdybyś mógł/a zmienić');
+  // Remove mógł/a from verb list since we handle it in specific patterns
+  s=s.replace(/towarzyszy najczęściej/i,'towarzyszy Ci najczęściej');
+  s=s.replace(/\s+/g,' ');
   s=s.replace(/obejrzy\b/i,'obejrzysz');
   s=s.replace(/jest zły\/a/i,'jesteś zły/a');
   s=s.replace(/najbardziej stresuje\b/i,'najbardziej Cię stresuje');
@@ -964,11 +968,15 @@ function qForSubject(q){
     ['wstaje','wstajesz'],['słucha','słuchasz'],['ogląda','oglądasz'],
     ['planuje','planujesz'],['angażuje','angażujesz'],['pije','pijesz'],
     ['jest','jesteś'],['ma ','masz '],['wie','wiesz'],
-    ['powie','powiesz'],['mógł/a','możesz'],
+    ['powie','powiesz'],
   ];
   for(const [from,to] of verbs){
     const idx=s.toLowerCase().indexOf(from.toLowerCase());
-    if(idx>=0){ s=s.slice(0,idx)+to+s.slice(idx+from.length); break; }
+    if(idx>=0){
+      const before=idx===0||/[\s,?!()\-–]/.test(s[idx-1]);
+      const after=idx+from.length>=s.length||/[\s,?!()\-–]/.test(s[idx+from.length]);
+      if(before&&after){ s=s.slice(0,idx)+to+s.slice(idx+from.length); break; }
+    }
   }
   return s;
 }
