@@ -915,6 +915,8 @@ function gW(name,masc,fem){return isFeminine(name)?fem:masc;}
 function qForSubject(q){
   // Step 1: Remove [imię] with surrounding space
   let s=q.replace(/\s*\[imię\]\s*/g,' ').trim();
+  // Replace 3rd person possessives with 2nd person
+  s=s.replace(/\bjego\/jej\b/gi,'twoje').replace(/\bjego\b/gi,'twoje').replace(/\bjej\b/gi,'twoje');
   // Capitalize first letter
   s=s.charAt(0).toUpperCase()+s.slice(1);
 
@@ -981,16 +983,20 @@ function qForSubject(q){
 
 // Converts answer from 3rd person to 1st person for subject screen
 function answerForSubject(a){
-  // Map of 3rd→1st person verb phrases (most common in our answers)
-  // Order matters — longer matches first
+  // First replace jego/jej → swoje/moje contextually
+  let s=a.replace(/\bjego\/jej\b/gi,'swoje').replace(/\bjego\b/gi,'swoje').replace(/\bjej\b/gi,'swoje');
+
   const verbs=[
-    // compound phrases
     ['Wybucha i mówi wprost','Wybucham i mówię wprost'],
     ['Milczy i dąsa się','Milczę i dąsam się'],
     ['Zamyka się i potrzebuje czasu','Zamykam się i potrzebuję czasu'],
     ['Bawi się do białego rana','Bawię się do białego rana'],
     ['Wychodzi po 2 godzinach','Wychodzę po 2 godzinach'],
     ['Siedzi z jedną osobą','Siedzę z jedną osobą'],
+    ['Stara się odzyskać','Staram się odzyskać'],
+    ['Stara się','Staram się'],
+    ['Pozwala chętnie','Pozwalam chętnie'],
+    ['Pozwala','Pozwalam'],
     ['Zamawia pizzę lub kebaba','Zamawiam pizzę lub kebaba'],
     ['Nie je po 20:00','Nie jem po 20:00'],
     ['Scrolluje social media','Scrolluję social media'],
@@ -1016,17 +1022,15 @@ function answerForSubject(a){
     ['Żyje chwilą','Żyję chwilą'],
     ['Bierze ją bardzo do serca','Biorę ją bardzo do serca'],
     ['Analizuje spokojnie','Analizuję spokojnie'],
-    ['Odpiera – wie swoje','Odpierام – wiem swoje'],
     ['Impulsywnie – działa od razu','Impulsywnie – działam od razu'],
     ['Długo rozważa za i przeciw','Długo rozważam za i przeciw'],
     ['Pyta bliskich o zdanie','Pytam bliskich o zdanie'],
     ['Odłoży lub zainwestuje','Odłożę lub zainwestuję'],
-    ['Wyjedzie w podróż marzeń','Wyjedzieem w podróż marzeń'],
     ['Kupi coś dużego','Kupię coś dużego'],
     ['Leniuchując w domu','Leniuchuję w domu'],
     ['Wychodząc ze znajomymi','Wychodzę ze znajomymi'],
-    ['Cokolwiek z lodówki','Cokolwiek z lodówki'],
-    // single verbs — applied if no compound match
+    // single verbs
+    ['Irytuje się','Irytuję się'],
     ['Scrolluje','Scrolluję'],['Zamawia','Zamawiam'],['Przegląda','Przeglądam'],
     ['Rozmyśla','Rozmyślam'],['Zachwyca','Zachwycam'],['Stresuje','Stresuję'],
     ['Reaguje','Reaguję'],['Zachowuje','Zachowuję'],['Potrzebuje','Potrzebuję'],
@@ -1034,10 +1038,9 @@ function answerForSubject(a){
     ['Odkłada','Odkładam'],['Wydaje','Wydaję'],['Bierze','Biorę'],
     ['Analizuje','Analizuję'],['Odpiera','Odpieram'],['Działa','Działam'],
     ['Rozważa','Rozważam'],['Pyta','Pytam'],['Milczy','Milczę'],
-    ['Zamyka','Zamykam'],['Wychodzi','Wychodzę'],['Siedzę','Siedzę'],
+    ['Zamyka','Zamykam'],['Wychodzi','Wychodzę'],
     ['Bawi','Bawię'],['Wstaje','Wstaję'],['Wymyśla','Wymyślam'],
-    ['Cierpliwie','Cierpliwie'],['Niecierpliwi','Niecierpliwię'],
-    ['Nagina','Naginam'],['Uśmiecha','Uśmiecham'],
+    ['Niecierpliwi','Niecierpliwię'],['Nagina','Naginam'],['Uśmiecha','Uśmiecham'],
     ['Żyje','Żyję'],['Odłoży','Odłożę'],['Kupi','Kupię'],
     ['Chodzi','Chodzę'],['Robi','Robię'],['Mówi','Mówię'],
     ['Siedzi','Siedzę'],['Śpi','Śpię'],['Je ','Jem '],
@@ -1045,18 +1048,22 @@ function answerForSubject(a){
     ['Ogląda','Oglądam'],['Planuje','Planuję'],['Gotuje','Gotuję'],
     ['Lubi','Lubię'],['Woli','Wolę'],['Kocha','Kocham'],
     ['Daje','Daję'],['Idzie','Idę'],['Wraca','Wracam'],
-    ['Próbuje','Próbuję'],['Czuje','Czuję'],['Wie','Wiem'],
+    ['Próbuje','Próbuję'],['Czuje','Czuję'],['Irytuje','Irytuję'],
     ['Musi','Muszę'],['Może','Mogę'],['Chce','Chcę'],
     ['Myśli','Myślę'],['Uważa','Uważam'],['Twierdzi','Twierdzę'],
-    ['Piecze','Piekę'],['Biega','Biegam'],['Ćwiczy','Ćwiczę'],
-    ['Gotuje','Gotuję'],['Sprząta','Sprzątam'],['Pracuje','Pracuję'],
-    ['Mieszka','Mieszkam'],['Podróżuje','Podróżuję'],
+    ['Biega','Biegam'],['Ćwiczy','Ćwiczę'],['Sprząta','Sprzątam'],
+    ['Pracuje','Pracuję'],['Mieszka','Mieszkam'],['Podróżuje','Podróżuję'],
   ];
   for(const [from,to] of verbs){
-    const idx=a.toLowerCase().indexOf(from.toLowerCase());
-    if(idx>=0) return a.slice(0,idx)+to+a.slice(idx+from.length);
+    const idx=s.toLowerCase().indexOf(from.toLowerCase());
+    if(idx>=0){
+      // Preserve original capitalization of first char
+      const wasUpper=s[idx]===s[idx].toUpperCase();
+      const result=wasUpper?(to.charAt(0).toUpperCase()+to.slice(1)):to;
+      return s.slice(0,idx)+result+s.slice(idx+from.length);
+    }
   }
-  return a;
+  return s;
 }
 const C=i=>COLORS[i%4];
 const POLL_MS=2500;
