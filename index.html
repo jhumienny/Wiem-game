@@ -487,6 +487,31 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
    Format: { q: "Pytanie o [imię]?", a: ["Opcja 1","Opcja 2","Opcja 3"] }
 ═══════════════════════════════════════════════════════════════ */
 const QS=[
+  {q:"Co [imię] robi gdy jest mu/jej nudno na imprezie?",                          a:["Scrolluje telefon w kącie","Udaje że dobrze się bawi","Szczerze mówi że jedzie do domu"]},
+  {q:"Jak [imię] reaguje gdy ktoś zrobi mu/jej niespodziankę?",                    a:["Płacze ze wzruszenia","Śmieje się nerwowo","Udaje zachwyt a w środku stres"]},
+  {q:"Co [imię] robi gdy ktoś zje jego/jej jedzenie w lodówce?",                   a:["Mówi spokojnie że to było jego/jej","Milczy ale pamięta","Wybucha od razu"]},
+  {q:"Ile czasu [imię] spędza w łazience rano?",                                   a:["Minimum – 5 minut i wypad","Pół godziny to norma","Godzina – rytuał jest rytuałem"]},
+  {q:"Jak [imię] zachowuje się gdy wygra w grę planszową?",                        a:["Świętuje głośno i długo","Skromnie uśmiecha się","Od razu chce zagrać jeszcze raz"]},
+  {q:"Czego [imię] nigdy nie powiedziałby/łaby rodzicom?",                         a:["Ile naprawdę wydaje na głupoty","Co naprawdę myśli o ich znajomych","Co robił/a ostatni weekend"]},
+  {q:"Jak [imię] zachowuje się w pierwszej godzinie po przebudzeniu?",             a:["Nie odzywaj się do mnie – to strefa ciszy","Normalnie – od razu gotowy/a do działania","Potrzebuje kawy zanim stanie się człowiekiem"]},
+  {q:"Co [imię] robi gdy film w kinie jest zły?",                                   a:["Siedzi cierpliwie – kupił/a bilet","Komentuje pod nosem","Wychodzi bez wyrzutów sumienia"]},
+  {q:"Jak [imię] reaguje gdy ktoś go/ją ignoruje na grupowym czacie?",             a:["Pisze jeszcze raz – może nie zobaczyli","Milczy z urazą","Olewa – nie będzie się narzucać"]},
+  {q:"Co [imię] kupuje impulsywnie o czym potem żałuje?",                          a:["Jedzenie o późnej porze","Ubrania których nie nosi","Gadżety których nie potrzebuje"]},
+  {q:"Jak [imię] zachowuje się gdy jest na diecie?",                               a:["Trzyma się ściśle przez tydzień potem odpuszcza","Mówi że jest na diecie ale je wszystko","Naprawdę się trzyma i jest z siebie dumny/a"]},
+  {q:"Co [imię] robi gdy słyszy nieprawdziwą plotkę o sobie?",                     a:["Prostuje od razu i głośno","Udaje że nie słyszał/a","Śmieje się bo jest lepsza od prawdy"]},
+  {q:"Jak [imię] zachowuje się na pikniku gdy zaczyna padać?",                     a:["Natychmiast pakuje manatki","Zostaje – trochę deszczu nie zaszkodzi","Już wcześniej wiedział/a że tak będzie i mówi to wszystkim"]},
+  {q:"Co [imię] robi gdy dostanie dziwny prezent którego nie chce?",               a:["Dziękuje szczerze i wyrzuca po tygodniu","Pyta wprost skąd taki pomysł","Trzyma na widoku gdy tamta osoba przychodzi"]},
+  {q:"Jak [imię] spędza ostatnią godzinę przed snem?",                             a:["Scrolluje telefon mimo że wie że nie powinien/powinna","Czyta lub ogląda coś spokojnego","Leży i myśli o wszystkich niezręcznych sytuacjach z przeszłości"]},
+  {q:"Co [imię] robi gdy automat z kawą nie wydaje reszty?",                       a:["Potrząsa automatem ze złością","Wzrusza ramionami i idzie dalej","Szuka obsługi technicznej przez pół godziny"]},
+  {q:"Jak [imię] zachowuje się gdy ktoś spoileruje mu/jej serial?",                a:["Wybucha i nie może się uspokoić","Udaje że mu/jej to nie przeszkadza","Spokojnie mówi że woli nie wiedzieć"]},
+  {q:"Co [imię] robi gdy musi zadzwonić na infolinię?",                            a:["Odkłada to tygodniami","Dzwoni od razu – chce mieć z głowy","Prosi kogoś bliskiego żeby zadzwonił/a za niego/nią"]},
+  {q:"Jak [imię] tłumaczy się gdy spóźni się na spotkanie?",                      a:["Szczerze mówi że po prostu za późno wyszedł/wyszła","Zawsze ma gotową historyjkę","Pisze że jest już blisko gdy dopiero wychodzi"]},
+  {q:"Co [imię] robi gdy ktoś pyta go/ją o zdanie a mu/jej naprawdę wszystko jedno?", a:["Mówi wprost że nie ma preferencji","Wymyśla jakąś odpowiedź żeby skończyć temat","Pyta co tamta osoba woli i popiera jej wybór"]},
+  {q:"Jak [imię] zachowuje się gdy ktoś przy nim/niej fałszuje piosenkę?",         a:["Subtelnie przestaje śpiewać sam/a","Śpiewa głośniej żeby zagłuszyć","Mówi wprost że to trochę nie ta tonacja"]},
+  {q:"Co [imię] robi ostatniego dnia urlopu?",                                      a:["Już myśli o pracy i się nakręca","Żyje chwilą do ostatniej sekundy","Pakuje się z wyprzedzeniem i relaksuje"]},
+  {q:"Jak [imię] reaguje gdy ktoś mówi że jego/jej ulubiony zespół jest kiepski?", a:["Broni zajadle z faktami","Wzrusza ramionami – każdy ma swój gust","Urywa kontakt z tą osobą na jakiś czas"]},
+  {q:"Co [imię] robi gdy nie może zasnąć z powodu głośnych sąsiadów?",            a:["Zakłada słuchawki i próbuje dalej","Puka do ściany albo dzwoni do drzwi","Leży wściekły/a ale nic nie robi"]},
+  {q:"Jak [imię] zachowuje się gdy ma coś zrobić pierwszy raz?",                   a:["Researachuje temat przez tydzień zanim zacznie","Rzuca się na głęboką wodę bez przygotowania","Pyta kogoś kto już to robił"]},
 ];
 /* ═══════════════════════════════════════════════════════════════ */
 
