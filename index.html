@@ -240,13 +240,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="qtext" id="v-q"></div>
   </div>
   <div class="ans-list" id="v-ans"></div>
-  <div id="v-bet" style="display:none;background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:12px 16px;">
-    <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Ile punktów stawiasz?</div>
+  <div id="v-bet" style="display:none">
+    <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Ile żetonów stawiasz?</div>
     <div style="display:flex;gap:8px">
-      <button id="bet-1" class="btn btn-dim" onclick="setBet(1)" style="flex:1;padding:10px;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px">1 pkt</button>
-      <button id="bet-2" class="btn btn-dim" onclick="setBet(2)" style="flex:1;padding:10px;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px">2 pkt</button>
+      <button id="bet-1" class="abtn" onclick="setBet(1)" style="flex:1;justify-content:center;padding:14px 10px">
+        <div class="anum" id="bet-1-num">1</div><span>1 żeton</span>
+      </button>
+      <button id="bet-2" class="abtn" onclick="setBet(2)" style="flex:1;justify-content:center;padding:14px 10px">
+        <div class="anum" id="bet-2-num">2</div><span>2 żetony</span>
+      </button>
     </div>
-    <div style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center">Trafisz → dostajesz postawioną liczbę punktów</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center">Trafisz → zyskujesz. Nie trafisz → tracisz żetony.</div>
   </div>
   <div class="vstatus" id="v-st"></div>
   <button class="btn btn-lit" id="btn-vote" style="display:none" onclick="confirmVote()">Zatwierdź odpowiedź ✓</button>
@@ -1134,7 +1138,7 @@ function startPoll(){
                   next.players[i].pts+=bet;   // correct: +bet from pool
                   next.players[si].pts++;      // subject: +1 per correct guesser
                 } else {
-                  next.players[i].pts-=bet;   // wrong: -bet to pool
+                  next.players[i].pts=Math.max(0, next.players[i].pts-bet); // wrong: lose bet (min 0)
                 }
               });
               GS=next;
@@ -1613,7 +1617,9 @@ function renderVoting(){
       const btns=document.querySelectorAll('#v-ans .abtn');
       btns.forEach((b,i)=>{if(i==_localVote){b.classList.add('chosen');b.querySelector('.anum').style.background='var(--text)';b.querySelector('.anum').style.color='var(--bg)';}});
       $('btn-vote').style.display='block';
-      $('v-bet').style.display='block';
+      $('v-bet').style.display='flex';
+      $('v-bet').style.flexDirection='column';
+      $('v-bet').style.gap='8px';
       // Ensure default bet=1 is visually active
       if(!GS.bets||GS.bets[mySlot]===undefined) _localBet=1;
       updateBetUI();
@@ -1671,14 +1677,17 @@ function setBet(n){
   updateBetUI();
 }
 function updateBetUI(){
-  [$('bet-1'),$('bet-2')].forEach((btn,i)=>{
+  [1,2].forEach(n=>{
+    const btn=$('bet-'+n);
+    const numEl=$('bet-'+n+'-num');
     if(!btn)return;
-    const n=i+1;
     const active=_localBet===n;
-    btn.style.background=active?'var(--text)':'var(--card)';
-    btn.style.color=active?'var(--bg)':'var(--text)';
-    btn.style.borderColor=active?'var(--text)':'var(--rim)';
-    btn.style.fontWeight=active?'700':'500';
+    btn.classList.toggle('chosen', active);
+    if(numEl){
+      numEl.style.background=active?'var(--text)':'';
+      numEl.style.color=active?'var(--bg)':'';
+      numEl.style.borderColor=active?'var(--text)':'';
+    }
   });
 }
 
