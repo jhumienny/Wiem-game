@@ -144,7 +144,34 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div style="display:flex;align-items:center;gap:10px">
     <button onclick="show('s-home')" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">←</button>
     <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);flex:1">Baza pytań</div>
+    <button onclick="toggleAddQuestion()" id="qb-add-btn" style="background:var(--card);border:1.5px solid var(--rim);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer">+ Nowe</button>
     <button onclick="openCatManager()" style="background:var(--card);border:1.5px solid var(--rim);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer">🏷 Kategorie</button>
+  </div>
+
+  <!-- Add new question form -->
+  <div id="qb-add-form" style="display:none;background:#0f172a;border:1.5px solid #534AB7;border-radius:12px;padding:14px;flex-direction:column;gap:10px">
+    <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#a78bfa;font-weight:700">Nowe pytanie</div>
+    <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">Treść <span style="color:var(--c3)">(opcjonalnie użyj [imię] dla gracza Temat)</span></div>
+    <textarea id="nq-q" placeholder="Jak [imię] spędza wolny weekend?" style="width:100%;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:12px;color:var(--text);font-family:inherit;resize:vertical;min-height:52px"
+      onkeydown="event.stopPropagation()"></textarea>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">Odpowiedzi</div>
+      <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#a78bfa66">Podgląd dla Tematu</div>
+    </div>
+    ${[1,2,3].map(j=>`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center">
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:18px;height:18px;border-radius:4px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${j}</div>
+        <input id="nq-a${j}" type="text" placeholder="Odpowiedź ${j}…"
+          style="flex:1;min-width:0;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:6px 8px;font-size:11px;color:var(--text);font-family:inherit"
+          oninput="updateNewQPreview()" onkeydown="event.stopPropagation()">
+      </div>
+      <div id="nq-prev${j}" style="font-size:11px;color:#a78bfa66;padding:0 4px;line-height:1.4">—</div>
+    </div>`).join('')}
+    <div style="display:flex;gap:8px;margin-top:2px">
+      <button onclick="saveNewQuestion()" style="flex:1;background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Dodaj pytanie ✓</button>
+      <button onclick="toggleAddQuestion()" style="flex:1;background:var(--card);color:var(--muted);border:1.5px solid var(--rim);border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Anuluj</button>
+    </div>
   </div>
 
   <!-- Tabs -->
@@ -343,6 +370,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       </div>
     </div>
     <button class="btn btn-lit" id="btn-start" onclick="hostStart()">Rozpocznij grę ▶</button>
+    <!-- Category selector - rendered by JS -->
+    <div id="lob-cat-row" style="display:flex;flex-direction:column;gap:6px"></div>
   </div>
   <div id="lob-guest" style="display:none;">
     <div class="conn" id="lob-guest-conn"><span class="cdot dwait"></span>Czekaj aż host rozpocznie grę…</div>
@@ -436,528 +465,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
    Format: { q: "Pytanie o [imię]?", a: ["Opcja 1","Opcja 2","Opcja 3"] }
 ═══════════════════════════════════════════════════════════════ */
 const QS=[
-  {q:"Jak [imię] najchętniej spędza wolny weekend?",                  a:["Leniuchując w domu","Wychodząc ze znajomymi","Aktywnie – sport lub wycieczka"]},
-  {q:"Co najbardziej stresuje [imię] w codziennym życiu?",            a:["Praca / szkoła","Relacje z innymi","Brak pieniędzy"]},
-  {q:"Gdyby [imię] wygrał/a milion złotych, co zrobi jako pierwsze?", a:["Odłoży lub zainwestuje","Wyjedzie w podróż marzeń","Kupi coś dużego"]},
-  {q:"Jaką rolę [imię] zwykle pełni w grupie znajomych?",            a:["Dusza towarzystwa","Spokojny obserwator","Organizator i lider"]},
-  {q:"Co [imię] ceni najbardziej w życiu?",                          a:["Lojalność i zaufanie","Wolność i niezależność","Bezpieczeństwo i stabilność"]},
-  {q:"Jak [imię] reaguje na konstruktywną krytykę?",                 a:["Bierze ją bardzo do serca","Analizuje spokojnie","Odpiera – wie swoje"]},
-  {q:"Jaki film najchętniej obejrzy [imię] wieczorem?",              a:["Komedia lub romans","Thriller lub horror","Dokument lub dramat"]},
-  {q:"Jak [imię] podejmuje ważne decyzje?",                          a:["Impulsywnie – działa od razu","Długo rozważa za i przeciw","Pyta bliskich o zdanie"]},
-  {q:"Czym [imię] najczęściej irytuje innych?",                      a:["Spóźnianiem się","Mówieniem bez końca","Zamknięciem się w sobie"]},
-  {q:"Co [imię] robi gdy jest zły/a?",                               a:["Wybucha i mówi wprost","Milczy i dąsa się","Zamyka się i potrzebuje czasu"]},
-  {q:"Jak [imię] zachowuje się na głośnej imprezie?",                a:["Bawi się do białego rana","Wychodzi po 2 godzinach","Siedzi z jedną osobą cały wieczór"]},
-  {q:"Co [imię] jest w stanie zjeść o 2 w nocy?",                   a:["Cokolwiek z lodówki","Zamawia pizzę lub kebaba","Nie je po 20:00 – zasada"]},
-  {q:"Jak [imię] radzi sobie z nudą?",                               a:["Scrolluje social media","Wymyśla nowe projekty","Śpi – nicnierobienie to szczyt"]},
-  {q:"Kiedy [imię] nie może zasnąć, to…",                           a:["Przegląda telefon","Rozmyśla o wszystkim naraz","Wstaje i coś robi"]},
-  {q:"Co [imię] myśli o sobie?",                                     a:["Jestem naprawdę wyjątkowy/a","Jestem zwykłym człowiekiem","Mógłbym/łabym być lepszy/a"]},
-  {q:"Jak [imię] reaguje na niespodziankę?",                         a:["Zachwyca się i głośno cieszy","Uśmiecha, ale woli wiedzieć wcześniej","Stresuje się zmianą planów"]},
-  {q:"Gdyby [imię] mógł/a zmienić jedną rzecz w swoim życiu…",      a:["Zmieniłbym/łabym pracę lub kierunek","Przeprowadziłbym/łabym się gdzie indziej","Naprawiłbym/łabym ważną relację"]},
-  {q:"Co powie [imię] przyjacielowi w potrzebie?",                   a:["'Jak mogę pomóc? Mów!'","'Dasz radę, wierzę w ciebie'","'To twój problem, ogarnij to'"]},
-  {q:"Jakie jest ulubione miejsce [imię]?",                          a:["Dom – tu jest najlepiej","Gdzieś nowe, nieznane","Ulubiona kawiarnia lub park"]},
-  {q:"Jaka muzyka towarzyszy [imię] najczęściej?",                   a:["Pop i mainstream","Hip-hop, R&B lub electronic","Rock, metal lub alternatywa"]},
-  {q:"Co [imię] robi gdy słyszy złą nowinę?",                       a:["Reaguje emocjonalnie od razu","Zachowuje spokój zewnętrznie","Potrzebuje chwili sam/a"]},
-  {q:"Jak [imię] zachowuje się w kolejce?",                          a:["Cierpliwie czeka","Niecierpliwi się i wierci","Szuka drogi na skróty"]},
-  {q:"Gdyby [imię] był/a zwierzęciem, byłby/łaby…",                 a:["Psem – wierny i energiczny","Kotem – niezależny i leniwy","Wilkiem – samotny i tajemniczy"]},
-  {q:"Jak [imię] podchodzi do przepisów i zasad?",                   a:["Stosuje je ściśle","Nagina gdy trzeba","Ignoruje jeśli nie ma sensu"]},
-  {q:"Czego [imię] szuka w nowym znajomym?",                        a:["Poczucia humoru","Inteligencji i głębi","Szczerości i lojalności"]},
-  {q:"Co [imię] robi pierwszego ranka w weekend?",                   a:["Śpi jak najdłużej","Wstaje wcześnie i planuje dzień","Leży i scrolluje telefon"]},
-  {q:"Jak [imię] reaguje gdy ktoś się na niego/nią złości?",        a:["Przeprasza od razu","Tłumaczy swoje racje","Milczy i czeka aż minie"]},
-  {q:"Co [imię] chciałby/chciałaby umieć, a nie umie?",             a:["Grać na instrumencie","Mówić obcym językiem","Gotować jak szef kuchni"]},
-  {q:"Jak [imię] podchodzi do oszczędzania pieniędzy?",             a:["Odkłada regularnie","Wydaje i jakoś wychodzi","Żyje chwilą – oszczędności to mit"]},
-  {q:"Co [imię] myśli o social mediach?",                           a:["Uzależnienie – nie może bez tego","Narzędzie – używa świadomie","Przereklamowany syf"]},
-
-  // ── NOWE PYTANIA ──
-  {q:"Jak [imię] reaguje na poranne wstawanie?",                    a:["Wstaje z uśmiechem","Potrzebuje godziny żeby dojść do siebie","Najchętniej nie wstałby/łaby wcale"]},
-  {q:"Co [imię] robi gdy czeka w długiej kolejce?",                 a:["Przegląda telefon","Obserwuje ludzi wokół","Niecierpliwi się i szuka skrótu"]},
-  {q:"Jak [imię] zachowuje się podczas kłótni?",                    a:["Mówi wszystko wprost i głośno","Wycofuje się i milczy","Próbuje rozładować humor"]},
-  {q:"Co [imię] wybiera na pierwszą randkę?",                       a:["Kolację w restauracji","Spacer lub aktywność na świeżym powietrzu","Coś niestandardowego – escape room, koncert"]},
-  {q:"Jak [imię] spędza czas gdy jest sam/a w domu?",               a:["Ogląda seriale lub filmy","Sprząta lub porządkuje","Robi coś twórczego"]},
-  {q:"Co [imię] myśli o spontanicznych wyjazdach?",                 a:["Uwielbia – pakuje się w 10 minut","Potrzebuje planu z wyprzedzeniem","Zależy od nastroju i kasy"]},
-  {q:"Jak [imię] reaguje na komplementy?",                          a:["Przyjmuje z uśmiechem","Bagatelizuje i zaprzecza","Krępuje się i czerwieni"]},
-  {q:"Co [imię] zrobiłby/zrobiłaby na bezludnej wyspie?",          a:["Budowałby/łaby schronienie i przeżył/a","Panikował/a i szukał/a pomocy","Delektował/a się ciszą i spokojem"]},
-  {q:"Jak [imię] podchodzi do diety?",                              a:["Je wszystko bez wyrzutów sumienia","Stara się zdrowo, ale od czasu do czasu szaleje","Restrykcyjnie pilnuje tego co je"]},
-  {q:"Co [imię] robi gdy coś go/ją złości w pracy lub szkole?",    a:["Mówi to wprost od razu","Trzyma w sobie i wyładowuje potem","Żartuje żeby rozładować napięcie"]},
-  {q:"Jak [imię] zachowuje się jako pasażer w samochodzie?",        a:["Komentuje jazdę kierowcy","Śpi lub słucha muzyki","Siedzi cicho i patrzy przez okno"]},
-  {q:"Co [imię] wybiera na kacu?",                                  a:["Tłuste jedzenie i leżenie","Więcej alkoholu – klin","Wodę, witaminy i sport"]},
-  {q:"Jak [imię] reaguje na śmierć bliskiej osoby?",                a:["Płacze i potrzebuje towarzystwa","Zamyka się w sobie","Staje się silny/a i organizuje wszystkich"]},
-  {q:"Co [imię] robi gdy ma dużo czasu wolnego?",                   a:["Odpoczywa – nic nierobienie jest OK","Wypełnia czas aktywnościami","Nudzi się i nie wie co ze sobą zrobić"]},
-  {q:"Jak [imię] zachowuje się gdy jest głodny/a?",                 a:["Staje się zirytowany/a (hangry)","Ignoruje głód dopóki może","Natychmiast szuka jedzenia"]},
-  {q:"Co [imię] wybiera na relaks po ciężkim dniu?",                a:["Kąpiel lub prysznic i leżenie","Sport lub aktywność fizyczna","Alkohol lub inne używki"]},
-  {q:"Jak [imię] traktuje swój telefon?",                           a:["Zawsze przy sobie – życie bez niego nie istnieje","Traktuje jak narzędzie, nie życie społeczne","Często o nim zapomina"]},
-  {q:"Co [imię] robi gdy film jest nudny?",                         a:["Wytrzymuje do końca – zaczął/ęła to skończy","Wyłącza bez żalu","Zasypia w połowie"]},
-  {q:"Jak [imię] zachowuje się na pogrzebie?",                      a:["Płacze otwarcie","Trzyma się i pociesza innych","Nie może sobie poradzić z emocjami"]},
-  {q:"Co [imię] myśli o tatuażach?",                                a:["Ma lub chciałby/chciałaby mieć","Podoba mu/jej się u innych, nie dla siebie","Nie przepada za nimi"]},
-  {q:"Jak [imię] reaguje na nagłą zmianę planów?",                  a:["Adaptuje się bez problemu","Irytuje się ale akceptuje","Trudno mu/jej to zaakceptować"]},
-  {q:"Co [imię] robi gdy nie zgadza się z większością?",            a:["Mówi to głośno i broni swojego zdania","Milczy ale nie zmienia zdania","Dostosowuje się do grupy"]},
-  {q:"Jak [imię] podchodzi do sprzątania?",                         a:["Sprząta regularnie, nie może żyć w bałaganie","Sprząta raz na jakiś czas gdy już musi","Żyje w kreatywnym chaosie"]},
-  {q:"Co [imię] wybiera na śniadanie?",                             a:["Coś konkretnego – jajka, kanapki","Kawę lub herbatę – jedzenie może poczekać","Płatki, owsianka lub coś słodkiego"]},
-  {q:"Jak [imię] zachowuje się gdy jest chory/a?",                  a:["Dramatyzuje i potrzebuje opieki","Trzyma się i pracuje dalej","Izoluje się i leży w ciszy"]},
-  {q:"Co [imię] robi podczas długiej podróży samochodem?",          a:["Śpi","Słucha muzyki lub podcastów","Rozmawia z innymi pasażerami"]},
-  {q:"Jak [imię] traktuje urodziny?",                               a:["To wielkie wydarzenie – trzeba świętować","Skromna impreza z bliskimi","Woli żeby minęły niezauważenie"]},
-  {q:"Co [imię] myśli o horoskopach?",                              a:["Wierzy w nie i regularnie czyta","Czyta dla zabawy ale nie traktuje poważnie","Uważa to za nonsens"]},
-  {q:"Jak [imię] reaguje gdy ktoś go/ją okłamie?",                  a:["Wybucha i konfrontuje się od razu","Schodzi ze sceny i dystansuje się","Daje drugą szansę ale nie zapomina"]},
-  {q:"Co [imię] wybiera gdy jest smutny/a?",                        a:["Szuka towarzystwa i rozmawia","Słucha smutnej muzyki i przeżywa","Angażuje się w aktywność żeby zapomnieć"]},
-  {q:"Jak [imię] zachowuje się jako nowy pracownik lub uczeń?",     a:["Aktywnie się integruje od pierwszego dnia","Obserwuje i powoli się wciela","Trzyma się z boku i potrzebuje czasu"]},
-  {q:"Co [imię] robi gdy widzi kogoś płaczącego?",                  a:["Natychmiast podchodzi i pyta czy może pomóc","Udaje że nie widzi bo nie wie jak reagować","Obserwuje sytuację zanim zareaguje"]},
-  {q:"Jak [imię] podchodzi do nauki nowych rzeczy?",                a:["Entuzjastycznie – uwielbia się uczyć","Z rezerwą – woli to co zna","Tylko gdy musi lub jest to praktyczne"]},
-  {q:"Co [imię] myśli o wegetarianizmie i weganizmie?",             a:["Szanuje ale sam/a je mięso","Stara się ograniczać mięso","Jest wegetarianinem/weganinem lub bardzo blisko"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś go/ją prosi o przysługę?",  a:["Prawie zawsze mówi tak","Ocenia czy to mu/jej odpowiada","Często mówi nie – ceni swój czas"]},
-  {q:"Co [imię] czuje gdy musi przeprosić?",                        a:["Łatwo mu/jej to przychodzi","Trudno mu/jej to powiedzieć ale robi to","Przeprasza rzadko – uważa że ma rację"]},
-  {q:"Jak [imię] reaguje na kompliment dotyczący wyglądu?",         a:["Cieszy się i dziękuje naturalnie","Odpiera – 'Och, nic specjalnego'","Krępuje się mocno"]},
-  {q:"Co [imię] robi gdy ma problem do rozwiązania?",               a:["Analizuje sam/a i szuka rozwiązania","Pyta kogoś o radę od razu","Odkłada na później i liczy na cud"]},
-  {q:"Jak [imię] podchodzi do alkoholu na imprezach?",              a:["Pije dużo – impreza to impreza","Pije z umiarem","Nie pije lub prawie nie pije"]},
-  {q:"Co [imię] robi gdy skończy się jego/jej ulubiony serial?",    a:["Szuka od razu czegoś nowego","Przeżywa żałobę po serialu","Ogląda ponownie od początku"]},
-  {q:"Jak [imię] zachowuje się gdy coś mu/jej nie wychodzi?",       a:["Próbuje dalej aż wyjdzie","Szuka alternatywnego podejścia","Rezygnuje i robi coś innego"]},
-  {q:"Co [imię] myśli o randkowaniu przez aplikacje?",              a:["Używał/a lub używa – czemu nie","Próbował/a ale nie dla niego/niej","Uważa to za mało autentyczne"]},
-  {q:"Jak [imię] reaguje na głośne dzieci w restauracji?",          a:["Irytuje się i traci cierpliwość","Rozumie rodziców – dzieci są dziećmi","Ignoruje i rozmawia dalej"]},
-  {q:"Co [imię] robi gdy jest w złym nastroju?",                    a:["Mówi o tym i prosi o wsparcie","Chce zostać sam/a i poczekać aż minie","Idzie na trening lub spacer"]},
-  {q:"Jak [imię] podchodzi do polityki?",                           a:["Aktywnie się interesuje i wyraża opinie","Śledzi ale nie angażuje się publicznie","Unika tematu – polityka to bagno"]},
-  {q:"Co [imię] robi gdy czuje że ktoś go/ją nie lubi?",           a:["Stara się zmienić jego/jej zdanie","Nie przejmuje się – nie wszystkim musi się podobać","Zastanawia się co zrobiłem/łam źle"]},
-  {q:"Jak [imię] zachowuje się podczas świąt?",                     a:["Uwielbia rodzinne spotkania i tradycje","Wytrzymuje z rodziną bo tak wypada","Woli spokój – święta to dla niego/niej stres"]},
-  {q:"Co [imię] wybiera gdy ma wybór między kawą a herbatą?",       a:["Kawa – bez niej nie istnieje","Herbata – ciepła i spokojna","Obojętne – zależy od nastroju"]},
-  {q:"Jak [imię] reaguje na opóźnienia (np. pociąg, autobus)?",     a:["Traci cierpliwość szybko","Korzysta z czasu na telefon lub książkę","Stara się nie denerwować"]},
-  {q:"Co [imię] robi gdy ktoś nie odpisuje na wiadomości?",         a:["Zakłada że coś się stało","Wysyła kolejną wiadomość po jakimś czasie","Czeka spokojnie – mają swoje życie"]},
-  {q:"Jak [imię] zachowuje się w nowym środowisku?",                a:["Szybko się adaptuje i nawiązuje kontakty","Potrzebuje czasu ale w końcu się otwiera","Trzyma się z boku i obserwuje"]},
-  {q:"Co [imię] myśli o weselach?",                                 a:["Uwielbia wesela – zabawa i emocje","Idzie dla bliskich ale nie szaleje","Uważa je za przerost formy"]},
-  {q:"Jak [imię] reaguje gdy ktoś go/ją krytykuje publicznie?",     a:["Odpowiada na miejscu i broni się","Czerwieni się i chce się zapaść pod ziemię","Udaje że nic się nie stało ale pamięta"]},
-  {q:"Co [imię] wybiera gdy może sam/a zdecydować co zjeść?",       a:["Zawsze to samo ulubione danie","Eksperymentuje i próbuje czegoś nowego","Zamawia co popadnie – decyzje go/ją przytłaczają"]},
-  {q:"Jak [imię] zachowuje się podczas zakupów?",                   a:["Ma listę i trzyma się jej","Idzie po jedno a wraca z pięcioma rzeczami","Nie lubi zakupów i robi to szybko"]},
-  {q:"Co [imię] robi gdy coś go/ją bardzo zaskoczy?",               a:["Wybucha śmiechem lub krzyczy ze zdziwieniem","Staje w miejscu i milczy przez chwilę","Udaje że nic się nie stało"]},
-  {q:"Jak [imię] podchodzi do spóźniania się?",                     a:["Sam/a jest często spóźniony/a","Jest punktualny/a i nie lubi gdy inni się spóźniają","Przyjmuje to filozoficznie"]},
-  {q:"Co [imię] myśli o ludziach którzy płaczą w filmach?",         a:["Sam/a płacze i rozumie ich","Nie rozumie ale szanuje","Kryje oczy bo też płacze"]},
-  {q:"Jak [imię] reaguje gdy musi czekać na coś ważnego?",          a:["Niecierpliwi się okropnie","Zajmuje się czymś innym żeby nie myśleć","Analizuje różne scenariusze"]},
-  {q:"Co [imię] robi gdy ma zły dzień?",                            a:["Mówi o tym bliskim","Je coś smacznego lub ogląda ulubiony serial","Ćwiczy lub idzie na spacer"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś prosi go/ją o radę?",       a:["Słucha uważnie i doradza konkretnie","Słucha i pyta czy chcą rady czy tylko mówić","Doradza od razu bez słuchania"]},
-  {q:"Co [imię] czuje przed dużym wystąpieniem lub prezentacją?",   a:["Silny stres i trema","Trochę nerwów ale daje radę","Prawie nic – lubi być w centrum uwagi"]},
-  {q:"Jak [imię] podchodzi do ryzyka?",                             a:["Podejmuje ryzyko chętnie","Kalkuluje i podejmuje tylko gdy warto","Unika ryzyka jak ognia"]},
-  {q:"Co [imię] myśli o długich relacjach na odległość?",           a:["Uważa że działają jeśli oboje chcą","Próbował/a – nie dla niego/niej","Nie wyobraża sobie tak funkcjonować"]},
-  {q:"Jak [imię] reaguje gdy znajomy prosi o pożyczkę pieniędzy?",  a:["Pożycza jeśli może – zaufanie jest ważne","Pożycza ale z niepokojem","Odmawia – pieniądze psują relacje"]},
-  {q:"Co [imię] robi gdy nie wie jak powiedzieć czegoś przykrego?", a:["Mówi wprost choć jest to trudne","Owijał/a w bawełnę i łagodzi","Unika tematu i poczeka aż samo minie"]},
-  {q:"Jak [imię] zachowuje się gdy jest mu/jej gorąco?",            a:["Narzeka głośno i szuka chłodu","Poci się cicho i wytrzymuje","Przestaje cokolwiek robić dopóki nie ostygnie"]},
-  {q:"Co [imię] wybiera na wieczór panieński/kawalerski?",          a:["Szalone wyjście i impreza do rana","Coś oryginalnego – spa, escape room, wypad","Spokojna kolacja z przyjaciółmi"]},
-  {q:"Jak [imię] podchodzi do zdrowia?",                            a:["Regularnie badania, sport, dieta","Dba gdy coś boli lub jest chory/a","Żyje jak chce – jakoś to będzie"]},
-  {q:"Co [imię] robi gdy nie może czegoś znaleźć w domu?",          a:["Przeszukuje wszystko metodycznie","Prosi kogoś o pomoc po chwili","Wybucha frustracją"]},
-  {q:"Jak [imię] zachowuje się gdy musi podjąć szybką decyzję?",    a:["Działa instynktownie","Szybko waży za i przeciw","Stresuje się i prosi kogoś o pomoc"]},
-  {q:"Co [imię] myśli o plotkowaniu?",                              a:["Nie uczestniczy – szanuje prywatność","Zdarza mu/jej się pogadać o innych","Lubi być na bieżąco z tym co się dzieje"]},
-  {q:"Jak [imię] reaguje gdy przegra w grze?",                      a:["Zdenerwowany/a ale szybko odpuszcza","Śmieje się z siebie","Długo to przeżywa"]},
-  {q:"Co [imię] robi gdy film okazuje się zły?",                    a:["Wyłącza bez żalu","Wytrzymuje do końca licząc że się poprawi","Komentuje na głos dlaczego jest zły"]},
-  {q:"Jak [imię] podchodzi do spędzania czasu z rodziną?",          a:["Ceni to i spotyka się regularnie","Spotyka się gdy wypada lub jest okazja","Unika częstych spotkań – potrzebuje przestrzeni"]},
-  {q:"Co [imię] wybiera między morzem a górami?",                   a:["Morze – plaża i relaks","Góry – przyroda i aktywność","Miasto – wakacje to kultura i restauracje"]},
-  {q:"Jak [imię] reaguje gdy ktoś go/ją kopiuje lub naśladuje?",    a:["Czuje się pochlebiony/a","Irytuje go/ją to","Nie zwraca na to uwagi"]},
-  {q:"Co [imię] robi gdy napotka nieznajomego w potrzebie?",        a:["Pomaga od razu","Zastanawia się chwilę i wtedy pomaga","Przechodzi obok – boi się się wmieszać"]},
-  {q:"Jak [imię] zachowuje się na przyjęciu z nieznajomymi?",       a:["Zaprzyjaźnia się szybko","Trzyma się znanych osób","Siedzi cicho i czeka aż ktoś zagada"]},
-  {q:"Co [imię] myśli o kotach kontra psach?",                      a:["Psy – wierność i energia","Koty – niezależność i spokój","Nie przepada za żadnym z nich"]},
-  {q:"Jak [imię] reaguje na złą obsługę w restauracji?",            a:["Mówi kelnerowi wprost","Skarży się znajomym ale milczy w restauracji","Zostawi mały napiwek lub żaden"]},
-  {q:"Co [imię] robi gdy ma dużo zaległości?",                      a:["Robi listę i systematycznie odhacza","Bierze się za to co najtrudniejsze od razu","Odkłada dalej bo stres paraliżuje"]},
-  {q:"Jak [imię] zachowuje się gdy coś go/ją bardzo ekscytuje?",    a:["Mówi o tym wszystkim dookoła","Cieszy się w środku ale na zewnątrz spokój","Tańczy lub skacze z radości"]},
-  {q:"Co [imię] myśli o ludziach którzy nie piją alkoholu?",        a:["Szanuje to w pełni","Zastanawia się czemu ale nie pyta","Nie rozumie jak można bawić się bez alkoholu"]},
-  {q:"Jak [imię] podchodzi do związków?",                           a:["Woli stały, głęboki związek","Lubi wolność i nie spieszy się","Aktualnie skupia się na sobie"]},
-  {q:"Co [imię] robi gdy jest mu/jej nudno w rozmowie?",            a:["Udaje zainteresowanie grzecznie","Zmienia temat subtelnie","Mówi wprost że go/ją to nudzi"]},
-  {q:"Jak [imię] reaguje na dobrą nowinę dla kogoś innego?",        a:["Cieszy się szczerze jak za siebie","Cieszy się ale czuje nutę zazdrości","Reaguje entuzjastycznie na pokaz"]},
-  {q:"Co [imię] robi gdy ktoś mu/jej przeszkadza w pracy?",         a:["Mówi grzecznie że potrzebuje skupienia","Terpi w milczeniu","Nie może się skupić i zaczyna się irytować"]},
-  {q:"Jak [imię] zachowuje się gdy coś mu/jej nie smakuje?",        a:["Mówi wprost","Je grzecznie i nie komentuje","Kręci nosem i przestaje jeść"]},
-  {q:"Co [imię] myśli o dzieciach?",                                a:["Chce mieć dzieci lub już ma i kocha to","Lubił/a dzieci ale swoje to nie teraz","Nie planuje mieć dzieci"]},
-  {q:"Jak [imię] reaguje gdy znajomy prosi o szczerą opinię?",      a:["Mówi prawdę zawsze nawet jeśli boli","Łagodzi prawdę żeby nie zranić","Mówi to co chcą usłyszeć"]},
-  {q:"Co [imię] wybiera na kolację z nowym znajomym?",              a:["Restaurację – chce zrobić wrażenie","Gotuje sam/a – to bardziej osobiste","Coś prostego – żeby skupić się na rozmowie"]},
-  {q:"Jak [imię] podchodzi do remontów i majsterkowania?",          a:["Robi wszystko sam/a – lubi to","Zleca fachowcom – nie traci czasu","Odkłada w nieskończoność"]},
-  {q:"Co [imię] robi gdy nie może sobie przypomnieć czegoś ważnego?",a:["Traci spokój i stresuje się","Zapisuje wszelkie wskazówki które mu/jej przyjdą","Odpuszcza – jeśli ważne to wróci"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś go/ją bardzo zawiedzie?",   a:["Konfrontuje się bezpośrednio","Dystansuje się cicho","Wybacza ale nie zapomina"]},
-  {q:"Co [imię] myśli o sławie i rozgłosie?",                       a:["Chciałby/chciałaby być sławny/a","Sława nie pociąga – woli prywatność","Interesuje go/ją tylko w określonej dziedzinie"]},
-  {q:"Jak [imię] reaguje gdy ktoś mówi coś nie na miejscu?",        a:["Zwraca uwagę od razu","Milczy ale jest mu/jej nieswojo","Śmieje się nerwowo"]},
-  {q:"Co [imię] robi gdy nie ma internetu?",                        a:["Wpada w panikę","Cieszy się – wymuszony detoks","Sięga po książkę lub rozmawia z ludźmi"]},
-  {q:"Jak [imię] podchodzi do życia w mieście kontra na wsi?",      a:["Miasto – energia, kultura, ludzie","Wieś – spokój, natura, przestrzeń","Podmiejska okolica – kompromis"]},
-  {q:"Co [imię] myśli o ludziach którzy zawsze się spóźniają?",     a:["Bardzo mu/jej to przeszkadza","Stara się zrozumieć ale jest trudno","Sam/a też bywa spóźniony/a więc rozumie"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś za bardzo wchodzi w jego/jej przestrzeń?",a:["Mówi wprost że potrzebuje miejsca","Oddala się subtelnie","Toleruje ale czuje dyskomfort"]},
-  {q:"Co [imię] robi gdy jest mu/jej bardzo smutno?",               a:["Płacze i potrzebuje ramienia","Słucha muzyki lub ogląda filmy sam/a","Ćwiczy lub spędza czas na świeżym powietrzu"]},
-  {q:"Jak [imię] reaguje na widok pająka w domu?",                  a:["Wyrzuca go za okno spokojnie","Ucieka z krzykiem","Zabija go bez zastanowienia"]},
-  {q:"Co [imię] myśli o pracy zdalnej?",                            a:["Woli pracę zdalną – swoboda i wygoda","Woli biuro – motywacja i kontakty","Zależy od projektu i nastroju"]},
-  {q:"Jak [imię] zachowuje się gdy musi odczekać długo na wizytę u lekarza?",a:["Czyta lub bawi się telefonem spokojnie","Irytuje się i pyta ile jeszcze","Martwi się co powie lekarz"]},
-  {q:"Co [imię] robi gdy usłyszy ulubioną piosenkę?",               a:["Śpiewa na cały głos","Kiwa głową lub uśmiecha się","Podkręca głośność i tańczy"]},
-  {q:"Jak [imię] podchodzi do zwierząt domowych?",                  a:["Kocha zwierzęta i chce je mieć lub ma","Lubi ale nie chce odpowiedzialności","Nie przepada za nimi w domu"]},
-  {q:"Co [imię] myśli o ludziach którzy dużo mówią o sobie?",       a:["Denerwuje go/ją to","Stara się słuchać bo pewnie tego potrzebują","Sam/a też tak robi czasem"]},
-  {q:"Jak [imię] reaguje gdy widzi kogoś w potrzebie na ulicy?",     a:["Zawsze zatrzymuje się i pomaga","Zatrzymuje się jeśli sytuacja jest jasna","Przechodzi bo boi się manipulacji"]},
-  {q:"Co [imię] robi po kłótni z bliską osobą?",                    a:["Idzie przeprosić gdy się uspokoi","Czeka aż druga strona zrobi pierwszy krok","Zachowuje się jakby nic się nie stało"]},
-  {q:"Jak [imię] podchodzi do wesel na które go/ją zaproszono?",    a:["Odlicza dni – uwielbia wesela","Idzie z obowiązku ale się bawi","Szuka wymówek żeby nie iść"]},
-  {q:"Co [imię] myśli o ludziach którzy nie wywiązują się z obietnic?",a:["Traci do nich zaufanie na długo","Wybacza raz ale pilnuje","Rozumie – życie jest nieprzewidywalne"]},
-  {q:"Jak [imię] zachowuje się gdy widzi coś pięknego w naturze?",   a:["Robi zdjęcie natychmiast","Stoi i obserwuje w ciszy","Cieszy się ale szybko idzie dalej"]},
-  {q:"Co [imię] robi gdy musi powiedzieć 'nie'?",                   a:["Mówi to bez problemu","Długo się zastanawia zanim odmówi","Zazwyczaj mówi tak nawet gdy nie chce"]},
-  {q:"Jak [imię] reaguje na długie teksty wiadomości?",             a:["Czyta uważnie i odpowiada konkretnie","Skanuje i odpowiada na najważniejsze","Odkłada na później i zapomina"]},
-  {q:"Co [imię] wybiera na wyjście z przyjaciółmi?",                a:["Bar lub klub – muzyka i alkohol","Kino lub teatr – coś kulturalnego","Dobra restauracja i rozmowa"]},
-  {q:"Jak [imię] podchodzi do robienia prezentów?",                 a:["Planuje z wyprzedzeniem i dobiera prezent starannie","Kupuje w ostatniej chwili","Daje pieniądze lub voucher – niech sam/a zdecyduje"]},
-  {q:"Co [imię] myśli o meditacji i mindfulness?",                  a:["Praktykuje i ceni to","Próbował/a ale nie dla niego/niej","Uważa to za trendy bez wartości"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś jest na niego/nią zły bez powodu?",a:["Pyta co się stało i szuka rozwiązania","Ignoruje dopóki osoba się nie uspokoi","Denerwuje się wzajemnie"]},
-  {q:"Co [imię] robi gdy usłyszy nową ulubioną piosenkę?",          a:["Słucha na okrągło przez tydzień","Dodaje do playlisty i wraca od czasu do czasu","Szuka więcej muzyki tego artysty od razu"]},
-  {q:"Jak [imię] reaguje gdy ktoś mu/jej daje niechciane rady?",    a:["Mówi grzecznie że nie potrzebuje rad","Milczy i po cichu ignoruje","Irytuje się i daje to odczuć"]},
-  {q:"Co [imię] myśli o powrocie do małego rodzinnego miasteczka?", a:["Chętnie by wrócił/wróciła – spokój i korzenie","Odwiedza chętnie ale mieszkać nie","Woli pozostać w mieście – tam jest jego/jej życie"]},
-  {q:"Jak [imię] zachowuje się gdy przegrał/a coś ważnego?",        a:["Analizuje błędy i wyciąga wnioski","Potrzebuje czasu żeby przetrawić","Szybko się odpina i idzie dalej"]},
-  {q:"Co [imię] robi gdy coś go/ją bardzo bawi?",                   a:["Śmieje się głośno bez zahamowań","Uśmiecha się i chichoczy cicho","Prawie się nie śmieje na zewnątrz ale w środku gra"]},
-  {q:"Jak [imię] podchodzi do starej przyjaźni?",                   a:["Pielęgnuje je aktywnie i regularnie się odzywa","Odzywa się rzadko ale więź jest silna","Wielu przyjaciół z dzieciństwa dawno z oczu"]},
-  {q:"Co [imię] myśli gdy ktoś mówi że zmienił/a się na lepsze?",  a:["Cieszy się i czuje dumę","Zastanawia się co się zmieniło","Odrzuca – 'zawsze taki/taka byłem/byłam'"]},
-  {q:"Jak [imię] reaguje na zapach ulubionych potraw?",             a:["Natychmiast jest głodny/a","Robi mu/jej się miło i wraca do wspomnień","Nie przywiązuje wagi do zapachów"]},
-  {q:"Co [imię] robi gdy ma nowe hobby?",                           a:["Rzuca się na głębią i angażuje maksymalnie","Próbuje ostrożnie zanim zainwestuje czas","Szybko się nudzi i szuka kolejnego"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś mówi mu/jej co ma robić?",  a:["Nie lubi tego i mówi o tym wprost","Słucha ale robi po swojemu","Denerwuje się mocno"]},
-  {q:"Co [imię] myśli o długich spacerach?",                        a:["Uwielbia – czyści głowę","Idzie jeśli jest cel lub towarzystwo","Woli inną formę aktywności"]},
-  {q:"Jak [imię] reaguje gdy ktoś dotyka jego/jej rzeczy bez pytania?",a:["Nie przeszkadza mu/jej to","Prosi grzecznie żeby pytać","Mocno go/ją to denerwuje"]},
-  {q:"Co [imię] robi gdy coś wzbudza w nim/niej nostalgię?",        a:["Delektuje się tym uczuciem","Szybko ucieka od tego","Kontaktuje się z osobami z tamtego okresu"]},
-  {q:"Jak [imię] podchodzi do pracy w weekendy?",                   a:["Pracuje jeśli trzeba – spokojnie","Nie pracuje nigdy w weekendy","Zależy od projektu i deadline'u"]},
-  {q:"Co [imię] myśli o ludziach którzy za dużo wydają na ubrania?",a:["Sam/a lubi modę i rozumie","Uważa że to zbędne wydatki","Każdy wydaje jak chce – nie jego/jej sprawa"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś mu/jej przerwie?",          a:["Mówi że chce dokończyć myśl","Zgubił/a wątek i milknie","Irytuje się ale kończy w pośpiechu"]},
-  {q:"Co [imię] robi gdy czuje że coś idzie nie tak?",              a:["Mówi o tym natychmiast","Czeka i obserwuje zanim zareaguje","Stresuje się ale milczy"]},
-  {q:"Jak [imię] podchodzi do dawania napiwków?",                   a:["Zawsze daje – to ważne","Daje jeśli obsługa była dobra","Rzadko daje – to nie jego/jej obowiązek"]},
-  {q:"Co [imię] wybiera gdy ma wolną niedzielę?",                   a:["Wypad za miasto lub na łono natury","Leniwy dzień w domu z serialem","Spotkanie z rodziną lub znajomymi"]},
-  {q:"Jak [imię] reaguje gdy ktoś płacze przy nim/niej?",           a:["Natychmiast stara się pocieszyć","Nie wie co robić ale jest obecny/a","Sam/a zaczyna się wzruszać"]},
-  {q:"Co [imię] myśli o improwizacji kontra planowaniu?",           a:["Woli improwizować – życie jest ciekawsze","Woli plan – spokój i pewność","Zależy od sytuacji"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś jest głośno szczęśliwy?",   a:["Cieszy się razem z nim/nią","Miło mu/jej ale po chwili ma dość","Irytuje go/ją nadmierny entuzjazm"]},
-  {q:"Co [imię] robi gdy musi czekać na znajomego który się spóźnia?",a:["Wysyła wiadomość i czeka spokojnie","Irytuje się i daje to odczuć","Wychodzi jeśli czeka więcej niż 15 minut"]},
-  {q:"Jak [imię] podchodzi do wyznawania uczuć?",                   a:["Mówi o uczuciach otwarcie","Wyraża je czynami nie słowami","Trudno mu/jej mówić o emocjach"]},
-  {q:"Co [imię] myśli o ludziach którzy za dużo pracują?",          a:["Szanuje ich pracowitość","Martwi się o ich zdrowie","Sam/a też tak robi"]},
-  {q:"Jak [imię] zachowuje się gdy jest w centrum uwagi?",          a:["Czuje się świetnie – uwielbia to","Stara się wypaść dobrze choć jest trochę stres","Chce się schować"]},
-  {q:"Co [imię] robi gdy widzi nieznanego psa lub kota?",           a:["Natychmiast chce go pogłaskać","Podchodzi ostrożnie i powoli","Trzyma się z daleka"]},
-  {q:"Jak [imię] reaguje gdy dostaje niespodziewany prezent?",      a:["Wzrusza się i jest wdzięczny/a","Cieszy się ale czuje się niezręcznie","Zachowuje się naturalnie i dziękuje"]},
-  {q:"Co [imię] myśli o ludziach którzy żyją na pokaz w social mediach?",a:["Irytuje go/ją to","Nie obchodzi go/ją co inni robią","Sam/a też to trochę robi"]},
-  {q:"Jak [imię] zachowuje się gdy coś jest niesprawiedliwe?",      a:["Walczy o sprawiedliwość aktywnie","Narzeka ale nie robi nic","Akceptuje – takie jest życie"]},
-  {q:"Co [imię] robi gdy film lub książka ma złe zakończenie?",     a:["Jest zły/a i rozczarowany/a","Akceptuje – tak bywa w życiu","Szuka alternatywnych zakończeń online"]},
-  {q:"Jak [imię] podchodzi do ekologii?",                           a:["Aktywnie stara się być eco – segreguje, nie marnuje","Stara się ale nie jest to priorytet","Nie przywiązuje do tego wagi"]},
-  {q:"Co [imię] myśli o dzieleniu rachunku w restauracji?",         a:["Każdy płaci za siebie – sprawiedliwie","Jeden płaci cały rachunek na zmianę","Płaci więcej jeśli zamawiał/a więcej"]},
-  {q:"Jak [imię] reaguje gdy ktoś mu/jej mówi żeby się uspokoił/a?",a:["Denerwuje się jeszcze bardziej","Stara się ale jest trudno","Bierze to pod uwagę i stara się]"]},
-  {q:"Co [imię] robi gdy jest mu/jej zimno?",                       a:["Ubiera się w kilka warstw i jest OK","Narzeka i nie może przestać","Pije gorący napój i czeka aż minie"]},
-  {q:"Jak [imię] zachowuje się gdy słyszy dobrą muzykę w miejscu publicznym?",a:["Tańczy lub kołysze się w rytm","Kiwa głową i uśmiecha się w środku","Prawie nie reaguje – muzyka w tle to tło"]},
-  {q:"Co [imię] myśli o siłowni?",                                  a:["Chodzi regularnie i kocha to","Chodzi z przymusu żeby być zdrowym/ą","Nie lubi siłowni – woli inne formy ruchu"]},
-  {q:"Jak [imię] reaguje gdy musi coś zwrócić do sklepu?",          a:["Robi to bez problemu","Odwleka bo jest to niewygodne","Woli zostawić niż się szarpać"]},
-  {q:"Co [imię] robi gdy coś jest bardzo trudne do nauczenia?",     a:["Ćwiczy aż opanuje","Szuka pomocy lub tutoriala","Rezygnuje jeśli za długo zajmuje"]},
-  {q:"Jak [imię] podchodzi do mediów i wiadomości?",                a:["Śledzi aktywnie i jest na bieżąco","Sprawdza raz dziennie lub rzadziej","Unika – depresja informacyjna to realne zagrożenie"]},
-  {q:"Co [imię] myśli o osobach które zawsze wiedzą lepiej?",       a:["Mocno go/ją to denerwuje","Ignoruje i robi swoje","Sam/a bywa taką osobą"]},
-  {q:"Jak [imię] zachowuje się gdy musi pochwalić kogoś z kim nie przepada?",a:["Mówi prawdę jeśli jest dobra","Mówi coś neutralnego","Milczy lub zmienia temat"]},
-  {q:"Co [imię] robi gdy skończy mu/jej się energia w połowie dnia?",a:["Pije kawę lub energy drink","Robi krótką drzemkę","Próbuje przetrwać siłą woli"]},
-  {q:"Jak [imię] reaguje gdy ktoś przy nim/niej mówi coś rasistowskiego lub seksistowskiego?",a:["Reaguje natychmiast i mówi że to nieodpowiednie","Milczy ale jest mu/jej nieswojo","Odchodzi od tej osoby"]},
-  {q:"Co [imię] wybiera na dessert?",                               a:["Czekoladowe – im bardziej grzeszne tym lepiej","Owocowe lub lżejsze","Zazwyczaj rezygnuje z dessertu"]},
-  {q:"Jak [imię] podchodzi do randkowania przez aplikacje?",         a:["Używa i widzi w tym sens","Próbował/a ale wróciło do poznawania ludzi w realu","Nigdy by tego nie spróbował/a"]},
-  {q:"Co [imię] robi gdy jest w złej passie?",                      a:["Szuka przyczyny i pracuje nad zmianą","Czeka aż minie – wszystko ma swój czas","Narzeka na los i bliskich"]},
-  {q:"Jak [imię] zachowuje się gdy jest bardzo zmęczony/a ale musi jeszcze coś zrobić?",a:["Bierze się za to – będzie czas na sen","Robi minimum i idzie spać","Odkłada na jutro bez wyrzutów"]},
-  {q:"Co [imię] myśli o ludziach którzy zmieniają zdanie często?",  a:["Irytuje go/ją to – niezdecydowanie","Szanuje – zmiana zdania pod wpływem argumentów to mądrość","Sam/a tak robi więc rozumie"]},
-  {q:"Jak [imię] reaguje gdy ktoś go/ją zawstydzi publicznie?",     a:["Broni się natychmiast","Czerwieni się i chce zniknąć","Śmieje się z siebie choć go/ją to boli"]},
-  {q:"Co [imię] robi gdy coś go/ją fascynuje?",                     a:["Zagłębia się w temat maksymalnie","Czyta podstawy i wystarcza mu/jej","Pyta kogoś kto się zna zamiast samemu badać"]},
-  {q:"Jak [imię] podchodzi do długich rozmów telefonicznych?",      a:["Uwielbia – lubi słyszeć głos bliskich","Woli SMS – rozmowa przez telefon to stres","Dzwoni tylko gdy to konieczne"]},
-  {q:"Co [imię] myśli o ludziach którzy nie mają poczucia humoru?", a:["Trudno mu/jej z takimi osobami","Stara się nie oceniać – każdy jest inny","Sam/a bywa poważny/a więc rozumie"]},
-  {q:"Jak [imię] zachowuje się gdy musi brać leki?",                a:["Bierze regularnie bez problemu","Zapomina i odkłada","Szuka naturalnych alternatyw"]},
-  {q:"Co [imię] robi gdy ma wolne i nikogo nie ma w pobliżu?",      a:["Cieszy się z samotności i odpoczynku","Szuka kogoś do spędzenia czasu","Nudzi się bez towarzystwa"]},
-  {q:"Jak [imię] reaguje gdy ktoś robi mu/jej awanturę publicznie?",a:["Odpowiada i nie daje się zdominować","Milczy i wychodzi z sytuacji","Płacze lub roztrzęsa się"]},
-  {q:"Co [imię] myśli o ludziach którzy idealnie dbają o siebie?",  a:["Podziwia ich dyscyplinę","Trochę ich nie rozumie – co to za życie","Chciałby/chciałaby być taki/taka"]},
-  {q:"Jak [imię] podchodzi do historii i dziedzictwa kulturowego?", a:["Interesuje go/ją to – zwiedzał/a i czyta","Trochę interesuje – oglądał/a dokumenty","Nie czuje połączenia z historią"]},
-  {q:"Co [imię] robi gdy ktoś inny przejmuje jego/jej zadanie?",    a:["Pozwala chętnie – mniej pracy","Irytuje się – to jego/jej sprawa","Stara się odzyskać kontrolę grzecznie"]},
-  {q:"Jak [imię] zachowuje się gdy widzi kogoś nieuczciwego?",      a:["Reaguje i nie pozostawia tego bez odpowiedzi","Obserwuje ale nie miesza się","Odchodzi – nie jego/jej sprawa"]},
-  {q:"Co [imię] myśli o ludziach którzy mówią że nie oglądają TV?",a:["Lubi takich ludzi – sam/a tak robi","Uważa że trochę przesadzają","Ogląda TV i nie rozumie dlaczego to wstyd"]},
-  {q:"Jak [imię] reaguje gdy widzi piękne zdjęcie jedzenia?",       a:["Natychmiast chce to zjeść","Robi screenshot przepisu","Scrolluje dalej – to tylko jedzenie"]},
-  {q:"Co [imię] robi gdy poczuje się nierozumiany/a?",              a:["Stara się jeszcze raz wytłumaczyć","Rezygnuje z tłumaczenia","Czuje frustrację i się zamyka"]},
-  {q:"Jak [imię] podchodzi do sportu?",                             a:["Regularnie uprawia – sport to styl życia","Od czasu do czasu gdy ma ochotę","Ogląda chętnie ale sam/a nie ćwiczy"]},
-  {q:"Co [imię] myśli o ludziach którzy za dużo jedzą słodyczy?",  a:["Sam/a je dużo słodyczy więc rozumie","Nie rozumie jak można tyle cukru","Nie ocenia – każdy je co chce"]},
-  {q:"Jak [imię] zachowuje się gdy musi szybko się zdecydować?",    a:["Podejmuje decyzję bez wahania","Prosi o chwilę na zastanowienie","Stresuje się i często żałuje wyboru"]},
-  {q:"Co [imię] robi gdy coś mu/jej nie wychodzi za trzecim razem?",a:["Próbuje inaczej – nie można poddawać się","Robi przerwę i wróci później","Prosi kogoś innego żeby zrobił/a to za niego/nią"]},
-  {q:"Jak [imię] reaguje gdy ktoś jest do niego/niej podobny?",     a:["Czuje się zaprzyjaźniony/a od razu","Ciekawi go/ją to ale nic więcej","Irytuje go/ją – nie lubi swoich odbić"]},
-  {q:"Co [imię] myśli o jodze?",                                    a:["Ćwiczy lub chciałby/chciałaby ćwiczyć","Próbował/a ale nie dla niego/niej","Za nudna jak na jego/jej gust"]},
-  {q:"Jak [imię] podchodzi do kreatywnego myślenia?",               a:["Lubi wymyślać i tworzyć nowe rzeczy","Woli sprawdzone metody niż eksperymentowanie","Kombinuje gdy musi ale woli procedury"]},
-  {q:"Co [imię] robi gdy ktoś bardzo go/ją rozśmieszy?",            a:["Śmieje się do łez","Chichocze cicho","Stara się utrzymać powagę i nie zawsze mu/jej to wychodzi"]},
-  {q:"Jak [imię] reaguje gdy widzi wypadek lub scysję na ulicy?",   a:["Zatrzymuje się i pyta czy pomóc","Dzwoni pod 112 i czeka","Przyspiesza kroku – nie chce się mieszać"]},
-  {q:"Co [imię] myśli o ludziach którzy mówią że nie potrzebują niczyjej pomocy?",a:["Szanuje niezależność","Martwi się że to duma a nie siła","Sam/a tak mówi więc rozumie"]},
-  {q:"Jak [imię] zachowuje się gdy ma zbyt dużo opcji do wyboru?",  a:["Decyduje szybko – jeden wybór tyle co drugi","Analizuje długo każdą opcję","Stresuje się i prosi kogoś o pomoc"]},
-  {q:"Co [imię] robi gdy jest mu/jej bardzo dobrze?",               a:["Cieszy się w pełni i docenia chwilę","Trochę się boi że zaraz się skończy","Dzieli się tym z bliskimi"]},
-  {q:"Jak [imię] podchodzi do nowych technologii?",                 a:["Jest early adopter – chce mieć wszystko nowe","Przyjmuje gdy stają się standardem","Unika jeśli da radę – tęskni za prostotą"]},
-  {q:"Co [imię] myśli o ludziach którzy chodzą spać przed 22?",    a:["Sam/a też tak robi – zdrowy sen to podstawa","Nie rozumie jak można tak wcześnie","Sov mu/jej się zdarza ale rzadko"]},
-  {q:"Jak [imię] reaguje gdy ktoś opowiada zbyt długą historię?",   a:["Słucha cierpliwie do końca","Subtelnie przyspiesza rozmówcę","Odpływa myślami ale potakuje"]},
-  {q:"Co [imię] robi gdy widzi ładną zachód słońca?",               a:["Robi zdjęcie i podziela się","Staje i ogląda w ciszy","Docenia ale idzie dalej"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś zmienia plany w ostatniej chwili?",a:["Akceptuje bez problemu","Irytuje się – uszanuj mój czas","Zależy od tego z kim i jak często"]},
-  {q:"Co [imię] myśli o ludziach którzy płakali na ślubie?",        a:["Wzruszające – sam/a też by płakał/a","Trochę się krępuje ich emocjami","Rozumie ale sam/a nie płacze"]},
-  {q:"Jak [imię] podchodzi do wyboru między logiką a intuicją?",    a:["Woli logikę i fakty","Woli intuicję – rzadko go/ją zawodzi","Łączy oba podejścia"]},
-  {q:"Co [imię] robi gdy coś go/ją przeraża?",                      a:["Konfrontuje się z tym – jedyny sposób","Unika tego co przeraża","Mówi o tym bliskim żeby poczuć się lepiej"]},
-  {q:"Jak [imię] reaguje gdy ktoś mówi złe słowo o jego/jej ulubionym filmie lub książce?",a:["Broni zajadle","Dyskutuje spokojnie","Wzrusza ramionami – gusto non est disputandum"]},
-  {q:"Co [imię] myśli o ludziach którzy nigdy nie gotują?",         a:["Nie rozumie – gotowanie to podstawa","Szanuje – nie każdy musi gotować","Sam/a też rzadko gotuje"]},
-  {q:"Jak [imię] zachowuje się gdy jest bardzo zdenerwowany/a?",    a:["Mówi o tym głośno","Wychodzi na spacer lub trening","Milczy i gryzie paznokcie"]},
-  {q:"Co [imię] robi gdy ktoś opowiada dowcipy których nie rozumie?",a:["Śmieje się żeby nie było niezręcznie","Prosi o wytłumaczenie","Mówi wprost że nie zrozumiał/a"]},
-  {q:"Jak [imię] podchodzi do utrzymywania kontaktu ze starymi znajomymi?",a:["Regularnie się odzywa i spotyka","Odzywa się od czasu do czasu","Wiele kontaktów się urwało – tak bywa"]},
-  {q:"Co [imię] myśli o ludziach którzy mówią że nie lubią czekolady?",a:["Nie wierzy – to niemożliwe","Każdy ma swoje preferencje","Sam/a też nie przepada za słodkim"]},
-  {q:"Jak [imię] reaguje gdy ktoś nie pyta jak mu/jej mija dzień?",  a:["Nie oczekuje tego i nie zwraca uwagi","Trochę go/ją to rani w bliskich relacjach","Sam/a też o to nie pyta więc rozumie"]},
-  {q:"Co [imię] robi gdy napotka bardzo trudną decyzję życiową?",   a:["Rozmawia z zaufanymi osobami","Medytuje i szuka odpowiedzi w sobie","Analizuje opcje na papierze"]},
-  {q:"Jak [imię] zachowuje się gdy słyszy krytykę swojej pracy?",   a:["Analizuje i bierze pod uwagę","Broni się i tłumaczy swoje wybory","Zdenerwowany/a ale milczy"]},
-  {q:"Co [imię] myśli o ludziach którzy są zawsze optymistyczni?",  a:["Podziwia – chciałby/chciałaby tak samo","Trochę go/ją irytuje – realizm jest ważny","Ceni ale sam/a jest realistą/realistką"]},
-  {q:"Jak [imię] podchodzi do selfie i zdjęć z siebie?",            a:["Robi dużo i wrzuca chętnie","Robi rzadko – tylko gdy wyjdzie","Nie lubi się fotografować"]},
-  {q:"Co [imię] robi gdy coś mu/jej obiecano a nie dotrzymano słowa?",a:["Przypomina o obietnicy","Jest rozczarowany/a ale nie mówi","Wyciąga wniosek żeby nie ufać tej osobie tak łatwo"]},
-  {q:"Jak [imię] reaguje gdy ktoś jest lepszy od niego/niej w czymś?",a:["Motywuje go/ją to do pracy","Pyta jak to osiągnął/a – uczy się","Trochę go/ją to złości choć nie przyznaje"]},
-  {q:"Co [imię] myśli o chodzeniu na imprezy solo?",                a:["Bez problemu – świetna okazja do poznania ludzi","Tylko jeśli zna kogoś na miejscu","Nigdy – bez znajomych nie idzie"]},
-  {q:"Jak [imię] zachowuje się gdy jest bardzo zmęczony/a ale nie może spać?",a:["Wstaje i coś robi","Leży i próbuje różnych technik zasypiania","Sięga po telefon"]},
-  {q:"Co [imię] robi gdy widzi starszą osobę niosącą ciężkie zakupy?",a:["Pyta czy może pomóc od razu","Obserwuje chwilę i jeśli widzi potrzebę to pomaga","Idzie dalej – pewnie da radę"]},
-  {q:"Jak [imię] podchodzi do bycia spóźnionym na samolot lub pociąg?",a:["Panikuje już godzinę przed wyjazdem","Sprawdza kilka razy czy zdąży","Przybiega w ostatniej chwili i zawsze zdąży"]},
-  {q:"Co [imię] myśli o ludziach którzy mówią że nie lubią podróżować?",a:["Nie rozumie – jak można","Każdy ma swoje hobby","Sam/a też nie jest podróżomaniakiem/czką"]},
-  {q:"Jak [imię] reaguje gdy ktoś wyznaje mu/jej miłość?",           a:["Jest wzruszony/a i wzajemnie jeśli czuje to samo","Stresuje się i nie wie co powiedzieć","Jest szczery/a nawet jeśli to boli drugą osobę"]},
-  {q:"Co [imię] robi gdy musi czekać na odpowiedź w sprawie pracy?",a:["Wysyła follow-up po kilku dniach","Czeka cierpliwie – mają swoje procesy","Stresuje się i sprawdza pocztę co godzinę"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś jest wobec niego/niej agresywny?",a:["Stawia granice spokojnie ale stanowczo","Wycofuje się z sytuacji","Odpowiada tym samym"]},
-  {q:"Co [imię] myśli o ludziach którzy nie oglądają wiadomości?",  a:["Rozumie – informacyjny detoks to zdrowe","Uważa że to nieodpowiedzialne","Sam/a rzadko ogląda"]},
-  {q:"Jak [imię] podchodzi do wykonywania zadań domowych?",         a:["Robi to co lubi a resztę odkłada","Dzieli równo z domownikami","Stara się robić wszystko systematycznie"]},
-  {q:"Co [imię] robi gdy ktoś pyta go/ją o wiek?",                  a:["Mówi bez wahania","Trochę się krępuje ale mówi","Żartuje i nie podaje wprost"]},
-  {q:"Jak [imię] reaguje gdy plan się nie sprawdza?",               a:["Improwizuje i szuka nowego planu","Frustruje się zanim znajdzie alternatywę","Wraca do punktu wyjścia i zaczyna od nowa"]},
-  {q:"Co [imię] myśli o ludziach którzy w restauracji zamawiają zawsze to samo?",a:["Sam/a tak robi – po co eksperymentować","Namawia ich do spróbowania czegoś nowego","Rozumie ale sam/a lubi próbować nowych smaków"]},
-  {q:"Jak [imię] zachowuje się gdy musi dać trudną informację zwrotną?",a:["Mówi wprost ale z szacunkiem","Owijał/a w bawełnę żeby nie zranić","Odwleka moment jak długo się da"]},
-  {q:"Co [imię] robi gdy coś jest bardzo drogie ale bardzo chce to mieć?",a:["Kupuje – życie jest jedno","Oszczędza przez jakiś czas","Szuka tańszej alternatywy"]},
-  {q:"Jak [imię] podchodzi do bycia odpowiedzialnym za grupę?",     a:["Chętnie bierze odpowiedzialność","Woli być częścią grupy nie liderem","Bierze ją jeśli trzeba ale nie szuka"]},
-  {q:"Co [imię] myśli o ludziach którzy wciąż mówią o swoich sukcesach?",a:["Irytuje go/ją to","Cieszy się z nimi ale po chwili ma dość","Sam/a chętnie opowiada o swoich osiągnięciach"]},
-  {q:"Jak [imię] reaguje gdy jest mu/jej niewygodnie fizycznie (twarde krzesło, zimno)?",a:["Mówi o tym i szuka rozwiązania","Wytrzymuje bez słowa","Kręci się i zmienia pozycje"]},
-  {q:"Co [imię] robi gdy musi rozstać się z kimś bliskim (wyjazd, rozstanie)?",a:["Przeżywa mocno ale rozumie","Woli krótkie pożegnania – długie są za ciężkie","Stara się nie okazywać emocji publicznie"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś żartuje z jego/jej wady?",  a:["Śmieje się razem – sam/a też to robi","Udaje że OK ale w środku go/ją to boli","Mówi że nie lubi takich żartów"]},
-  {q:"Co [imię] myśli o ludziach którzy zawsze mówią że są zajęci?",a:["Irytuje go/ją to – wszyscy są zajęci","Szanuje – każdy ma swoje priorytety","Sam/a też zawsze mówi że jest zajęty/a"]},
-  {q:"Jak [imię] podchodzi do pytań o plany na przyszłość?",        a:["Ma konkretny plan i chętnie o nim mówi","Nie lubi takich pytań – żyje chwilą","Ma ogólny kierunek ale szczegóły się ułożą"]},
-  {q:"Co [imię] robi gdy ktoś mówi mu/jej żeby się uśmiechnął/a?",  a:["Uśmiecha się grzecznie","Irytuje go/ją to","Tłumaczy że ma właśnie taki wyraz twarzy"]},
-  {q:"Jak [imię] reaguje gdy coś pięknego nie istnieje już w jego/jej życiu?",a:["Żałuje ale idzie dalej","Długo za tym tęskni","Szuka tego w nowych miejscach"]},
-  {q:"Co [imię] myśli o ludziach którzy wciąż zmieniają pracę?",    a:["Szanuje odwagę poszukiwania","Uważa że brakuje im wytrwałości","Sam/a też tak robi lub chciałby/chciałaby"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś mówi mu/jej że jest przewrażliwiony/a?",a:["Broni się – mam prawo do swoich emocji","Zastanawia się czy to prawda","Irytuje się jeszcze bardziej"]},
-  {q:"Co [imię] robi gdy ktoś inny robi coś nieprawidłowo?",        a:["Mówi jak to zrobić poprawnie","Milczy i obserwuje – może dojdzie sam/a","Oferuje pomoc delikatnie"]},
-  {q:"Jak [imię] podchodzi do snów?",                               a:["Pamięta je i lubi o nich opowiadać","Rzadko pamięta ale fascynują go/ją","Nie przykłada do nich znaczenia"]},
-  {q:"Co [imię] myśli o chodzeniu do kościoła?",                    a:["Chodzi regularnie – wiara jest ważna","Chodzi na ważne okazje","Nie chodzi – to jego/jej wybór"]},
-  {q:"Co [imię] robi gdy ktoś inny robi coś nieprawidłowo?",        a:["Mówi jak to zrobić poprawnie","Milczy i obserwuje – może dojdzie sam/a","Oferuje pomoc delikatnie"]},
-  {q:"Jak [imię] podchodzi do snów?",                               a:["Pamięta je i lubi o nich opowiadać","Rzadko pamięta ale fascynują go/ją","Nie przykłada do nich znaczenia"]},
-  {q:"Co [imię] myśli o chodzeniu do kościoła?",                    a:["Chodzi regularnie – wiara jest ważna","Chodzi na ważne okazje","Nie chodzi – to jego/jej wybór"]},
-  {q:"Jak [imię] reaguje gdy ktoś zapyta co robi ze swoim życiem?",  a:["Odpowiada z dumą i konkretnie","Odpowiada wymijająco","Czuje presję i zaczyna się zastanawiać sam/a"]},
-
-  // ── KOLEJNE 300 ──
-  {q:"Co [imię] myśli gdy widzi starą fotografię siebie?",           a:["Śmieje się z dawnej wersji siebie","Wspomina z sentymentem","Wstydzi się jak wyglądał/a"]},
-  {q:"Jak [imię] reaguje gdy ktoś go/ją zignoruje?",                a:["Pyta wprost o co chodzi","Dyskretnie się wycofuje","Udaje że nic się nie stało"]},
-  {q:"Co [imię] zrobiłby/łaby z niespodziewanym wolnym dniem?",     a:["Zaplanowałby/łaby coś od razu","Leżałby/łaby i nic nie robił/a","Zadzwoniłby/łaby do kogoś bliskiego"]},
-  {q:"Jak [imię] podchodzi do słuchania muzyki podczas pracy?",     a:["Zawsze słucha – nie może bez tego","Zależy od rodzaju pracy","Woli ciszę – muzyka go/ją rozprasza"]},
-  {q:"Co [imię] czuje gdy musi przepuścić kogoś w kolejce?",        a:["Przepuszcza chętnie – nic wielkiego","Przepuszcza ale lekko go/ją to irytuje","Rzadko przepuszcza – sam/a czekał/a"]},
-  {q:"Jak [imię] zachowuje się gdy jest bardzo szczęśliwy/a?",      a:["Mówi o tym wszystkim","Cieszy się cicho w środku","Robi coś miłego dla innych"]},
-  {q:"Co [imię] myśli gdy widzi że przyjaciel robi błąd?",          a:["Mówi mu o tym wprost","Czeka aż sam/a zapyta o zdanie","Wspiera bez oceniania"]},
-  {q:"Jak [imię] reaguje na deszczowy dzień?",                      a:["Kocha deszcz – idealny na kanapę","Irytuje go/ją – psuć pogodę","Wychodzi mimo wszystko"]},
-  {q:"Co [imię] robi gdy musi poprosić o pomoc?",                   a:["Prosi bez problemu","Woli sam/a dać radę jak długo może","Trudno mu/jej to przychodzi – nie lubi zależności"]},
-  {q:"Jak [imię] podchodzi do starszych ludzi?",                    a:["Z szacunkiem i cierpliwością","Traktuje ich jak każdego innego","Czasem traci cierpliwość"]},
-  {q:"Co [imię] robi gdy coś mu/jej przypomni stary ból?",          a:["Pozwala sobie go poczuć i przejść","Ucieka w aktywność żeby nie myśleć","Rozmawia o tym z bliską osobą"]},
-  {q:"Jak [imię] reaguje gdy ktoś powie że wygląda zmęczony/a?",   a:["Potwierdza i mówi czemu","Zaprzecza – wszystko dobrze","Nie wie co powiedzieć"]},
-  {q:"Co [imię] myśli o ludziach którzy jedzą przed komputerem?",  a:["Sam/a tak robi – co w tym złego","Uważa że to niekulturalne","Rozumie w ciągłej pracy ale sam/a nie lubi"]},
-  {q:"Jak [imię] zachowuje się gdy coś wychodzi lepiej niż oczekiwał/a?",a:["Niesamowicie się cieszy","Analizuje czemu tak wyszło","Podchodzi spokojnie – mogło być gorzej"]},
-  {q:"Co [imię] robi gdy musi poczekać na kogoś w kawiarni?",       a:["Zamawia i siedzi z telefonem","Czyta lub obserwuje ludzi","Irytuje się gdy czeka dłużej niż 10 minut"]},
-  {q:"Jak [imię] podchodzi do przeklinania?",                       a:["Przeklina dużo – to wyraz ekspresji","Przeklina czasem gdy jest mocno zdenerwowany/a","Stara się nie przeklinać"]},
-  {q:"Co [imię] myśli o jedzeniu w łóżku?",                        a:["Uwielbia – szczyt relaksu","Nie lubi okruszków – za niekomfortowe","Robił/a to ale woli stół"]},
-  {q:"Jak [imię] reaguje gdy ktoś go/ją prosi o zdjęcie razem?",   a:["Chętnie i bez problemów","Z uśmiechem choć trochę się krępuje","Woli być za obiektywem"]},
-  {q:"Co [imię] robi gdy jest pierwszy/a w nowym miejscu?",         a:["Eksploruje wszystko od razu","Przygląda się zanim zacznie działać","Szuka kogoś znajomego"]},
-  {q:"Jak [imię] podchodzi do porannej rutyny?",                    a:["Ma ustaloną rutynę której się trzyma","Działa spontanicznie każdego ranka","Robi minimum – byle się ubrać i wyjść"]},
-  {q:"Co [imię] myśli gdy widzi kogoś kto świetnie tańczy?",        a:["Podziwia i chciałby/chciałaby tak umieć","Dołącza jeśli może","Ogląda z zazdrością ale nie tańczy"]},
-  {q:"Jak [imię] reaguje gdy coś go/ją bardzo denerwuje?",          a:["Mówi o tym natychmiast","Wychodzi z sytuacji i ochładza się","Wybucha w nieoczekiwanym momencie"]},
-  {q:"Co [imię] robi gdy musi długo stać?",                         a:["Wytrzymuje bez problemu","Szuka miejsca do siedzenia","Narzeka i zmienia pozycję co chwilę"]},
-  {q:"Jak [imię] podchodzi do przyjmowania gości w domu?",          a:["Kocha mieć gości – gotuje i dekoruje","Przyjmuje gdy musi ale woli wychodzić","Rzadko zaprasza – dom to jego/jej azyl"]},
-  {q:"Co [imię] myśli o ludziach którzy mówią dużo ale mało robią?",a:["Bardzo go/ją to irytuje","Stara się nie oceniać","Sam/a bywa taki/taka"]},
-  {q:"Jak [imię] reaguje gdy ktoś go/ją niespodziewanie odwiedza?", a:["Cieszy się i wita serdecznie","Nie przepada ale przyjmuje uprzejmie","Wyraźnie pokazuje że woli uprzedzenie"]},
-  {q:"Co [imię] robi gdy musi napisać długiego maila?",             a:["Pisze od razu i wysyła","Odkłada na później bo jest to żmudne","Pisze wiele razy i poprawia zanim wyśle"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś go/ją prosi o opiekę nad dziećmi?",a:["Chętnie – lubi dzieci","Zgadza się ale to nie jest jego/jej żywioł","Szuka wymówki"]},
-  {q:"Co [imię] myśli o randkach w ciemno?",                        a:["Ekscytujące – czemu nie","Stresujące ale dało/dałaby radę","Koszmar – za duże ryzyko"]},
-  {q:"Jak [imię] reaguje gdy ktoś mówi mu/jej żeby się więcej uśmiechał/a?",a:["Stara się ale czuje się nienaturalnie","Irytuje go/ją to – każdy ma swój wyraz twarzy","Bierze to do serca i pracuje nad tym"]},
-  {q:"Co [imię] robi gdy widzi że ktoś jest samotny na imprezie?",  a:["Zagaduje i włącza do grupy","Obserwuje ale nie interweniuje","Rozumie – sam/a czasem woli być z boku"]},
-  {q:"Jak [imię] podchodzi do czytania etykiet na jedzeniu?",       a:["Zawsze czyta – skład jest ważny","Czyta gdy coś kupuje po raz pierwszy","Nigdy nie czyta – za mało czasu"]},
-  {q:"Co [imię] myśli o ludziach którzy nie umieją trzymać tajemnic?",a:["Mocno go/ją to irytuje","Unika dzielenia się z nimi informacjami","Rozumie – trudno milczeć"]},
-  {q:"Jak [imię] reaguje gdy ktoś głośno odtwarza muzykę w miejscu publicznym?",a:["Prosi żeby ściszył/a","Zakłada własne słuchawki i odpuszcza","Komentuje do siebie pod nosem"]},
-  {q:"Co [imię] robi gdy ma trudny temat do omówienia z kimś bliskim?",a:["Mówi wprost – im szybciej tym lepiej","Czeka na dobry moment","Pisze – łatwiej niż mówić"]},
-  {q:"Jak [imię] podchodzi do sławnych osób?",                      a:["Interesuje go/ją ich życie i praca","Nie interesuje go/ją sława – to tylko ludzie","Jest jednym z nich jeśli chodzi o social media"]},
-  {q:"Co [imię] myśli gdy ktoś mówi że jest zbyt wrażliwy/a?",     a:["Uznaje to za zaletę nie wadę","Zastanawia się czy ma rację","Irytuje go/ją taka ocena"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś robi mu/jej komplement dotyczący charakteru?",a:["Cieszy się i dziękuje szczerze","Bagatelizuje – 'Och każdy tak robi'","Czerwieni się i nie wie co powiedzieć"]},
-  {q:"Co [imię] robi gdy coś jest naprawdę śmieszne?",              a:["Śmieje się głośno i zaraźliwie","Chichocze cicho ale widać że go/ją bawi","Prawie nie okazuje rozbawienia"]},
-  {q:"Jak [imię] podchodzi do kupowania książek?",                  a:["Kupuje dużo – biblioteka w domu to podstawa","Pożycza z biblioteki lub od znajomych","Czyta ebooki – po co zajmować miejsce"]},
-  {q:"Co [imię] myśli gdy ktoś zmienia temat w środku jego/jej wypowiedzi?",a:["Mówi że chciał/a skończyć myśl","Odpuszcza i dostosowuje się do nowego tematu","Denerwuje go/ją to ale milczy"]},
-  {q:"Jak [imię] reaguje gdy coś sprawia mu/jej fizyczny ból?",     a:["Mówi o tym i szuka pomocy","Zaciska zęby i wytrzymuje","Dramatyzuje trochę"]},
-  {q:"Co [imię] robi gdy widzi kogoś kto pluje lub śmieci na ulicy?",a:["Komentuje lub prosi żeby tego nie robić","Mruczy pod nosem ale nie reaguje","Przechodzi obojętnie"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś jest wobec niego/niej szczególnie miły?",a:["Cieszy się i odwzajemnia życzliwość","Zastanawia się czego chce","Podejrzewa że coś jest nie tak"]},
-  {q:"Co [imię] myśli o ludziach którzy ciągle mówią o diecie?",   a:["Nuży go/ją to","Sam/a też tak robi","Stara się być wspierający/a"]},
-  {q:"Jak [imię] podchodzi do pożyczania swojej kurtki lub ubrania?",a:["Pożycza bez problemu","Zależy komu i jakie ubranie","Nie lubi pożyczać swoich rzeczy"]},
-  {q:"Co [imię] robi gdy ktoś mu/jej stale powtarza tę samą historię?",a:["Słucha za każdym razem jakby był/a nowa","Subtelnie zmienia temat","Mówi że już to słyszał/a"]},
-  {q:"Jak [imię] reaguje gdy coś bardzo go/ją podekscytuje ale musi to zachować w tajemnicy?",a:["Nie wytrzymuje i w końcu mówi","Trzyma tajemnicę ale widać że coś knuje","Trzyma tajemnicę bez problemu"]},
-  {q:"Co [imię] myśli o dzieleniu się jedzeniem?",                  a:["Chętnie daje i przyjmuje","Nie lubi gdy ktoś sięga po jego/jej talerz","Zależy od dania i osoby"]},
-  {q:"Jak [imię] zachowuje się gdy coś kosztuje więcej niż oczekiwał/a?",a:["Płaci bez komentarza","Negocjuje lub szuka tańszej opcji","Rezygnuje i szuka alternatywy"]},
-  {q:"Co [imię] robi gdy ktoś pyta go/ją o radę w sprawie serca?",  a:["Słucha uważnie i doradza konkretnie","Słucha empatycznie ale nie doradza","Mówi że każdy musi sam zdecydować"]},
-  {q:"Jak [imię] podchodzi do bycia fotografowanym?",               a:["Pozuje chętnie i lubi wychodzić na zdjęciach","Nie przepada ale toleruje","Ucieka przed aparatem"]},
-  {q:"Co [imię] myśli gdy ktoś pyta go/ją o przepis?",              a:["Podaje chętnie i szczegółowo","Podaje ale zostawia coś swojego w tajemnicy","Nie gotuje więc nie ma przepisów"]},
-  {q:"Jak [imię] reaguje gdy słyszy dźwięk powiadomienia z telefonu?",a:["Sprawdza natychmiast","Sprawdza gdy skończy to co robi","Często ignoruje przez długi czas"]},
-  {q:"Co [imię] robi gdy ktoś go/ją o coś prosi gdy sam/a jest zajęty/a?",a:["Pyta czy może za chwilę","Przerywa to co robi – ludzie są ważniejsi","Kończy co robi i dopiero reaguje"]},
-  {q:"Jak [imię] zachowuje się gdy spotka dawnego znajomego na ulicy?",a:["Zagaduje entuzjastycznie","Zaczepuje tylko jeśli tamta osoba też go/ją zauważy","Udaje że go/jej nie widzi jeśli nie jest blisko"]},
-  {q:"Co [imię] myśli o piciu kawy po 16?",                         a:["Pije kiedy chce – nie robi mu/jej różnicy","Unika – nie może potem zasnąć","Nigdy nie pije kawy w ogóle"]},
-  {q:"Jak [imię] podchodzi do pisania ręcznego?",                   a:["Woli pisać ręcznie – bardziej osobiste","Pisze tylko gdy musi – klawiatura szybsza","Odręczne pismo jest nieczytelne – woli drukować"]},
-  {q:"Co [imię] robi gdy rozmowa staje się zbyt osobista?",         a:["Otwiera się jeśli czuje się bezpiecznie","Delikatnie zmienia temat","Mówi wprost że woli nie rozmawiać o tym"]},
-  {q:"Jak [imię] reaguje gdy ktoś go/ją prosi o pieniądze na ulicy?",a:["Daje jeśli ma drobne","Odmawia zawsze","Ocenia sytuację i decyduje za każdym razem"]},
-  {q:"Co [imię] myśli o wzruszających reklamach?",                  a:["Wzrusza się naprawdę","Rozumie mechanizm ale i tak go/ją chwyta","Nie robi na nim/niej wrażenia – to tylko reklama"]},
-  {q:"Jak [imię] zachowuje się gdy coś się zepsuje w domu?",        a:["Próbuje sam/a naprawić najpierw","Dzwoni od razu do fachowca","Odkłada naprawę dopóki się da"]},
-  {q:"Co [imię] robi gdy ktoś mówi mu/jej żeby był/a bardziej otwarty/a?",a:["Bierze to pod uwagę i stara się","Uważa że jest wystarczająco otwarty/a","Irytuje go/ją taka ocena"]},
-  {q:"Jak [imię] podchodzi do bycia proszonym o faworyt?",          a:["Ma ulubione i mówi bez wahania","Trudno mu/jej wybrać jedno","Zależy od kontekstu i nastroju"]},
-  {q:"Co [imię] myśli o ludziach którzy ciągle narzekają?",         a:["Irytuje go/ją to bardzo","Stara się wesprzeć ale po jakimś czasie ma dość","Sam/a też narzeka więc rozumie"]},
-  {q:"Jak [imię] reaguje gdy ktoś go/ją chwali przed innymi?",      a:["Cieszy się i jest mu/jej miło","Krępuje się trochę","Zbagatelizuje publicznie ale cieszy się w środku"]},
-  {q:"Co [imię] robi gdy skończy mu/jej się ulubiony produkt?",     a:["Zamawia od razu nowy","Szuka alternatywy – może jest coś lepszego","Kupuje dopiero gdy całkowicie skończy"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś siada obok niego/niej w autobusie choć jest dużo wolnych miejsc?",a:["Nie przeszkadza mu/jej to","Trochę go/ją to zastanawia","Niekomfortowo mu/jej się robi"]},
-  {q:"Co [imię] myśli gdy widzi że ktoś płacze w miejscu publicznym?",a:["Podchodzi i pyta czy potrzebuje pomocy","Odwraca wzrok żeby dać mu/jej prywatność","Obserwuje z daleka"]},
-  {q:"Jak [imię] podchodzi do kłótni przez SMS?",                   a:["Woli dzwonić lub spotkać się – tekst nie oddaje emocji","Kłóci się przez SMS – łatwiej kontrolować słowa","Nie kłóci się przez SMS – odkłada na potem"]},
-  {q:"Co [imię] robi gdy dostanie złą ocenę lub feedback?",         a:["Analizuje co poszło nie tak","Stara się nie brać tego do siebie","Mocno go/ją to uderza"]},
-  {q:"Jak [imię] reaguje gdy rozmowa ucichnie?",                    a:["Wypełnia ciszę nowym tematem","Siedzi w ciszy – nie każda cisza jest niezręczna","Niezręcznie mu/jej z ciszą"]},
-  {q:"Co [imię] myśli o ludziach którzy mówią że nie mają czasu?",  a:["Nie wierzy – czas zawsze można znaleźć","Rozumie – życie bywa intensywne","Sam/a też ciągle mówi że nie ma czasu"]},
-  {q:"Jak [imię] zachowuje się gdy widzi kogoś kto jest bardzo pewny siebie?",a:["Podziwia i chciałby/chciałaby tak samo","Ocenia czy to pewność siebie czy arogancja","Czuje się trochę nieswojo"]},
-  {q:"Co [imię] robi gdy musi przepisać coś monotonnego?",          a:["Robi to skupiając się i szybko kończy","Słucha muzyki żeby czas minął","Odkłada na ostatnią chwilę"]},
-  {q:"Jak [imię] podchodzi do zwracania uwagi na błędy innych?",    a:["Zwraca gdy błąd jest istotny","Zwraca zawsze – błąd to błąd","Nie zwraca – każdy ma prawo do błędów"]},
-  {q:"Co [imię] myśli gdy ktoś rozmawia przez telefon głośno w restauracji?",a:["Bardzo go/ją to irytuje","Nie przeszkadza mu/jej to","Ocenia sytuację – może to pilne"]},
-  {q:"Jak [imię] reaguje gdy coś mi/jej nieoczekiwanie wzruszy?",   a:["Pozwala sobie na wzruszenie","Walczy z emocjami żeby nie płakać","Wychodzi na chwilę jeśli może"]},
-  {q:"Co [imię] robi gdy coś czyta a nie rozumie?",                 a:["Czyta ponownie aż zrozumie","Szuka wyjaśnienia w innym źródle","Akceptuje niezrozumienie i idzie dalej"]},
-  {q:"Jak [imię] zachowuje się gdy musi przepraszać publicznie?",   a:["Przeprasza bez problemu","Trudno mu/jej ale robi to","Stara się unikać takich sytuacji"]},
-  {q:"Co [imię] myśli o ludziach którzy zawsze wiedzą co powiedzieć?",a:["Podziwia – chciałby/chciałaby tak umieć","Podejrzewa że to wyćwiczone nie naturalne","Sam/a też tak potrafi"]},
-  {q:"Jak [imię] podchodzi do odkładania trudnych rozmów?",         a:["Woli mieć to za sobą jak najszybciej","Czeka na odpowiedni moment","Odkłada dopóki się da"]},
-  {q:"Co [imię] robi gdy ktoś mu/jej mówi coś co go/ją rani?",      a:["Mówi że go/ją to zraniło","Milczy ale pamięta","Dystansuje się od tej osoby"]},
-  {q:"Jak [imię] reaguje gdy widzi coś zakazanego ale kuszącego?",  a:["Opiera się – zasady są ważne","Skusi się jeśli konsekwencje są małe","Nie potrafi się powstrzymać"]},
-  {q:"Co [imię] myśli o ludziach którzy mówią że sport to nie dla nich?",a:["Rozumie – każdy jest inny","Myśli że to kwestia znalezienia odpowiedniego sportu","Sam/a też nie jest fanem/fanką sportu"]},
-  {q:"Jak [imię] zachowuje się gdy musi wybrać między dwoma bliskimi osobami?",a:["Stara się nie wybierać – to niesprawiedliwe","Wybiera z bólem ale wybiera","Stresuje się i szuka kompromisu"]},
-  {q:"Co [imię] robi gdy ktoś go/ją prosi o coś co jest poza jego/jej możliwościami?",a:["Mówi szczerze że nie da rady","Próbuje mimo że nie jest pewny/a sukcesu","Mówi że może ale potem odkłada"]},
-  {q:"Jak [imię] podchodzi do starych fotografii rodzinnych?",       a:["Przegląda z sentymentem i często","Ogląda rzadko – zbyt emocjonalne","Nie przywiązuje do nich wagi"]},
-  {q:"Co [imię] myśli gdy ktoś pyta go/ją o hobby?",               a:["Mówi entuzjastycznie o tym co kocha","Trudno mu/jej wymienić jedno","Zastanawia się czy ma w ogóle hobby"]},
-  {q:"Jak [imię] reaguje gdy coś co kupił/a szybko się psuje?",     a:["Reklamuje bez wahania","Irytuje się ale nie robi nic","Wyrzuca i kupuje nowe"]},
-  {q:"Co [imię] robi gdy nie jest pewny/a czy coś powiedzieć?",     a:["Mówi – zawsze lepiej niż milczeć","Czeka na znak że rozmówca jest gotowy","Milczy żeby nie zaszkodzić"]},
-  {q:"Jak [imię] zachowuje się gdy coś mu/jej idzie bardzo dobrze?",a:["Jest pełen/pełna energii i entuzjazmu","Boi się że za dużo mu/jej idzie dobrze","Cieszy się spokojnie"]},
-  {q:"Co [imię] myśli o narzucaniu swojego zdania innym?",          a:["Nie robi tego – każdy ma prawo do swojej opinii","Zdarza mu/jej się ale stara się kontrolować","Uważa że czasem warto dać komuś do myślenia"]},
-  {q:"Jak [imię] podchodzi do wymiany prezentów przy świętach?",    a:["Uwielbia dawać i dostawać prezenty","Woli pieniądze lub vouchery – praktyczność ponad wszystko","Nie przepada za całą ceremonią"]},
-  {q:"Co [imię] robi gdy ktoś nie rozumie jego/jej żartu?",         a:["Tłumaczy czemu to było śmieszne","Śmieje się sam/a i odpuszcza","Krępuje się i milknie"]},
-  {q:"Jak [imię] reaguje gdy jest w konflikcie z kimś bliskim?",    a:["Stara się rozwiązać to jak najszybciej","Potrzebuje czasu zanim wróci do rozmowy","Czeka aż tamta osoba zrobi pierwszy krok"]},
-  {q:"Co [imię] myśli gdy widzi kogoś kto bardzo się stara?",       a:["Szanuje – wysiłek jest ważniejszy od talentu","Stara się nie oceniać ile wysiłku wkłada ktoś","Jest obojętny/a – wynik liczy się bardziej"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś go/ją imituje lub parodiuje?",a:["Śmieje się razem","Zależy od tego jak i kto to robi","Nie lubi tego – to niekomfortowe"]},
-  {q:"Co [imię] robi gdy musi podjąć decyzję pod presją czasu?",    a:["Decyduje sprawnie – nie lubi przeciągania","Stresuje się i podejmuje pochopną decyzję","Prosi o więcej czasu"]},
-  {q:"Jak [imię] podchodzi do chodzenia do nowego lekarza?",        a:["Bez problemu – zdrowie jest ważne","Trochę się stresuje ale idzie","Odkłada wizytę jak najdłużej"]},
-  {q:"Co [imię] myśli gdy widzi że ktoś go/ją obserwuje?",          a:["Nie przeszkadza mu/jej to","Zastanawia się czemu","Czuje dyskomfort"]},
-  {q:"Jak [imię] reaguje gdy słyszy złą muzykę?",                   a:["Komentuje że to niedobra muzyka","Milczy ale jest mu/jej nieswojo","Prosi o zmianę grzecznie"]},
-  {q:"Co [imię] robi gdy planuje coś od dawna a plany się sypią?",  a:["Reaguje spokojnie – może tak miało być","Irytuje się proporcjonalnie do ważności planów","Denerwuje się mocno – czas i wysiłek stracony"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś robi mu/jej prezent który mu/jej się nie podoba?",a:["Mówi że jest zachwycony/a choć tak nie jest","Mówi szczerze że to nie jego/jej gust","Dziękuje uprzejmie i odkłada"]},
-  {q:"Co [imię] myśli o imprezach niespodziankach?",                a:["Uwielbia – najbardziej wzruszające","Stresują go/ją – nie lubi niespodzianek","Byłby/łaby miły/a ale wolałby/łaby wcześniej wiedzieć"]},
-  {q:"Jak [imię] podchodzi do pisania wiadomości?",                 a:["Odpisuje od razu zawsze","Odpisuje gdy ma czas i nastrój","Zalega ze wiadomościami – to jego/jej problem"]},
-  {q:"Co [imię] robi gdy jest jedyną osobą która czegoś nie wie?",  a:["Pyta bez wstydu","Udaje że wie i sprawdza potem","Czuje się głupio ale pyta gdy może"]},
-  {q:"Jak [imię] reaguje gdy widzi ludzi którzy się kochają publicznie?",a:["Jest mu/jej miło – piękny widok","Uśmiecha się i odwraca wzrok","Drażni go/ją to w miejscach publicznych"]},
-  {q:"Co [imię] myśli o zmuszaniu dzieci do jedzenia?",             a:["Uważa że nie wolno zmuszać","Sam/a był/a zmuszany/a i rozumie motywację","Zależy czym i jak jest to robione"]},
-  {q:"Jak [imię] zachowuje się gdy musi coś zorganizować dla grupy?",a:["Robi to chętnie – lubi organizować","Organizuje ale woli gdy ktoś inny bierze to na siebie","Unika tej roli jak może"]},
-  {q:"Co [imię] robi gdy ktoś pyta go/ją o zdanie a mu/jej jest wszystko jedno?",a:["Mówi że jest mu/jej wszystko jedno","Mówi cokolwiek żeby nie przedłużać","Stara się ocenić i powiedzieć coś konkretnego"]},
-  {q:"Jak [imię] podchodzi do długich weekendów?",                  a:["Planuje intensywnie z wyprzedzeniem","Leniwie odpoczywa bez planów","Połowa aktywność połowa relaks"]},
-  {q:"Co [imię] myśli o ludziach którzy wciąż mówią o pieniądzach?",a:["Irytuje go/ją to","Rozumie – finanse są ważne","Sam/a też często o tym mówi"]},
-  {q:"Jak [imię] reaguje gdy ktoś ma przeciwne wartości?",           a:["Szanuje je choć ich nie podziela","Stara się zrozumieć skąd się biorą","Trudno mu/jej być blisko takiej osoby"]},
-  {q:"Co [imię] robi gdy czuje że rozmowa idzie w złą stronę?",    a:["Zmienia temat płynnie","Mówi wprost że nie chce iść w tym kierunku","Wychodzi lub milknie"]},
-  {q:"Jak [imię] zachowuje się gdy ma zrobić coś po raz pierwszy?",a:["Podchodzi z entuzjazmem","Upewnia się że wie co robi zanim zacznie","Stresuje się ale robi"]},
-  {q:"Co [imię] myśli o ludziach którzy są wiecznie zajęci?",       a:["Podziwia ich energię","Martwi się o ich zdrowie psychiczne","Zazdrości im – chciałby/chciałaby też mieć tyle do roboty"]},
-  {q:"Jak [imię] podchodzi do reklamacji?",                         a:["Reklamuje zawsze gdy ma powód","Reklamuje gdy szkoda duże pieniądze","Nie lubi konfrontacji – odpuszcza"]},
-  {q:"Co [imię] robi gdy jest wyjątkowo zmęczony/a?",               a:["Kładzie się wcześniej niż zwykle","Pije kawę i walczy","Mówi o tym i szuka zrozumienia"]},
-  {q:"Jak [imię] reaguje gdy ktoś zapyta czemu jest taki/taka cichy/a?",a:["Wyjaśnia że tak po prostu ma","Zaczyna mówić więcej żeby nie było niezręcznie","Odpowiada wymijająco"]},
-  {q:"Co [imię] myśli o pisaniu pamiętnika lub dziennika?",         a:["Pisze lub chciałby/chciałaby pisać","Próbował/a ale szybko przestał/a","Nie widzi w tym sensu"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś pokaże mu/jej piękne miejsce?",a:["Chce je odwiedzić natychmiast","Dodaje do listy miejsc do odwiedzenia","Ogląda z zachwytem ale nie planuje wyjazdu"]},
-  {q:"Co [imię] robi gdy ma wolny wieczór w tygodniu?",             a:["Wychodzi gdzieś – nie lubi siedzieć w domu","Zostaje w domu i odpoczywa","Zależy od nastroju – czasem wychodzi czasem nie"]},
-  {q:"Jak [imię] podchodzi do nagrywania filmów ze swoim życiem?",  a:["Nagrywa i dzieli się chętnie","Nagrywa rzadko – dla siebie nie dla innych","Nie nagrywa – woli przeżywać niż dokumentować"]},
-  {q:"Co [imię] myśli gdy ktoś krytykuje jego/jej wybory życiowe?", a:["Broni swoich wyborów pewnie","Zastanawia się czy mają rację","Irytuje go/ją to – jego/jej życie jego/jej decyzja"]},
-  {q:"Jak [imię] reaguje gdy musi zmierzyć się z nową technologią?",a:["Uczy się sam/a przez eksperymentowanie","Szuka tutoriala lub prosi kogoś","Unika nowych technologii jak długo się da"]},
-  {q:"Co [imię] robi gdy coś napisane jest małym drukiem?",          a:["Czyta uważnie – diabeł tkwi w szczegółach","Przegląda pobieżnie","Ignoruje i podpisuje"]},
-  {q:"Jak [imię] zachowuje się gdy musi zadzwonić do obcej osoby?", a:["Dzwoni bez problemu","Chwilę się przygotowuje zanim zadzwoni","Woli napisać maila lub SMS"]},
-  {q:"Co [imię] myśli o ludziach którzy zawsze mają rację?",        a:["Irytuje go/ją to","Wchodzi w dyskusję i broni swojego zdania","Odpuszcza – nie warto tracić energii"]},
-  {q:"Jak [imię] podchodzi do pieczenia ciast?",                    a:["Kocha piec i jest w tym dobry/a","Piecze od czasu do czasu ze średnim skutkiem","Nie piecze – kupuje gotowe"]},
-  {q:"Co [imię] robi gdy ma dwie ważne rzeczy naraz?",              a:["Robi je jednocześnie – multitasking","Wybiera ważniejszą i kończy zanim weźmie drugą","Stresuje się i robi obie chaotycznie"]},
-  {q:"Jak [imię] reaguje gdy ktoś mówi że go/ją rozumie?",          a:["Cieszy się i czuje ulgę","Sprawdza czy naprawdę rozumie","Jest sceptyczny/a – czy naprawdę?"]},
-  {q:"Co [imię] myśli o chodzeniu spać o tej samej porze każdego dnia?",a:["Stara się mieć regularny rytm","Śpi kiedy jest zmęczony/a bez planu","Mógłby/łaby gdyby nie obowiązki"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś go/ją bardzo chwali za coś co jest jego/jej pasją?",a:["Entuzjastycznie opowiada więcej","Skromnie dziękuje i zmienia temat","Rozkwita i wchodzi w szczegóły"]},
-  {q:"Co [imię] robi gdy musi długo nie mieć telefonu?",            a:["Radzi sobie bez problemu","Czuje się nieswojo przez chwilę potem OK","Stresuje się – co się dzieje"]},
-  {q:"Jak [imię] podchodzi do zmiany swojego wyglądu?",             a:["Lubi eksperymentować i często zmienia","Zmienia rzadko – lubi to co zna","Boi się drastycznych zmian"]},
-  {q:"Co [imię] myśli gdy ktoś mu/jej nie odpisuje przez cały dzień?",a:["Nie przejmuje się – ma swoje życie","Martwi się że coś się stało","Irytuje się trochę"]},
-  {q:"Jak [imię] reaguje gdy widzi bardzo drogie auto lub dom?",     a:["Podziwia i wyobraża sobie że ma takie","Nie robi na nim/niej wrażenia – to rzeczy","Czuje ukłucie zazdrości"]},
-  {q:"Co [imię] robi gdy nie może zasnąć przez myśli?",             a:["Wstaje i coś robi dopóki nie będzie zmęczony/a","Próbuje medytacji lub technik oddechowych","Leży i czeka aż sen przyjdzie sam"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś prosi go/ją żeby był/a cicho?",a:["Milknie od razu i przeprasza","Cichnie ale jest mu/jej nieswojo","Irytuje go/ją to – ma prawo mówić"]},
-  {q:"Co [imię] myśli o ludziach którzy mówią że wszystko im jedno?",a:["Nie wierzy – każdemu coś zależy","Szanuje takie podejście","Sam/a też stara się nie przywiązywać"]},
-  {q:"Jak [imię] podchodzi do bycia jedynym obcokrajowcem w grupie?",a:["Czuje się wyjątkowo i swobodnie","Trochę mu/jej nieswojo przez chwilę","Bardzo niekomfortowo mu/jej się robi"]},
-  {q:"Co [imię] robi gdy ktoś pyta go/ją o coś prywatnego?",        a:["Odpowiada szczerze jeśli jest to bliski","Odpowiada ogólnikowo","Mówi wprost że woli nie mówić o tym"]},
-  {q:"Jak [imię] reaguje gdy coś o czym myślał/a okazuje się nieprawdą?",a:["Akceptuje i koryguje pogląd","Trudno mu/jej przyznać że się mylił/a","Szuka dowodów że jednak miał/a rację"]},
-  {q:"Co [imię] myśli gdy ktoś mówi mu/jej że ma talent?",          a:["Cieszy się i kontynuuje ćwiczenia","Bagatelizuje – talent to nic bez pracy","Nie wierzy że naprawdę tak jest"]},
-  {q:"Jak [imię] zachowuje się gdy ma problem z zaśnięciem z powodu dźwięków?",a:["Wkłada zatyczki do uszu","Wstaje i szuka źródła dźwięku","Leży i próbuje to ignorować"]},
-  {q:"Co [imię] robi gdy ktoś jest nieprzyjemny w internecie?",     a:["Odpowiada i broni swojego zdania","Ignoruje i wychodzi z dyskusji","Blokuje lub zgłasza"]},
-  {q:"Jak [imię] podchodzi do zakupu drogich rzeczy?",              a:["Długo oszczędza i kupuje co chce","Kupuje na raty jeśli trzeba","Kupuje impulsywnie i żałuje potem"]},
-  {q:"Co [imię] myśli gdy widzi bardzo brudne miejsce publiczne?",  a:["Irytuje go/ją to i chciałby/chciałaby coś zrobić","Zauważa ale idzie dalej","Zastanawia się kto tu sprzątał"]},
-  {q:"Jak [imię] reaguje gdy dostaje niechciane porady dotyczące zdrowia?",a:["Wysłuchuje uprzejmie i dziękuje","Mówi grzecznie że ma lekarza","Irytuje go/ją to – sam/a wie co robi"]},
-  {q:"Co [imię] robi gdy musi przekazać złą wiadomość?",            a:["Robi to bezpośrednio i szybko","Zastanawia się jak to powiedzieć łagodnie","Szuka kogoś kto zrobi to za niego/nią"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś mówi mu/jej coś złego o bliskiej osobie?",a:["Broni tej osoby od razu","Słucha i ocenia obiektywnie","Milczy i zapamiętuje"]},
-  {q:"Co [imię] myśli o ludziach którzy mówią że nie marzą?",       a:["Nie wierzy – każdy marzy","Szanuje – może są realistami","Sam/a też jest bardzo pragmatyczny/a"]},
-  {q:"Jak [imię] podchodzi do śledzenia swoich wydatków?",          a:["Ma aplikację i śledzi wszystko","Sprawdza od czasu do czasu","Nie śledzi – i tak wyjdzie"]},
-  {q:"Co [imię] robi gdy musi zadzwonić do kogoś z nieprzyjemną sprawą?",a:["Dzwoni od razu – to za sobą","Przygotowuje się przez chwilę zanim zadzwoni","Odwleka i rozważa czy można napisać"]},
-  {q:"Jak [imię] reaguje gdy coś co kupił/a okazuje się rozczarowaniem?",a:["Zwraca i wymienia","Akceptuje i korzysta","Pamięta i nie kupuje tego więcej"]},
-  {q:"Co [imię] myśli gdy ktoś płacze z radości?",                  a:["Wzrusza się razem","Uśmiecha się i cieszy się za tę osobę","Cieszy się ale nie rozumie płaczu z radości"]},
-  {q:"Jak [imię] zachowuje się gdy musi usiąść obok nieznajomego w samolocie?",a:["Zagaduje i miło spędza czas","Uprzejmie milczy","Zakłada słuchawki od razu"]},
-  {q:"Co [imię] robi gdy coś go/ją bardzo niepokoi?",               a:["Rozmawia o tym z kimś bliskim","Analizuje sam/a żeby znaleźć rozwiązanie","Odwraca uwagę aktywnością"]},
-  {q:"Jak [imię] podchodzi do grania w gry planszowe?",             a:["Kocha gry planszowe i gra chętnie","Gra gdy inni chcą","Nie przepada – za długo i za skomplikowanie"]},
-  {q:"Co [imię] myśli o ludziach którzy nigdy nie zmieniają zdania?",a:["Irytuje go/ją to – elastyczność jest cnotą","Szanuje konsekwencję","Sam/a też rzadko zmienia zdanie"]},
-  {q:"Jak [imię] reaguje gdy słyszy dobrą wiadomość o sobie z drugiej ręki?",a:["Cieszy się ale chciałby/chciałaby usłyszeć to bezpośrednio","Cieszy się tak samo","Zastanawia się czemu ta osoba nie powiedziała wprost"]},
-  {q:"Co [imię] robi gdy ma dużo wiadomości do odpisania?",          a:["Siada i odpowiada na wszystkie po kolei","Odpowiada na najważniejsze","Odkłada i wiadomości się piętrzą"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś prosi go/ją o wsparcie emocjonalne?",a:["Jest obecny/a i słucha uważnie","Próbuje rozwiązać problem zamiast słuchać","Stara się ale nie czuje się w tym naturalnie"]},
-  {q:"Co [imię] myśli gdy widzi że ktoś jest lepiej zorganizowany od niego/niej?",a:["Motywuje go/ją to do poprawy","Pyta jak to osiągnął/a","Jest trochę zazdrosny/a"]},
-  {q:"Jak [imię] podchodzi do gotowania dla innych?",                a:["Uwielbia gotować dla innych","Gotuje gdy musi ale woli gotować dla siebie","Zamawia jedzenie – gotowanie to nie jego/jej żywioł"]},
-  {q:"Co [imię] robi gdy musi czekać na wyniki medyczne?",           a:["Stara się nie myśleć o tym","Szuka informacji w internecie i martwi się","Pyta lekarza o możliwe scenariusze"]},
-  {q:"Jak [imię] reaguje gdy ktoś pyta go/ją o ulubioną książkę lub film?",a:["Ma gotową odpowiedź natychmiast","Musi chwilę pomyśleć","Nie może wybrać jednej ulubionej"]},
-  {q:"Co [imię] myśli o ludziach którzy wciąż szukają wymówek?",    a:["Irytuje go/ją to","Stara się zrozumieć dlaczego tak robią","Sam/a też szuka wymówek czasem"]},
-  {q:"Jak [imię] zachowuje się gdy coś mu/jej wychodzi po wielu próbach?",a:["Świętuje głośno","Czuje głęboka satysfakcję w środku","Natychmiast bierze się za następne wyzwanie"]},
-  {q:"Co [imię] robi gdy czuje się nierozumiany/a przez bliskich?", a:["Tłumaczy jeszcze raz inaczej","Rezygnuje – nie da się wszystkiego wytłumaczyć","Smutno mu/jej z tego powodu"]},
-  {q:"Jak [imię] podchodzi do słuchania podcastów?",                a:["Słucha regularnie podczas spacerów lub w drodze","Słucha rzadko – woli muzykę","Nie słucha w ogóle – inne priorytety"]},
-  {q:"Co [imię] myśli gdy ktoś mówi mu/jej że go/ją podziwia?",    a:["Jest wzruszony/a i wdzięczny/a","Nie wierzy że to szczere","Cieszy się ale szybko wraca do tematu"]},
-  {q:"Jak [imię] reaguje gdy coś jest trudniejsze niż myślał/a?",  a:["Podchodzi z nową energią","Stresuje się ale nie rezygnuje","Szuka sposobu żeby to uprościć"]},
-  {q:"Co [imię] robi gdy jest mu/jej coś wstyd?",                   a:["Przyznaje się i idzie dalej","Ukrywa to i unika tematu","Śmieje się z siebie żeby rozładować sytuację"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś pytał go/ją o coś raz i pyta drugi raz?",a:["Odpowiada cierpliwie","Mówi że już odpowiadał/a","Irytuje go/ją to"]},
-  {q:"Co [imię] myśli o wakacjach all-inclusive?",                  a:["Uwielbia – wszystko w jednym miejscu","Woli zwiedzać i poznawać miejscowych","Jeden raz OK ale nie wróciłby/łaby"]},
-  {q:"Jak [imię] podchodzi do czytania opinii przed zakupem?",      a:["Czyta zawsze przed każdym zakupem","Czyta przy droższych rzeczach","Rzadko czyta – i tak kupuje co chce"]},
-  {q:"Co [imię] robi gdy rozmowa jest za głęboka jak na jego/jej nastrój?",a:["Mówi że nie jest teraz w stanie na taki temat","Stara się uczestniczyć mimo wszystko","Milknie i obserwuje"]},
-  {q:"Jak [imię] reaguje gdy ktoś mu/jej nie wierzy?",              a:["Stara się udowodnić że ma rację","Odpuszcza – nie każdy musi mu/jej wierzyć","Irytuje go/ją to"]},
-  {q:"Co [imię] myśli gdy spotka kogoś kto ma te same zainteresowania?",a:["Bardzo się cieszy i zagłębia w rozmowę","Miło mu/jej ale nie robi z tego wielkiego wydarzenia","Wchodzi w tryb eksperta i show wiedzy"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś jest wobec niego/niej zbyt przesadnie miły?",a:["Cieszy się nawet jeśli to trochę przesadzone","Czuje dyskomfort – co ta osoba chce","Odwzajemnia energię"]},
-  {q:"Co [imię] robi gdy widzi bałagan który ktoś inny zrobił?",   a:["Sprząta bez komentarza","Mówi żeby ta osoba posprzątała","Zostawia – nie jego/jej bałagan"]},
-  {q:"Jak [imię] podchodzi do biegania?",                           a:["Biega regularnie – kocha ten sport","Biega gdy musi – np. przed zawodami","Nie biega – inne formy aktywności"]},
-  {q:"Co [imię] myśli gdy rozmowa schodzi na temat śmierci?",       a:["Nie unika tematu – to część życia","Trochę go/ją to niepokoi","Zmienia temat – za ciężkie"]},
-  {q:"Jak [imię] reaguje gdy ktoś go/ją prosi żeby wyłączył/a telefon?",a:["Wyłącza bez problemu","Wycisza ale nie wyłącza","Trochę go/ją to irytuje ale respektuje prośbę"]},
-  {q:"Co [imię] robi gdy coś idzie zbyt wolno?",                    a:["Próbuje przyspieszyć albo szuka alternatywy","Akceptuje tempo – pośpiech nic nie daje","Irytuje się i traci cierpliwość"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś go/ją zaskoczy w domu?",   a:["Cieszy się na niespodziankę","Woli uprzedzenie ale się adaptuje","Mocno go/ją to stresuje"]},
-  {q:"Co [imię] myśli o chodzeniu do muzeum?",                      a:["Uwielbia – zawsze wychodzi bogatszy/bogatsza","Idzie gdy jest wycieczka lub dobra wystawa","Nie przepada – za nudne"]},
-  {q:"Jak [imię] podchodzi do korzystania z GPS?",                  a:["Zawsze korzysta – po co zgadywać","Korzysta gdy jedzie w nowe miejsce","Woli sam/a się orientować w terenie"]},
-  {q:"Co [imię] robi gdy widzi piękną tęczę?",                      a:["Robi zdjęcie i go/ją cieszy","Zauważa i cieszy się przez chwilę","Idzie dalej – to tylko przyroda"]},
-  {q:"Jak [imię] reaguje gdy ktoś prosi o opinie dotyczące wyglądu?",a:["Mówi szczerą opinię zawsze","Mówi pozytywnie żeby nie ranić","Ocenia czy ta osoba naprawdę chce wiedzieć"]},
-  {q:"Co [imię] myśli o ludziach którzy nie mają planów na przyszłość?",a:["Niepokoi go/ją to","Szanuje – nie każdy musi planować","Sam/a też nie ma konkretnych planów"]},
-  {q:"Jak [imię] zachowuje się gdy jest na kogoś czekający/a przez długi czas?",a:["Dzwoni lub pisze po ustalonym czasie","Czeka cierpliwie i zajmuje się telefonem","Wychodzi po pewnym czasie"]},
-  {q:"Co [imię] robi gdy musi przyznać że się pomylił/a?",          a:["Przyznaje od razu bez wstydu","Trudno mu/jej ale robi to","Szuka usprawiedliwienia przed przyznaniem"]},
-  {q:"Jak [imię] podchodzi do jedzenia resztek?",                   a:["Chętnie je resztki – marnowanie to grzech","Je gdy nie ma innej opcji","Nie przepada za odgrzewanym jedzeniem"]},
-  {q:"Co [imię] myśli gdy ktoś nie odbiera telefonu?",              a:["Zakłada że jest zajęty/a i czeka","Martwi się po kilku nieodebranych","Irytuje się – mógłby/łaby napisać że nie może"]},
-  {q:"Jak [imię] reaguje gdy widzi że ktoś go/ją obserwuje w social mediach?",a:["Cieszy się lub jest mu/jej obojętne","Zastanawia się kto to i czemu","Sprawdza profil tej osoby od razu"]},
-  {q:"Co [imię] robi gdy ktoś go/ją bezpodstawnie obwinia?",        a:["Broni się spokojnie i konkretnie","Wybucha emocjami","Wycofuje się żeby nie eskalować"]},
-  {q:"Jak [imię] zachowuje się gdy musi odebrać pochwałę na forum?",a:["Przyjmuje z wdziękiem i spokojnie","Krępuje się i minimalizuje","Cieszy się i żartuje żeby nie było patosu"]},
-  {q:"Co [imię] myśli o udzielaniu się charytatywnie?",             a:["Angażuje się regularnie – to ważne","Daje pieniądze gdy może","Chciałby/chciałaby ale brakuje czasu i organizacji"]},
-  {q:"Jak [imię] podchodzi do własnych wad?",                       a:["Zna je i pracuje nad nimi","Zna je ale akceptuje takim jakim/jaką jest","Nie lubi się przyglądać własnym wadom"]},
-  {q:"Co [imię] robi gdy czuje się nielubiany/a?",                  a:["Stara się zrozumieć i zmienić jeśli trzeba","Oddala się od takiej osoby","Martwi się i analizuje co zrobił/a źle"]},
-  {q:"Jak [imię] reaguje gdy ktoś prosi go/ją żeby zmienił/a się?", a:["Rozważa poważnie czy ma rację","Mówi że akceptuje siebie takim/taką jaki/jaka jest","Zależy kto pyta i w jakiej sprawie"]},
-  {q:"Co [imię] myśli gdy ktoś zbyt szybko zbliży się emocjonalnie?",a:["Otwiera się też – dobrze mieć kogoś bliskiego","Trochę go/ją to przytłacza","Cofa się ostrożnie"]},
-  {q:"Jak [imię] zachowuje się gdy musi poprosić o podwyżkę?",      a:["Robi to bez problemu gdy zasługuje","Stresuje się ale przygotowuje i pyta","Woli czekać aż szef sam zaproponuje"]},
-  {q:"Co [imię] robi gdy coś jest na sprzedaż a on/ona tego nie potrzebuje?",a:["Kupuje bo promocja","Rozważa czy znajdzie zastosowanie","Nie kupuje jeśli nie potrzebuje"]},
-  {q:"Jak [imię] podchodzi do kończenia projektów?",                a:["Zawsze kończy to co zaczął/zaczęła","Ma wiele niedokończonych projektów","Kończy tylko te projekty które naprawdę kochał/a"]},
-  {q:"Co [imię] myśli gdy ktoś mu/jej powie że jest pracowity/a?",  a:["Cieszy się – praca to jego/jej wartość","Zastanawia się czy to nie krytyka za brak życia prywatnego","Dziękuje ale uważa że mógłby/łaby robić więcej"]},
-  {q:"Jak [imię] reaguje gdy musi pożegnać się z ukochanym miejscem?",a:["Przeżywa to emocjonalnie","Robi ostatnie zdjęcia i odchodzi spokojnie","Cieszy się z wspomnień i nie rozpamiętuje"]},
-  {q:"Co [imię] robi gdy ma wolną chwilę a nie wie co z nią zrobić?",a:["Szuka czegoś do roboty od razu","Cieszy się z chwili nicnierobienia","Sprawdza telefon bo tak jest najłatwiej"]},
-  {q:"Jak [imię] zachowuje się gdy słyszy głośne jedzenie?",        a:["Mocno go/ją to drażni","Zauważa ale ignoruje","Nie przeszkadza mu/jej to"]},
-  {q:"Co [imię] myśli gdy ktoś ma inne zdanie w kwestii wychowania dzieci?",a:["Szanuje inne podejście","Wyraża swoją opinię jeśli jest dyskusja","Trudno mu/jej z bardzo innymi wartościami"]},
-  {q:"Jak [imię] podchodzi do samotnych posiłków?",                 a:["Lubi jeść sam/a spokojnie","Woli mieć towarzystwo","Jest mu/jej trochę smutno jeść solo"]},
-  {q:"Co [imię] robi gdy ktoś pyta go/ją o przepis a nie ma ochoty dzielić się?",a:["Podaje bo dlaczego nie","Podaje ale nie wszystkie sekrety","Wymawia się że robi to instynktownie"]},
-  {q:"Jak [imię] reaguje gdy plan działa lepiej niż się spodziewał/a?",a:["Cieszy się i świętuje","Analizuje co sprawiło że wyszło tak dobrze","Spodziewa się że coś pójdzie nie tak potem"]},
-  {q:"Co [imię] myśli o ludziach którzy nigdy się nie kłócą?",      a:["Podziwia – chciałby/chciałaby tak samo","Podejrzewa że tłumią emocje","Sam/a też rzadko się kłóci"]},
-  {q:"Jak [imię] zachowuje się gdy ktoś zapyta go/ją o tajemnicę?", a:["Zachowuje tajemnicę zawsze","Zachowuje ale z trudem","Mówi tylko zaufanym osobom"]},
-  {q:"Co [imię] robi gdy nie może sobie poradzić sam/a?",           a:["Prosi o pomoc bez wstydu","Prosi gdy naprawdę nie ma wyjścia","Rzadko prosi – woli dać radę sam/a"]},
-  {q:"Jak [imię] podchodzi do spędzania czasu z różnymi grupami znajomych?",a:["Dobrze się czuje w różnych grupach","Woli swoją główną grupę znajomych","Trudno mu/jej łączyć różne światy"]},
-  {q:"Co [imię] myśli o swoim pierwszym wrażeniu u innych?",        a:["Stara się zrobić dobre wrażenie","Jest sobą i nie gra na efekt","Martwi się co inni o nim/niej myślą"]},
-  {q:"Jak [imię] reaguje gdy słyszy swoją muzykę w miejscu publicznym?",a:["Bardzo się cieszy i nuci","Uśmiecha się i kiwka głową w rytm","Nie reaguje szczególnie"]},
-  {q:"Co [imię] robi gdy musi spędzić dużo czasu z osobą którą ledwo zna?",a:["Szybko się otwiera i rozmawia","Wytrzymuje ale potrzebuje potem czasu dla siebie","Stresuje go/ją to z góry"]},
-  {q:"Jak [imię] zachowuje się gdy coś jest wyjątkowo trudne emocjonalnie?",a:["Szuka wsparcia u bliskich","Radzi sobie sam/a i nie obciąża innych","Płacze i przetrawia a potem działa"]},
-  {q:"Co [imię] myśli gdy słyszy że coś jest niemożliwe?",          a:["Traktuje to jako wyzwanie","Ocenia realnie czy rzeczywiście niemożliwe","Przyjmuje to i szuka innej drogi"]},
-  {q:"Jak [imię] podchodzi do przyznawania się do strachu?",        a:["Mówi o swoich strachach otwarcie","Przyznaje się tylko bliskim","Trudno mu/jej przyznać że się czegoś boi"]},
-  {q:"Co [imię] robi gdy ktoś opowiada kawał którego już zna?",     a:["Śmieje się tak samo – nie psuć zabawy","Mówi że zna ale słucha do końca","Mówi że zna zanim tamta osoba skończy"]},
-  {q:"Jak [imię] reaguje gdy coś jest naprawdę ważne a on/ona nie może uczestniczyć?",a:["Martwi się i szuka rozwiązania","Stara się uczestniczyć zdalnie","Akceptuje i nadrobi"]},
-  {q:"Co [imię] myśli o ludziach którzy ciągle zmieniają wygląd?",  a:["Podziwia odwagę do eksperymentowania","Jest mu/jej obojętne","Woli gdy ktoś ma swój styl"]},
-  {q:"Jak [imię] zachowuje się gdy spotka kogoś kto mówi że go/ją zna a on/ona nie pamięta?",a:["Mówi szczerze że nie pamięta","Udaje że pamięta i liczy że coś naprowadzi","Pyta subtelnie żeby sobie przypomnieć"]},
-  {q:"Co [imię] robi gdy coś ważnego mu/jej umknie?",               a:["Analizuje co się stało i wyciąga wnioski","Złości się na siebie chwilę a potem odpuszcza","Długo to przeżywa"]},
-  {q:"Jak [imię] podchodzi do wyrzucania starych rzeczy?",          a:["Wyrzuca bez żalu – minimalizm to piękno","Gromadzi – może kiedyś się przyda","Wyrzuca ale z trudem – sentyment"]},
-  {q:"Co [imię] myśli gdy ktoś prosi go/ją żeby zwolnił/a?",       a:["Stara się dostosować tempo","Irytuje go/ją to – ma swoje tempo","Ocenia czy naprawdę jest za szybko"]},
-  {q:"Jak [imię] reaguje gdy coś idzie nie po jego/jej myśli?",     a:["Adaptuje się do nowej sytuacji","Stara się zmienić bieg wydarzeń","Frustruje się"]},
-  {q:"Co [imię] robi gdy ktoś mówi że mu/jej pasuje każde miejsce?",a:["Podejmuje decyzję za oboje","Irytuje go/ją brak preferencji","Docenia brak oczekiwań"]},
-  {q:"Jak [imię] zachowuje się gdy musi powiedzieć że czegoś nie rozumie?",a:["Mówi bez wstydu – pytanie to nie słabość","Stara się zrozumieć sam/a zanim pyta","Milczy – wstydzi się nie wiedzieć"]},
-  {q:"Co [imię] myśli o spędzaniu Sylwestra z rodziną?",            a:["Uwielbia – tradycja i ciepło","Idzie jeśli nie ma lepszej opcji","Woli wyjście z przyjaciółmi"]},
-  {q:"Jak [imię] podchodzi do mówienia komplimentów?",              a:["Mówi je chętnie i często","Mówi gdy naprawdę coś go/ją uderzy","Rzadko mówi – trudno mu/jej to przychodzi"]},
-  {q:"Co [imię] robi gdy ma zły dzień a wszystko idzie źle?",       a:["Traktuje to jako zły dzień i czeka do jutra","Szuka co jest przyczyną i stara się zaradzić","Wchodzi w negatywny spirali myśli"]},
-  {q:"Jak [imię] reaguje gdy ktoś do niego/niej wraca po długim czasie bez kontaktu?",a:["Cieszy się i wraca do relacji","Przyjmuje ostrożnie – gdzie był/a przez ten czas","Zależy dlaczego zniknął/a"]},
 ];
 /* ═══════════════════════════════════════════════════════════════ */
 
@@ -1265,6 +772,29 @@ let _lastRi=null; // track round index to reset local state on round change
 let _allVotedAt=null; // timestamp when all votes first detected
 let _maxPlayers=4; // host-controlled, 2-8
 let _gameMode='rounds'; // 'rounds' | 'pool'
+let _selectedCat=null; // null = wszystkie, or catId
+
+function renderLobCatSelector(){
+  const row=$('lob-cat-row');
+  if(!row)return;
+  const cats=Object.entries(_qCats||{});
+  if(cats.length===0){ row.innerHTML=''; return; }
+  row.innerHTML=`
+    <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Kategoria pytań</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <button onclick="setLobCat(null)" style="padding:6px 12px;border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${_selectedCat===null?'var(--text)':'var(--rim)'};background:${_selectedCat===null?'var(--text)':'transparent'};color:${_selectedCat===null?'var(--bg)':'var(--muted)'}">Wszystkie</button>
+      ${cats.map(([id,cat])=>{
+        const active=_selectedCat===id;
+        const count=Object.values(_qCatMap||{}).filter(arr=>arr&&arr.includes(id)).length;
+        return`<button onclick="setLobCat('${id}')" style="padding:6px 12px;border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${active?cat.color:cat.color+'55'};background:${active?cat.color+'33':'transparent'};color:${active?cat.color:'var(--muted)'}">${cat.name} <span style="opacity:.6">${count}</span></button>`;
+      }).join('')}
+    </div>`;
+}
+
+function setLobCat(id){
+  _selectedCat=id;
+  renderLobCatSelector();
+}
 
 function setGameMode(mode){
   _gameMode=mode;
@@ -1336,8 +866,12 @@ function startPoll(){
               } else {
                 for(let r=0;r<100;r++)sub=[...sub,...shuf([...idx])];
               }
-              let qp=shuf(QS.map((_,i)=>i));
-              while(qp.length<sub.length)qp=[...qp,...shuf(QS.map((_,i)=>i))];
+              const qPool=_selectedCat
+                ? QS.map((_,i)=>i).filter(i=>(_qCatMap[i]||[]).includes(_selectedCat))
+                : QS.map((_,i)=>i);
+              const qPoolFinal=qPool.length>0?qPool:QS.map((_,i)=>i);
+              let qp=shuf([...qPoolFinal]);
+              while(qp.length<sub.length)qp=[...qp,...shuf([...qPoolFinal])];
               const playerCount=GS.players.filter(Boolean).length;
               GS={...GS,phase:'subject',gameMode:mode,subjects:sub,qSeq:qp.slice(0,sub.length),rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:playerCount*10};
               await writeGS();
@@ -1589,6 +1123,7 @@ function renderLobby(){
     // Sync game mode
     const savedMode=GS.gameMode||'rounds';
     if(savedMode!==_gameMode) setGameMode(savedMode);
+    renderLobCatSelector();
   }
 
   $('lob-list').innerHTML=activePlayers.map((p,i)=>{
@@ -1731,8 +1266,12 @@ async function hostStart(){
     // Pool mode: pre-generate a big queue (100 rounds max), game ends by token logic
     for(let r=0;r<100;r++) sub=[...(sub||[]),...shuf([...idx])];
   }
-  qp=shuf(QS.map((_,i)=>i));
-  while(qp.length<sub.length) qp=[...qp,...shuf(QS.map((_,i)=>i))];
+  const qPool=_selectedCat
+    ? QS.map((_,i)=>i).filter(i=>(_qCatMap[i]||[]).includes(_selectedCat))
+    : QS.map((_,i)=>i);
+  const qPoolFinal=qPool.length>0?qPool:QS.map((_,i)=>i);
+  qp=shuf([...qPoolFinal]);
+  while(qp.length<sub.length) qp=[...qp,...shuf([...qPoolFinal])];
   GS={...GS,phase:'subject',gameMode:mode,subjects:sub,qSeq:qp.slice(0,sub.length),rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:playerCount*10};
   await writeGS();render();
 }
@@ -2883,6 +2422,60 @@ function cancelEditQ(idx){
     const colorRow=div.querySelector('[id^="qcolor-"]');
     if(colorRow) updateColorBtns(colorRow, idx);
   }
+}
+
+function toggleAddQuestion(){
+  const form=$('qb-add-form');
+  const btn=$('qb-add-btn');
+  if(!form)return;
+  const opening=form.style.display==='none';
+  form.style.display=opening?'flex':'none';
+  if(btn) btn.style.color=opening?'#a78bfa':'var(--muted)';
+  if(opening){
+    // Clear fields
+    ['nq-q','nq-a1','nq-a2','nq-a3'].forEach(id=>{ const el=$(id); if(el) el.value=''; });
+    [1,2,3].forEach(j=>{ const el=$('nq-prev'+j); if(el) el.textContent='—'; });
+    setTimeout(()=>{ const q=$('nq-q'); if(q) q.focus(); },50);
+  }
+}
+
+function updateNewQPreview(){
+  const q=($('nq-q')?.value||'');
+  const hasName=q.includes('[imię]');
+  [1,2,3].forEach(j=>{
+    const inp=$('nq-a'+j);
+    const prev=$('nq-prev'+j);
+    if(inp&&prev) prev.textContent=hasName&&inp.value?answerForSubject(inp.value):'—';
+  });
+}
+
+function saveNewQuestion(){
+  const q=($('nq-q')?.value||'').trim();
+  if(!q){ const el=$('nq-q'); if(el){el.style.borderColor='var(--c0)';setTimeout(()=>el.style.borderColor='',1500);} return; }
+  const a=[1,2,3].map(j=>($('nq-a'+j)?.value||'').trim());
+  if(a.some(v=>!v)){
+    [1,2,3].forEach(j=>{ const el=$('nq-a'+j); if(el&&!el.value.trim()){el.style.borderColor='var(--c0)';setTimeout(()=>el.style.borderColor='',1500);} });
+    return;
+  }
+  // Add to QS array
+  QS.push({q,a});
+  const idx=QS.length-1;
+  // Save to localStorage so it persists
+  try{
+    const saved=JSON.parse(localStorage.getItem('wiem_qs')||'{}');
+    saved[idx]={q,a};
+    localStorage.setItem('wiem_qs',JSON.stringify(saved));
+  }catch(e){}
+  // Close form and refresh
+  toggleAddQuestion();
+  renderQBrowser();
+  // Scroll to new card
+  setTimeout(()=>{
+    const card=$('qcard-'+idx);
+    if(card) card.scrollIntoView({behavior:'smooth',block:'center'});
+    if(card) card.style.borderColor='var(--c2)';
+    setTimeout(()=>{ if(card) card.style.borderColor=getCardBorder(idx); },2000);
+  },100);
 }
 
 function saveEditQ(idx){
