@@ -144,6 +144,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <div style="font-size:11px;color:var(--muted);flex:1" id="qb-count"></div>
+    <button id="qb-copy-btn" onclick="copyMarkedForReview()" style="display:none;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:var(--card);color:var(--muted);border:1.5px solid var(--rim);white-space:nowrap">📋 Kopiuj</button>
     <button id="qb-marked-btn" onclick="toggleMarkedView()" style="display:none;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:#1e1b4b;color:#a5b4fc;border:1.5px solid #534AB7;white-space:nowrap">Zaznaczone (<span id="qb-marked-count">0</span>)</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;color:var(--muted);padding:0 2px">
@@ -2147,11 +2148,38 @@ function toggleCheck(idx){
 
 function updateMarkedBtn(){
   const btn=$('qb-marked-btn');
+  const copyBtn=$('qb-copy-btn');
   const countEl=$('qb-marked-count');
   if(!btn)return;
   const n=_qMarked.size;
   btn.style.display=n>0?'block':'none';
+  if(copyBtn)copyBtn.style.display=n>0?'block':'none';
   if(countEl)countEl.textContent=n;
+}
+
+function copyMarkedForReview(){
+  const lines=['Zaznaczone pytania do sprawdzenia transformacji:\n'];
+  let i=1;
+  _qMarked.forEach(idx=>{
+    const item=QS[idx];
+    const hasName=item.q.includes('[imię]');
+    lines.push(`=== ${i++}. (index ${idx}) ===`);
+    lines.push(`ORYGINAŁ: ${item.q}`);
+    lines.push(`DLA INNYCH: ${item.q.replace(/\[imię\]/g,'[Temat]')}`);
+    if(hasName){
+      lines.push(`DLA TEMATU (auto): ${qForSubject(item.q)}`);
+      lines.push('ODPOWIEDZI:');
+      item.a.forEach((a,j)=>lines.push(`  ${j+1}. oryg: ${a}  →  temat: ${answerForSubject(a)}`));
+    } else {
+      lines.push('(pytanie bez [imię] — brak transformacji dla Tematu)');
+    }
+    lines.push('');
+  });
+  const text=lines.join('\n');
+  navigator.clipboard?.writeText(text).then(()=>{
+    const btn=$('qb-copy-btn');
+    if(btn){const orig=btn.textContent;btn.textContent='✓ Skopiowano!';btn.style.color='var(--c2)';setTimeout(()=>{btn.textContent=orig;btn.style.color='var(--muted)';},2000);}
+  }).catch(()=>alert(text));
 }
 
 function renderQBrowser(){
