@@ -1149,6 +1149,11 @@ function startPoll(){
       if(!gs){clearInterval(pollTimer);return;}
       GS=norm(gs);
 
+      // Always re-render lobby directly when on lobby screen
+      if(GS.phase==='lobby' && $('s-lobby').classList.contains('on')){
+        renderLobby();
+      }
+
       // Host only: manage phase transitions
       if(isHost){
         const si=GS.subjects[GS.ri]??0;
