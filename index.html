@@ -861,6 +861,7 @@ let mySlot=null;
 let isHost=false;
 let GS=null;
 let pollTimer=null;
+let _kickCheckTimer=null; // dedicated timer to detect if player was removed from lobby
 let _sjPick=null;
 let _lastRi=null; // track round index to reset local state on round change
 let _allVotedAt=null; // timestamp when all votes first detected
@@ -990,6 +991,27 @@ function startPoll(){
 function stopPoll(){
   if(_sseSource){_sseSource.close();_sseSource=null;}
   if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
+  if(_kickCheckTimer){clearInterval(_kickCheckTimer);_kickCheckTimer=null;}
+}
+
+function startKickCheck(){
+  if(_kickCheckTimer) clearInterval(_kickCheckTimer);
+  _kickCheckTimer=setInterval(async()=>{
+    if(!gameId||mySlot===null||isHost)return;
+    try{
+      const fresh=await fbGet(`games/${gameId}`);
+      if(!fresh){return;}
+      const normed=norm(fresh);
+      if(!normed.players[mySlot]){
+        clearInterval(_kickCheckTimer);_kickCheckTimer=null;
+        stopPoll();
+        sessionStorage.removeItem('ego_sess');
+        sessionStorage.removeItem('ego_name');
+        gameId=null; mySlot=null; isHost=false; GS=null;
+        show('s-home');
+      }
+    }catch(e){}
+  },1500);
 }
 
 async function writeGS(){
@@ -1218,6 +1240,7 @@ async function claimSlot(slot,name){
     GS.players[slot]={name:name||'Gracz',pts:fresh.players[slot]?.pts??10};
     mySlot=slot;isHost=(slot===0);
     sessionStorage.setItem('ego_sess',JSON.stringify({gameId,mySlot}));
+    if(!isHost) startKickCheck();
     renderLobby();show('s-lobby');
   }catch(e){alert('Błąd – spróbuj ponownie');}
 }
@@ -2076,7 +2099,7 @@ function renderEnd(){
     try{
       const{gameId:gid,mySlot:ms}=JSON.parse(sess);
       const gs=await fbGet(`games/${gid}`);
-      if(gs){gameId=gid;mySlot=ms;isHost=(ms===0);GS=norm(gs);render();startPoll();return;}
+      if(gs){gameId=gid;mySlot=ms;isHost=(ms===0);GS=norm(gs);render();startPoll();if(!isHost)startKickCheck();return;}
     }catch(e){}
   }
   show('s-home');
