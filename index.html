@@ -1046,11 +1046,16 @@ async function handleGSUpdate(){
       const ready=GS.ready||{};
       const allReady=filled.length>=2 && GS.players.every((p,i)=>!p||!!ready[i]);
       if(allReady){
-        if(!_allVotedAt) _allVotedAt=Date.now();
+        if(!_allVotedAt){
+          _allVotedAt=Date.now();
+          startCountdown(3000,
+            (rem)=>{ if($('sync-st'))$('sync-st').textContent=`Wszyscy gotowi! Start za ${rem}s…`; },
+            ()=>handleGSUpdate()
+          );
+        }
         const remaining=Math.ceil((3000-(Date.now()-_allVotedAt))/1000);
-        if(remaining>0){
-          if($('sync-st'))$('sync-st').textContent=`Wszyscy gotowi! Start za ${remaining}s…`;
-        } else {
+        if(remaining<=0){
+          stopCountdown();
           _allVotedAt=null;
           const mode=_gameMode;
           const idx=GS.players.map((p,i)=>p?i:null).filter(i=>i!==null);
@@ -1070,7 +1075,7 @@ async function handleGSUpdate(){
           GS={...GS,phase:'subject',gameMode:mode,subjects:sub,qSeq,qAnswers,rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:playerCount*10};
           await writeGS();
         }
-      } else { _allVotedAt=null; }
+      } else { if(_allVotedAt) stopCountdown(); _allVotedAt=null; }
     }
 
     // subject→voting: handled client-side in submitSJ()
@@ -1139,7 +1144,8 @@ async function createGame(){
 
 // ── JOIN ──
 async function joinGame(){
-  const name=($('inp-name').value.trim()||'Gracz');
+  const name=($('inp-name').value.trim());
+  if(!name){showErr('home-err','Wpisz swoje imię');return;}
   const code=$('inp-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
   if(code.length<2){showErr('home-err','Wpisz kod gry od hosta');return;}
   hideErr('home-err');
@@ -1315,7 +1321,8 @@ function renderLobby(){
     const inp=$('lob-name-inp');
     if(inp){
       inp.placeholder=curName;
-      // Never set .value from polling — user controls the field
+      // Only clear the field if user hasn't started typing — ensures placeholder shows current name
+      if(!inp.dataset.touched) inp.value='';
     }
   }
 
@@ -1340,14 +1347,17 @@ function renderLobby(){
     $('lob-host').style.display='flex';
     $('lob-guest').style.display='none';
     const btn=$('btn-start');
+    const readyCount=activePlayers.filter((p,i)=>p&&!!ready[i]).length;
     if(allReady && filled>=2){
       btn.disabled=false;
       btn.style.opacity='1';
-      btn.textContent='▶ Gra startuje automatycznie…';
+      // Show how many players will play and allow manual start
+      btn.textContent=filled===activePlayers.filter(Boolean).length && filled===(GS.maxPlayers||4)
+        ? '▶ Rozpocznij grę'
+        : `▶ Rozpocznij z ${filled} graczami`;
     } else {
       btn.disabled=true;
       btn.style.opacity='0.4';
-      const readyCount=activePlayers.filter((p,i)=>p&&!!ready[i]).length;
       btn.textContent=`Gotowych: ${readyCount}/${filled} — czekaj…`;
     }
   } else {
@@ -2139,17 +2149,18 @@ function sendLeaveBeacon(){
 
 window.addEventListener('pagehide', e=>{
   // pagehide fires on close, back/forward, tab switch on iOS
-  // Only remove if user is actually leaving (not bfcache restore)
+  // e.persisted=true means bfcache — user is NOT leaving, don't remove them
+  if(e.persisted) return;
   sendLeaveBeacon();
   stopPoll();
   sessionStorage.removeItem('ego_sess');
 });
 
 document.addEventListener('visibilitychange', ()=>{
-  // Fires when tab is hidden — on mobile this often precedes close
-  if(document.visibilityState==='hidden'){
-    sendLeaveBeacon();
-  }
+  // NOTE: visibilitychange fires on EVERY tab switch — do NOT call sendLeaveBeacon here.
+  // Removing the player on tab switch caused the host to disappear from the game
+  // whenever they switched to another browser tab. Player removal is handled
+  // exclusively by the pagehide event (actual tab close / navigation away).
 });
 
 // Load saved question edits from localStorage
@@ -2391,7 +2402,9 @@ function reportCurrentQuestion(screenSuffix){
     _qReported[idx]=true;
     _reportedThisQ=true;
     try{ localStorage.setItem('wiem_qreported',JSON.stringify(_qReported)); }catch(e){}
+    if(gameId) fbPatch('reports',{[String(idx)]:true}).catch(()=>{});
     updateReportedTabCount();
+    if(_qTab==='reported'&&$('s-qbrowser')?.classList.contains('on')) renderQBrowser();
   }
   // Only show swap button for subject screen — others just report silently
   if(screenSuffix==='sj'){
@@ -2628,6 +2641,14 @@ function renderQBrowser(){
   if(_qTab==='reported'){
     // Re-read from localStorage to always be fresh
     try{ _qReported=JSON.parse(localStorage.getItem('wiem_qreported')||'{}'); }catch(e){}
+    // Merge with Firebase reports so reports from other devices are visible
+    try{
+      const fbReported=await fbGet('reports');
+      if(fbReported&&typeof fbReported==='object'){
+        Object.keys(fbReported).forEach(k=>{_qReported[Number(k)]=true;});
+        localStorage.setItem('wiem_qreported',JSON.stringify(_qReported));
+      }
+    }catch(e){}
     updateReportedTabCount();
     const reportedIndices=Object.keys(_qReported).map(Number);
     if(countEl) countEl.textContent=`${reportedIndices.length} zgłoszonych`;
