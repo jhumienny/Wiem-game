@@ -2404,7 +2404,6 @@ function reportCurrentQuestion(screenSuffix){
     try{ localStorage.setItem('wiem_qreported',JSON.stringify(_qReported)); }catch(e){}
     if(gameId) fbPatch('reports',{[String(idx)]:true}).catch(()=>{});
     updateReportedTabCount();
-    if(_qTab==='reported'&&$('s-qbrowser')?.classList.contains('on')) renderQBrowser();
   }
   // Only show swap button for subject screen — others just report silently
   if(screenSuffix==='sj'){
@@ -2632,7 +2631,7 @@ function copyMarkedForReview(){
   }).catch(()=>alert(text));
 }
 
-async function renderQBrowser(){
+function renderQBrowser(){
   const list=$('qb-list');
   const countEl=$('qb-count');
   if(!list)return;
@@ -2641,14 +2640,6 @@ async function renderQBrowser(){
   if(_qTab==='reported'){
     // Re-read from localStorage to always be fresh
     try{ _qReported=JSON.parse(localStorage.getItem('wiem_qreported')||'{}'); }catch(e){}
-    // Merge with Firebase reports so reports from other devices are visible
-    try{
-      const fbReported=await fbGet('reports');
-      if(fbReported&&typeof fbReported==='object'){
-        Object.keys(fbReported).forEach(k=>{_qReported[Number(k)]=true;});
-        localStorage.setItem('wiem_qreported',JSON.stringify(_qReported));
-      }
-    }catch(e){}
     updateReportedTabCount();
     const reportedIndices=Object.keys(_qReported).map(Number);
     if(countEl) countEl.textContent=`${reportedIndices.length} zgłoszonych`;
