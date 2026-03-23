@@ -2632,7 +2632,7 @@ function copyMarkedForReview(){
   }).catch(()=>alert(text));
 }
 
-function renderQBrowser(){
+async function renderQBrowser(){
   const list=$('qb-list');
   const countEl=$('qb-count');
   if(!list)return;
