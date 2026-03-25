@@ -1036,17 +1036,10 @@ async function handleGSUpdate(){
     return;
   }
 
-  // Detect game aborted by a player leaving mid-game
-  if(GS.phase==='aborted'){
-    const who=GS.abortedBy||'Gracz';
-    stopPoll();
-    sessionStorage.removeItem('ego_sess');
-    sessionStorage.removeItem('ego_name');
-    gameId=null; mySlot=null; isHost=false; GS=null;
-    _localVote=null; _confirmedVote=null; _sjPick=null; _lastRi=null;
-    show('s-home');
-    setTimeout(()=>{ alert(`${who} opuścił(a) grę. Gra została przerwana.`); },100);
-    return;
+  // Detect if this player was promoted to host (e.g. original host left mid-game)
+  if(GS.phase==='lobby' && mySlot!==null && GS.hostSlot!==undefined && mySlot===GS.hostSlot && !isHost){
+    isHost=true;
+    if(_kickCheckTimer){clearInterval(_kickCheckTimer);_kickCheckTimer=null;}
   }
 
   if(GS.phase==='lobby' && mySlot!==null && !$('s-slots').classList.contains('on')) renderLobby();
@@ -1141,7 +1134,7 @@ async function createGame(){
   $('home-err').style.color='var(--muted)';
   try{
     gameId=rnd4();
-    GS={phase:'lobby',players:[{name,pts:10},null,null,null],subjects:[],qSeq:[],rt:0,ri:0,votes:{},bets:{},sa:-1,ready:{},maxPlayers:4,pool:0};
+    GS={phase:'lobby',players:[{name,pts:10},null,null,null],subjects:[],qSeq:[],rt:0,ri:0,votes:{},bets:{},sa:-1,ready:{},maxPlayers:4,pool:0,hostSlot:0};
     await fbPut(`games/${gameId}`,GS);
     mySlot=0;isHost=true;
     sessionStorage.setItem('ego_sess',JSON.stringify({gameId,mySlot}));
@@ -1257,7 +1250,7 @@ async function claimSlot(slot,name){
     await fbPatch(`games/${gameId}`,patch);
     GS=norm(dc(fresh));
     GS.players[slot]={name:name||'Gracz',pts:fresh.players[slot]?.pts??10};
-    mySlot=slot;isHost=(slot===0);
+    mySlot=slot;isHost=(slot===(GS.hostSlot??0));
     sessionStorage.setItem('ego_sess',JSON.stringify({gameId,mySlot}));
     if(!isHost) startKickCheck();
     renderLobby();show('s-lobby');
@@ -1320,7 +1313,7 @@ function renderLobby(){
     return`<div class="prow" style="border:1.5px solid ${isReady?'#16a34a':C(i)+'44'};gap:8px;">
       <div class="prow-dot" style="background:${C(i)};flex-shrink:0"></div>
       <span style="font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${p.name}</span>
-      ${i===0?'<span class="ptag tag-host" style="flex-shrink:0">HOST</span>':''}
+      ${i===(GS.hostSlot??0)?'<span class="ptag tag-host" style="flex-shrink:0">HOST</span>':''}
       ${i===mySlot?'<span class="ptag tag-you" style="flex-shrink:0">ty</span>':''}
       ${readyBadge}
       ${kickBtn}
@@ -1421,9 +1414,26 @@ async function changeName(){
 async function leaveGame(){
   if(!confirm('Na pewno chcesz opuścić grę?'))return;
   try{
-    const activeGame=GS && GS.phase && GS.phase!=='lobby' && GS.phase!=='ended' && GS.phase!=='aborted';
+    const activeGame=GS && GS.phase && GS.phase!=='lobby' && GS.phase!=='ended';
     if(activeGame && gameId){
-      await fbPatch(`games/${gameId}`,{phase:'aborted',abortedBy:GS.players[mySlot]?.name||'Gracz'});
+      // Remove leaving player and reset to lobby for remaining players
+      const newPlayers=[...GS.players];
+      newPlayers[mySlot]=null;
+      const remainingSlots=newPlayers.map((p,i)=>p?i:null).filter(i=>i!==null);
+      if(remainingSlots.length===0){
+        await fbPatch(`games/${gameId}`,{phase:'ended'});
+      } else {
+        const currentHostSlot=GS.hostSlot??0;
+        const newHostSlot=remainingSlots.includes(currentHostSlot)
+          ? currentHostSlot
+          : remainingSlots[Math.floor(Math.random()*remainingSlots.length)];
+        const resetPlayers=newPlayers.map(p=>p?{name:p.name,pts:10}:null);
+        await fbPut(`games/${gameId}`,{
+          phase:'lobby',players:resetPlayers,hostSlot:newHostSlot,
+          subjects:[],qSeq:[],qAnswers:{},rt:0,ri:0,
+          votes:{},bets:{},sa:-1,ready:{},maxPlayers:GS.maxPlayers||4,pool:0
+        });
+      }
     } else if(mySlot!==null && gameId){
       const patch={};
       patch[`players/${mySlot}`]=null;
@@ -1554,12 +1564,11 @@ function render(){
     return;
   }
   switch(GS.phase){
-    case'lobby':   renderLobby();  break;
+    case'lobby':   renderLobby(); show('s-lobby'); break;
     case'voting':  renderVoting(); break;
     case'subject': renderSubj();   break;
     case'reveal':  renderReveal(); break;
     case'ended':   renderEnd();    break;
-    case'aborted': break; // handled in handleGSUpdate
   }
 }
 
