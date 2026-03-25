@@ -1036,6 +1036,19 @@ async function handleGSUpdate(){
     return;
   }
 
+  // Detect game aborted by a player leaving mid-game
+  if(GS.phase==='aborted'){
+    const who=GS.abortedBy||'Gracz';
+    stopPoll();
+    sessionStorage.removeItem('ego_sess');
+    sessionStorage.removeItem('ego_name');
+    gameId=null; mySlot=null; isHost=false; GS=null;
+    _localVote=null; _confirmedVote=null; _sjPick=null; _lastRi=null;
+    show('s-home');
+    setTimeout(()=>{ alert(`${who} opuścił(a) grę. Gra została przerwana.`); },100);
+    return;
+  }
+
   if(GS.phase==='lobby' && mySlot!==null && !$('s-slots').classList.contains('on')) renderLobby();
 
   if(isHost){
@@ -1408,7 +1421,10 @@ async function changeName(){
 async function leaveGame(){
   if(!confirm('Na pewno chcesz opuścić grę?'))return;
   try{
-    if(mySlot!==null){
+    const activeGame=GS && GS.phase && GS.phase!=='lobby' && GS.phase!=='ended' && GS.phase!=='aborted';
+    if(activeGame && gameId){
+      await fbPatch(`games/${gameId}`,{phase:'aborted',abortedBy:GS.players[mySlot]?.name||'Gracz'});
+    } else if(mySlot!==null && gameId){
       const patch={};
       patch[`players/${mySlot}`]=null;
       patch[`ready/${mySlot}`]=null;
@@ -1420,8 +1436,7 @@ async function leaveGame(){
   sessionStorage.removeItem('ego_name');
   gameId=null; mySlot=null; isHost=false; GS=null;
   _localVote=null; _confirmedVote=null; _sjPick=null; _lastRi=null;
-  const name=($('inp-name')?.value||'').trim();
-  name ? show('s-home') : show('s-home');
+  show('s-home');
 }
 
 async function kickPlayer(slot){
@@ -1539,11 +1554,12 @@ function render(){
     return;
   }
   switch(GS.phase){
-    case'lobby':  renderLobby();  break;
-    case'voting': renderVoting(); break;
-    case'subject':renderSubj();   break;
-    case'reveal': renderReveal(); break;
-    case'ended':  renderEnd();    break;
+    case'lobby':   renderLobby();  break;
+    case'voting':  renderVoting(); break;
+    case'subject': renderSubj();   break;
+    case'reveal':  renderReveal(); break;
+    case'ended':   renderEnd();    break;
+    case'aborted': break; // handled in handleGSUpdate
   }
 }
 
@@ -1692,6 +1708,7 @@ function renderVoting(){
         <div style="font-size:20px;margin-bottom:6px">🤫</div>
         <div style="font-weight:600;font-size:14px;margin-bottom:4px">${gW(GS.players[mySlot]?.name||'','Już odpowiedziałeś!','Już odpowiedziałaś!')}</div>
         <div style="color:var(--muted);font-size:13px">Zagłosowało ${done} z ${guessers.length} graczy</div>
+        ${buildPendingVoters(si)}
       </div>`;
     show('s-vote'); return;
   }
