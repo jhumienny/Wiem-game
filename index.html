@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="format-detection" content="telephone=no, date=no, email=no, address=no">
 <meta name="translation" content="no">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://fonts.gstatic.com https://ego-gra-default-rtdb.europe-west1.firebasedatabase.app; img-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://fonts.gstatic.com https://www.gstatic.com https://ego-gra-default-rtdb.europe-west1.firebasedatabase.app https://*.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; img-src 'self' data:;">
 <title>Wiem!</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -133,118 +133,62 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .mode-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px;border-radius:12px;border:1.5px solid var(--rim);background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s;}
 .mode-btn:active{transform:scale(.97);}
 .mode-btn-active{border-color:#7F77DD;background:#1e1b4b;color:var(--text);}
+.adm-tab{flex:1;min-width:0;padding:8px 6px;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;background:var(--card);color:var(--muted);border:1.5px solid var(--rim);text-align:center;line-height:1.3;}
+.adm-tab-active{background:#1e1b4b;border-color:#534AB7;color:#a5b4fc;}
+.adm-card{background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.adm-card-q{font-size:13px;font-weight:600;color:var(--text);line-height:1.4;}
+.adm-card-meta{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
 .theme-btn{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:10px;border:1.5px solid var(--rim);background:var(--card);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;transition:all .15s;}
 .theme-btn:active{transform:scale(.95);}
 </style>
+
+<!-- Firebase Auth SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getDatabase, ref, set, get, update } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCVL4u_qo23iQH27JM7aPXn9s2dr2H76AY",
+  authDomain: "ego-gra.firebaseapp.com",
+  databaseURL: "https://ego-gra-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "ego-gra"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+window._fbAuth = auth;
+window._fbAuthFns = { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+window._fbDb = getDatabase(app);
+window._fbDbFns = { ref, set, get, update };
+
+onAuthStateChanged(auth, (user) => {
+  window._currentUser = user || null;
+  if (typeof window._onAuthStateChanged === 'function') window._onAuthStateChanged(user);
+});
+</script>
 </head>
 <body>
 <div class="app">
 
-<!-- hidden question browser trigger -->
-<button id="admin-trigger" onclick="openQBrowser()" style="position:fixed;top:0;left:0;width:44px;height:44px;background:transparent;border:none;cursor:pointer;z-index:100;opacity:0;display:none" aria-label="Przeglądaj pytania"></button>
-
-<!-- ══ QUESTION BROWSER ══ -->
-<div class="scr" id="s-qbrowser">
-  <div style="display:flex;align-items:center;gap:10px">
-    <button onclick="show('s-home')" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">←</button>
-    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);flex:1">Baza pytań</div>
-    <button onclick="toggleAddQuestion()" id="qb-add-btn" style="background:var(--card);border:1.5px solid var(--rim);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer">+ Nowe</button>
-    <button onclick="openCatManager()" style="background:var(--card);border:1.5px solid var(--rim);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer">🏷 Kategorie</button>
-  </div>
-
-  <!-- Add new question form -->
-  <div id="qb-add-form" style="display:none;background:#0f172a;border:1.5px solid #534AB7;border-radius:12px;padding:14px;flex-direction:column;gap:10px">
-    <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#a78bfa;font-weight:700">Nowe pytanie</div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);flex:1">Treść <span style="color:var(--c3)">(opcjonalnie użyj [imię] dla gracza Temat)</span></div>
-      <button id="nq-type-btn" onclick="toggleNewQType()" style="padding:4px 10px;border-radius:99px;font-size:10px;font-weight:700;cursor:pointer;border:1.5px solid var(--rim);background:transparent;color:var(--muted);" title="Typ odpowiedzi">📝 Własne</button>
-    </div>
-    <textarea id="nq-q" placeholder="Jak [imię] spędza wolny weekend?" style="width:100%;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:12px;color:var(--text);font-family:inherit;resize:vertical;min-height:52px"
-      onkeydown="event.stopPropagation()"></textarea>
-    <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#a78bfa">Pytanie dla Tematu (2. osoba)</div>
-    <textarea id="nq-qs" placeholder="Jak spędzasz wolny weekend?" style="width:100%;background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:8px;font-size:12px;color:#a78bfa;font-family:inherit;resize:vertical;min-height:48px"
-      onkeydown="event.stopPropagation()"></textarea>
-    <div id="nq-answers-section">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
-        <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">Odpowiedzi (dla innych)</div>
-        <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#a78bfa">Odpowiedzi (dla Tematu)</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center">
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:18px;height:18px;border-radius:4px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">1</div>
-            <input id="nq-a1" type="text" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" placeholder="Odpowiedź 1…" style="flex:1;min-width:0;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:6px 8px;font-size:11px;color:var(--text);font-family:inherit" onkeydown="event.stopPropagation()">
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:18px;height:18px;border-radius:4px;background:#3730a344;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;color:#a78bfa">1</div>
-            <input id="nq-as1" type="text" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" placeholder="Odpowiedź 1 (Temat)…" style="flex:1;min-width:0;background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:6px 8px;font-size:11px;color:#a78bfa;font-family:inherit" onkeydown="event.stopPropagation()">
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center">
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:18px;height:18px;border-radius:4px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">2</div>
-            <input id="nq-a2" type="text" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" placeholder="Odpowiedź 2…" style="flex:1;min-width:0;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:6px 8px;font-size:11px;color:var(--text);font-family:inherit" onkeydown="event.stopPropagation()">
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:18px;height:18px;border-radius:4px;background:#3730a344;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;color:#a78bfa">2</div>
-            <input id="nq-as2" type="text" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" placeholder="Odpowiedź 2 (Temat)…" style="flex:1;min-width:0;background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:6px 8px;font-size:11px;color:#a78bfa;font-family:inherit" onkeydown="event.stopPropagation()">
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center">
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:18px;height:18px;border-radius:4px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">3</div>
-            <input id="nq-a3" type="text" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" placeholder="Odpowiedź 3…" style="flex:1;min-width:0;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:6px 8px;font-size:11px;color:var(--text);font-family:inherit" onkeydown="event.stopPropagation()">
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:18px;height:18px;border-radius:4px;background:#3730a344;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;color:#a78bfa">3</div>
-            <input id="nq-as3" type="text" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" placeholder="Odpowiedź 3 (Temat)…" style="flex:1;min-width:0;background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:6px 8px;font-size:11px;color:#a78bfa;font-family:inherit" onkeydown="event.stopPropagation()">
-          </div>
-        </div>
-      </div>
-    </div>
-    <div id="nq-players-section" style="display:none;background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6">
-      👥 Odpowiedziami będą <strong style="color:var(--text)">imiona graczy</strong> w danej rundzie<br>
-      <span style="font-size:10px">(gracz Temat nie pojawia się wśród opcji)</span>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:2px">
-      <button onclick="saveNewQuestion()" style="flex:1;background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Dodaj pytanie ✓</button>
-      <button onclick="toggleAddQuestion()" style="flex:1;background:var(--card);color:var(--muted);border:1.5px solid var(--rim);border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Anuluj</button>
-    </div>
-  </div>
-
-  <!-- Tabs -->
-  <div style="display:flex;gap:6px">
-    <button id="qtab-all" onclick="setQTab('all')" style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;background:var(--text);color:var(--bg);border:none">Wszystkie</button>
-    <button id="qtab-reported" onclick="setQTab('reported')" style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;background:var(--card);color:var(--muted);border:1.5px solid var(--rim);position:relative">Zgłoszone <span id="qtab-reported-count" style="display:none;background:#dc2626;color:#fff;font-size:9px;padding:1px 5px;border-radius:99px;margin-left:3px"></span></button>
-  </div>
-
-  <!-- Category filter -->
-  <div id="qb-cat-filter" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-
-  <!-- Bulk action bar (shown when items checked) -->
-  <div id="qb-bulk-bar" style="display:none;background:#1e1b4b;border:1.5px solid #534AB7;border-radius:10px;padding:10px 12px;display:none;flex-direction:column;gap:8px">
-    <div style="display:flex;align-items:center;gap:8px">
-      <span id="qb-bulk-count" style="font-size:12px;color:#a5b4fc;flex:1">0 zaznaczonych</span>
-      <button onclick="clearBulkSelection()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer">Odznacz</button>
-    </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap" id="qb-bulk-cats"></div>
-  </div>
-
-  <div style="display:flex;align-items:center;gap:8px">
-    <div style="font-size:11px;color:var(--muted);flex:1" id="qb-count"></div>
-    <button id="qb-copy-btn" onclick="copyMarkedForReview()" style="display:none;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:var(--card);color:var(--muted);border:1.5px solid var(--rim);white-space:nowrap">📋 Kopiuj</button>
-    <button id="qb-marked-btn" onclick="toggleMarkedView()" style="display:none;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:#1e1b4b;color:#a5b4fc;border:1.5px solid #534AB7;white-space:nowrap">Zaznaczone (<span id="qb-marked-count">0</span>)</button>
-  </div>
-  <div id="qb-col-headers" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;color:var(--muted);padding:0 2px">
-    <div>Dla innych graczy</div>
-    <div>Dla gracza Temat</div>
-  </div>
-  <div id="qb-list" style="display:flex;flex-direction:column;gap:10px"></div>
-</div>
-
 <!-- ══ HOME ══ -->
 <div class="scr on" id="s-home">
-  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Zmień motyw">🌙</button>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Zmień motyw" style="position:static;flex-shrink:0">🌙</button>
+    <div id="auth-bar" style="display:flex;gap:6px;justify-content:flex-end;flex:1">
+      <div id="auth-logged-out" style="display:flex;gap:6px">
+        <button onclick="openAuthModal('login')" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer">Zaloguj się</button>
+        <button onclick="openAuthModal('register')" style="padding:6px 12px;border-radius:8px;border:none;background:var(--text);color:var(--bg);font-size:11px;font-weight:700;cursor:pointer">Zarejestruj się</button>
+      </div>
+      <div id="auth-logged-in" style="display:none;align-items:center;gap:8px">
+        <span id="auth-email" style="font-size:11px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+        <button id="auth-admin-btn" onclick="show('s-admin')" style="display:none;padding:6px 12px;border-radius:8px;border:none;background:#534AB7;color:#fff;font-size:11px;font-weight:700;cursor:pointer">⚙ Panel</button>
+        <button id="auth-myq-btn" onclick="show('s-my-questions')" style="display:none;padding:6px 12px;border-radius:8px;border:none;background:var(--text);color:var(--bg);font-size:11px;font-weight:700;cursor:pointer">📝 Pytania</button>
+        <button onclick="openSettings()" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer" title="Ustawienia imienia">✏️</button>
+        <button onclick="authSignOut()" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer">Wyloguj</button>
+      </div>
+    </div>
+  </div>
 
   <div style="padding-top:24px">
     <div class="logo">Wiem<em>!</em></div>
@@ -266,13 +210,11 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <input id="inp-code" type="text" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" placeholder="np. AB3K"
         maxlength="4"
         style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:6px;text-transform:uppercase;"
-        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4)"
-        onkeydown="if(event.key==='Enter')joinGame()">
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);homeUpdateBtn()"
+        onkeydown="if(event.key==='Enter'){this.value.trim()?joinGame():createGame()}">
     </div>
-    <button class="btn btn-dim" onclick="joinGame()">→ Dołącz do gry</button>
+    <button id="btn-join-create" class="btn btn-lit" onclick="createGame()">🎮 Utwórz nową grę</button>
   </div>
-
-  <button class="btn btn-lit" onclick="createGame()">🎮 Utwórz nową grę</button>
 
   <div class="err-msg" id="home-err"></div>
 
@@ -317,6 +259,16 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
         <div>
           <div style="font-weight:700;font-size:14px;margin-bottom:3px">Trafisz — zyskujesz. Nie trafisz — tracisz</div>
           <div style="font-size:13px;color:var(--muted);line-height:1.5">Jeśli zgadniesz poprawnie, dostajesz postawione żetony z puli. Jeśli nie — tracisz je na rzecz puli. Osoba z pytaniem dostaje żeton za każdą osobę, która odpowiedziała zgodnie.</div>
+        </div>
+      </div>
+
+      <div style="height:1px;background:var(--rim)"></div>
+
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="font-size:28px;flex-shrink:0;width:40px;text-align:center">✍️</div>
+        <div>
+          <div style="font-weight:700;font-size:14px;margin-bottom:3px">Rejestracja jest opcjonalna</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.5">Do grania konto nie jest potrzebne — bez rejestracji korzystasz z domyślnej puli pytań. <strong style="color:var(--text)">Załóż konto</strong>, jeśli chcesz dodawać własne pytania.</div>
         </div>
       </div>
 
@@ -386,18 +338,18 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div style="display:flex;flex-direction:column;gap:8px">
       <label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Tryb gry</label>
       <div style="display:flex;gap:8px">
-        <button id="mode-rounds" class="mode-btn mode-btn-active" onclick="setGameMode('rounds')">
-          <span style="font-size:18px">🔢</span>
-          <span style="font-size:13px;font-weight:700">Na rundy</span>
-          <span style="font-size:10px;opacity:.65">X rund na gracza</span>
-        </button>
-        <button id="mode-pool" class="mode-btn" onclick="setGameMode('pool')">
+        <button id="mode-pool" class="mode-btn mode-btn-active" onclick="setGameMode('pool')">
           <span style="font-size:18px">🪙</span>
           <span style="font-size:13px;font-weight:700">Żetonowy</span>
           <span style="font-size:10px;opacity:.65">do bankructwa</span>
         </button>
+        <button id="mode-rounds" class="mode-btn" onclick="setGameMode('rounds')">
+          <span style="font-size:18px">🔢</span>
+          <span style="font-size:13px;font-weight:700">Na rundy</span>
+          <span style="font-size:10px;opacity:.65">X rund na gracza</span>
+        </button>
       </div>
-      <div id="rpp-row" style="display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:10px;padding:10px 12px">
+      <div id="rpp-row" style="display:none;align-items:center;gap:10px;background:var(--bg);border-radius:10px;padding:10px 12px">
         <span style="font-size:13px;color:var(--muted);flex:1">Rund na gracza</span>
         <div style="display:flex;align-items:center;gap:8px">
           <button onclick="adjustRpp(-1)" style="width:28px;height:28px;border-radius:8px;border:1.5px solid var(--rim);background:var(--card);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
@@ -442,8 +394,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
   <div class="vstatus" id="v-st"></div>
   <button class="btn btn-lit" id="btn-vote" style="display:none" onclick="confirmVote()">Zatwierdź odpowiedź ✓</button>
+  <button id="btn-report-v" onclick="reportQuestion(this)" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 0;text-decoration:underline;text-underline-offset:3px">⚑ Zgłoś błąd w pytaniu/odpowiedzi</button>
   <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33;margin-top:4px" onclick="leaveGame()">← Opuść grę</button>
-  <button class="btn btn-dim" id="report-btn-v" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim);margin-top:0" onclick="reportCurrentQuestion('v')">⚑ Zgłoś błąd w pytaniu</button>
 </div>
 
 <!-- ══ WAIT ══ -->
@@ -456,7 +408,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="wq" id="w-q"></div>
   </div>
   <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33" onclick="leaveGame()">← Opuść grę</button>
-  <button class="btn btn-dim" id="report-btn-w" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim);margin-top:0" onclick="reportCurrentQuestion('w')">⚑ Zgłoś błąd w pytaniu</button>
 </div>
 
 <!-- ══ SUBJECT ══ -->
@@ -471,8 +422,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="ans-list" id="sj-ans"></div>
   <button class="btn btn-dim" id="btn-swap-sj" style="display:none" onclick="swapQuestionSJ()"></button>
   <button class="btn btn-lit" id="btn-sj" style="display:none" onclick="submitSJ()">Zatwierdź i pozwól innym odpowiedzieć →</button>
-  <button class="btn btn-dim" id="report-btn-sj" style="font-size:11px;padding:8px;color:var(--muted);border-color:var(--rim)" onclick="reportCurrentQuestion('sj')">⚑ Zgłoś błąd w pytaniu</button>
-  <button class="btn btn-dim" id="swap-btn-sj" style="display:none;font-size:11px;padding:8px;color:var(--c3);border-color:var(--c3)55" onclick="swapReported('sj')">🔄 Zamień pytanie na inne</button>
+  <button id="btn-report-sj" onclick="reportQuestion(this)" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 0;text-decoration:underline;text-underline-offset:3px">⚑ Zgłoś błąd w pytaniu/odpowiedzi</button>
   <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33;margin-top:4px" onclick="leaveGame()">← Opuść grę</button>
 </div>
 
@@ -483,6 +433,95 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="ans-list" id="rv-ans"></div>
   <div class="rcard" id="rv-res"></div>
   <div id="rv-btn"></div>
+</div>
+
+
+<!-- ══ ADMIN PANEL ══ -->
+<div class="scr" id="s-admin">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button onclick="show('s-home')" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">←</button>
+    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);flex:1">⚙ Panel admina</div>
+  </div>
+
+  <!-- Tabs -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <button class="adm-tab adm-tab-active" id="adm-tab-questions" onclick="admSetTab('questions')">📋 Pytania</button>
+    <button class="adm-tab" id="adm-tab-pending" onclick="admSetTab('pending')">⏳ Do zatwierdzenia <span id="adm-pending-count" style="display:none;background:#f59e0b;color:#000;font-size:9px;padding:1px 5px;border-radius:99px;margin-left:3px"></span></button>
+    <button class="adm-tab" id="adm-tab-reports" onclick="admSetTab('reports')">⚑ Zgłoszenia <span id="adm-reports-count" style="display:none;background:#ef4444;color:#fff;font-size:9px;padding:1px 5px;border-radius:99px;margin-left:3px"></span></button>
+    <button class="adm-tab" id="adm-tab-users" onclick="admSetTab('users')">👥 Użytkownicy</button>
+  </div>
+
+  <!-- Tab: All questions -->
+  <div id="adm-pane-questions">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      <input id="adm-q-search" type="text" placeholder="Szukaj pytania…" autocomplete="off"
+        style="flex:1;background:var(--card);border:1.5px solid var(--rim);border-radius:10px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit"
+        oninput="admRenderQuestions()" onkeydown="event.stopPropagation()">
+      <div id="adm-q-count" style="font-size:11px;color:var(--muted);white-space:nowrap"></div>
+    </div>
+    <div id="adm-q-list" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+
+  <!-- Tab: Pending user questions -->
+  <div id="adm-pane-pending" style="display:none">
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button id="pend-sub-btn-pending" onclick="admPendSubTab('pending')" style="padding:6px 14px;border-radius:8px;border:none;background:var(--text);color:var(--bg);font-size:12px;font-weight:700;cursor:pointer">Oczekujące</button>
+      <button id="pend-sub-btn-history" onclick="admPendSubTab('history')" style="padding:6px 14px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer">Historia</button>
+    </div>
+    <div id="adm-pending-empty" style="text-align:center;color:var(--muted);font-size:13px;padding:32px 0;display:none">Brak pytań do zatwierdzenia 🎉</div>
+    <div id="adm-pending-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div id="adm-history-list" style="display:none;flex-direction:column;gap:10px"></div>
+  </div>
+
+  <!-- Tab: Reports -->
+  <div id="adm-pane-reports" style="display:none">
+    <div id="adm-reports-empty" style="text-align:center;color:var(--muted);font-size:13px;padding:32px 0;display:none">Brak zgłoszeń ✅</div>
+    <div id="adm-reports-list" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+
+  <!-- Tab: Users -->
+  <div id="adm-pane-users" style="display:none">
+    <div id="adm-users-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
+<!-- ══ MY QUESTIONS ══ -->
+<div class="scr" id="s-my-questions">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button onclick="show('s-home')" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">←</button>
+    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);flex:1">📝 Moje pytania</div>
+  </div>
+
+  <!-- Formularz -->
+  <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:var(--rad);padding:18px;display:flex;flex-direction:column;gap:12px">
+    <div class="label">Dodaj pytanie</div>
+    <div style="font-size:9px;color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:6px"><span>Dla innych — pamiętaj, żeby zawrzeć [imię] w pytaniu</span><span>Dla Ciebie</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <textarea id="myq-q" placeholder="Co [imię] robi gdy…" rows="3" style="background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:13px;color:var(--text);font-family:inherit;resize:vertical;box-sizing:border-box;width:100%" onkeydown="event.stopPropagation()"></textarea>
+      <textarea id="myq-qs" placeholder="Co robisz gdy…" rows="3" style="background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:8px;font-size:13px;color:#a78bfa;font-family:inherit;resize:vertical;box-sizing:border-box;width:100%" onkeydown="event.stopPropagation()"></textarea>
+    </div>
+    <div class="label">Odpowiedzi (3)</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <input id="myq-a0" type="text" placeholder="Odpowiedź 1 — dla innych" style="background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:12px;color:var(--text);font-family:inherit;box-sizing:border-box;width:100%" onkeydown="event.stopPropagation()">
+        <input id="myq-as0" type="text" placeholder="Odpowiedź 1 — dla Ciebie" style="background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:8px;font-size:12px;color:#a78bfa;font-family:inherit;box-sizing:border-box;width:100%" onkeydown="event.stopPropagation()">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <input id="myq-a1" type="text" placeholder="Odpowiedź 2 — dla innych" style="background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:12px;color:var(--text);font-family:inherit;box-sizing:border-box;width:100%" onkeydown="event.stopPropagation()">
+        <input id="myq-as1" type="text" placeholder="Odpowiedź 2 — dla Ciebie" style="background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:8px;font-size:12px;color:#a78bfa;font-family:inherit;box-sizing:border-box;width:100%" onkeydown="event.stopPropagation()">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <input id="myq-a2" type="text" placeholder="Odpowiedź 3 — dla innych" style="background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:12px;color:var(--text);font-family:inherit;box-sizing:border-box;width:100%" onkeydown="event.stopPropagation()">
+        <input id="myq-as2" type="text" placeholder="Odpowiedź 3 — dla Ciebie" style="background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:8px;font-size:12px;color:#a78bfa;font-family:inherit;box-sizing:border-box;width:100%" onkeydown="event.stopPropagation()">
+      </div>
+    </div>
+    <div id="myq-err" style="display:none;color:var(--c0);font-size:12px"></div>
+    <button id="myq-submit" onclick="submitMyQuestion()" class="btn btn-lit">Wyślij pytanie →</button>
+  </div>
+
+  <!-- Lista -->
+  <div class="label">Historia moich pytań</div>
+  <div id="myq-list" style="display:flex;flex-direction:column;gap:10px"></div>
 </div>
 
 <!-- ══ END ══ -->
@@ -740,8 +779,8 @@ document.addEventListener('keydown', e=>{
 const show=id=>{
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   $(id).classList.add('on');
-  const trigger=$('admin-trigger');
-  if(trigger) trigger.style.display=id==='s-home'?'block':'none';
+  if(id==='s-admin' && typeof admOpen==='function') admOpen();
+  if(id==='s-my-questions' && typeof myqOpen==='function') myqOpen();
 };
 const shuf=a=>{const b=[...a];for(let i=b.length-1;i>0;i--){const j=~~(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;};
 const dc=o=>JSON.parse(JSON.stringify(o));
@@ -838,7 +877,7 @@ function norm(gs){
   gs.ready      = gs.ready || {};
   gs.maxPlayers = gs.maxPlayers || 4;
   gs.swapAt     = gs.swapAt || null;
-  gs.gameMode   = gs.gameMode || 'rounds';
+  gs.gameMode   = gs.gameMode || 'pool';
   gs.qAnswers   = gs.qAnswers || {};
   gs.usedQs     = gs.usedQs ? (Array.isArray(gs.usedQs)?gs.usedQs:Object.values(gs.usedQs)) : [];
   // Normalize vote keys AND values to integers
@@ -882,7 +921,7 @@ function stopCountdown(){
   if(_countdownTimer){clearInterval(_countdownTimer);_countdownTimer=null;}
 }
 let _maxPlayers=4; // host-controlled, 2-8
-let _gameMode='rounds'; // 'rounds' | 'pool'
+let _gameMode='pool'; // 'rounds' | 'pool'
 let _selectedCat=null; // null = wszystkie, or catId
 
 function renderLobCatSelector(){
@@ -1134,6 +1173,87 @@ async function handleGSUpdate(){
 }
 
 // ── CREATE ──
+function openSettings() {
+  const dn = sessionStorage.getItem('ego_name') || ($('inp-name')?.value || '');
+  if ($('settings-inp-name')) $('settings-inp-name').value = dn;
+  const btn = $('settings-save-btn');
+  if (btn) { btn.textContent = 'Zapisz'; btn.disabled = false; }
+  if ($('settings-modal')) $('settings-modal').style.display = 'flex';
+  setTimeout(() => { if ($('settings-inp-name')) $('settings-inp-name').focus(); }, 80);
+}
+
+function closeSettings() {
+  if ($('settings-modal')) $('settings-modal').style.display = 'none';
+}
+
+async function saveSettings() {
+  const name = ($('settings-inp-name')?.value || '').trim();
+  if (!name) { $('settings-inp-name')?.focus(); return; }
+  const btn = $('settings-save-btn');
+  btn.disabled = true;
+  const user = window._currentUser;
+  try {
+    if (user) {
+      const token = await user.getIdToken();
+      await fetch(DB_URL + '/users/' + user.uid + '/displayName.json?auth=' + token, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(name)
+      });
+    }
+    sessionStorage.setItem('ego_name', name);
+    if ($('inp-name')) $('inp-name').value = name;
+    if ($('slots-name-inp') && !$('slots-name-inp').dataset.touched) $('slots-name-inp').value = name;
+    btn.textContent = '✓ Zapisano';
+    setTimeout(() => { closeSettings(); }, 900);
+  } catch(e) {
+    btn.disabled = false;
+    alert('Błąd: ' + e.message);
+  }
+}
+
+function showDuplicateNameModal(slot) {
+  if ($('dupname-inp')) $('dupname-inp').value = '';
+  if ($('dupname-err')) $('dupname-err').style.display = 'none';
+  const modal = $('dupname-modal');
+  if (modal) { modal.style.display = 'flex'; modal.dataset.slot = slot; }
+  setTimeout(() => { if ($('dupname-inp')) $('dupname-inp').focus(); }, 80);
+}
+
+async function confirmDupName() {
+  const modal = $('dupname-modal');
+  const slot = parseInt(modal?.dataset.slot ?? '-1');
+  const name = ($('dupname-inp')?.value || '').trim();
+  if (!name) { $('dupname-inp')?.focus(); return; }
+  const normalName = name.toLowerCase();
+  const lowerDupe = GS && GS.players.some((p, i) => p && i < slot && p.name.trim().toLowerCase() === normalName);
+  if (lowerDupe) {
+    if ($('dupname-err')) $('dupname-err').style.display = '';
+    $('dupname-inp')?.focus();
+    return;
+  }
+  modal.style.display = 'none';
+  sessionStorage.setItem('ego_name', name);
+  if ($('inp-name')) $('inp-name').value = name;
+  if ($('slots-name-inp')) { $('slots-name-inp').value = name; delete $('slots-name-inp').dataset.touched; }
+  await claimSlot(slot, name);
+}
+
+function homeUpdateBtn() {
+  const code = ($('inp-code').value||'').trim();
+  const btn = $('btn-join-create');
+  if (!btn) return;
+  if (code.length > 0) {
+    btn.textContent = '→ Dołącz do gry';
+    btn.className = 'btn btn-dim';
+    btn.onclick = joinGame;
+  } else {
+    btn.textContent = '🎮 Utwórz nową grę';
+    btn.className = 'btn btn-lit';
+    btn.onclick = createGame;
+  }
+}
+
 async function createGame(){
   const name=($('inp-name').value.trim()||'Gracz 1');
   hideErr('home-err');
@@ -1249,8 +1369,8 @@ async function claimSlot(slot,name){
       GS=fresh;renderSlots(fresh,name);return;
     }
     const normalName=(name||'Gracz').trim().toLowerCase();
-    const duplicate=fresh.players.some((p,i)=>p&&i!==slot&&p.name.trim().toLowerCase()===normalName);
-    if(duplicate){alert(`Imię "${name}" jest już zajęte. Wpisz inne imię.`);return;}
+    const lowerSlotDupe=fresh.players.some((p,i)=>p&&i<slot&&p.name.trim().toLowerCase()===normalName);
+    if(lowerSlotDupe){showDuplicateNameModal(slot);return;}
     // Use PATCH with only the changed player slot — minimal write, atomic
     const patch={};
     patch[`players/${slot}`]={name:name||'Gracz',pts:fresh.players[slot]?.pts??10};
@@ -1549,7 +1669,6 @@ function render(){
   if(_lastRi !== null && _lastRi !== currentRi){
     _localVote=null; _confirmedVote=null; _sjPick=null; _sjPending=null;
     _swapsLeft=2; _sjSwapsLeft=2; _lastSwapAt=null; _localBet=1;
-    _reportedThisQ=false; _swappedAfterReport=false;
     stopCountdown();
     if(_voteRetryTimer){clearTimeout(_voteRetryTimer);_voteRetryTimer=null;}
   }
@@ -1694,7 +1813,6 @@ function buildAns(cid,answers,locked,chosen,correct,cb){
 }
 
 function setWait(color,name,title,desc,qt){
-  resetReportBtns('w');
   const av=$('w-av');
   av.style.cssText=`width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;background:${color}22;color:${color};margin:0 auto;`;
   av.textContent=name.charAt(0).toUpperCase();
@@ -1709,7 +1827,6 @@ let _confirmedVote = null;
 let _localBet = 1; // 1 or 2 points bet
 
 function renderVoting(){
-  resetReportBtns('v');
   const q=CQ();if(!q)return;
   const si=SI(),sp=SP();
   mkSbar('sb-v'); mkSbar('sb-w');
@@ -1785,7 +1902,7 @@ function renderVoting(){
       $('v-st').textContent='Jak twoim zdaniem odpowie?';
     }
   }
-  show('s-vote');
+  resetReportBtns(); show('s-vote');
 }
 
 // ── SWAP QUESTION ──
@@ -1937,7 +2054,6 @@ let _swapsLeft=2;    // resets each round, shared between voter and subject scre
 let _sjSwapsLeft=2;  // for subject screen
 
 function renderSubj(){
-  resetReportBtns('sj');
   const q=CQ();if(!q)return;
   const si=SI(),sp=SP();
   mkSbar('sb-sj'); mkSbar('sb-w');
@@ -1980,7 +2096,7 @@ function renderSubj(){
   $('btn-sj').style.display=_sjPending!==null?'block':'none';
   $('btn-sj').textContent='Zatwierdź i pozwól innym odpowiedzieć →';
 
-  show('s-subj');
+  resetReportBtns(); show('s-subj');
 }
 
 async function submitSJ(){
@@ -1997,7 +2113,6 @@ async function submitSJ(){
 
 // ── REVEAL ──
 function renderReveal(){
-  resetReportBtns('rv');
   const q=CQ();if(!q)return;
   const si=SI(),sp=SP(),correct=GS.sa;
   mkSbar('sb-rv');
@@ -2220,10 +2335,7 @@ document.addEventListener('visibilitychange', ()=>{
 
 // ── QUESTION BROWSER ──
 let _qMarked=new Set();
-let _qMarkedView=false;
 let _qColors={};
-let _qTab='all'; // 'all' | 'reported'
-let _qReported={}; // idx → true
 let _qCats={};        // {catId: {name, color}} — category definitions
 let _qCatMap={};      // {idx: [catId, ...]} — which cats each question belongs to
 let _activeCatFilter=null; // null = all, or catId
@@ -2232,7 +2344,6 @@ let _bulkSelected=new Set(); // indices selected for bulk category assign
 // Load saved colors, reported, categories
 (()=>{
   try{ _qColors=JSON.parse(localStorage.getItem('wiem_qcolors')||'{}'); }catch(e){}
-  try{ _qReported=JSON.parse(localStorage.getItem('wiem_qreported')||'{}'); }catch(e){}
   try{ _qCats=JSON.parse(localStorage.getItem('wiem_cats')||'{}'); }catch(e){}
   try{ _qCatMap=JSON.parse(localStorage.getItem('wiem_catmap')||'{}'); }catch(e){}
 
@@ -2266,261 +2377,19 @@ function saveCats(){
 }
 
 // ── CATEGORY MANAGER ──
-function openCatManager(){
-  renderCatManager();
-  $('cat-modal').style.display='flex';
-  setTimeout(()=>{ const i=$('cat-new-inp'); if(i)i.focus(); },50);
-}
-function closeCatManager(){
-  $('cat-modal').style.display='none';
-  renderCatFilter();
-}
 
-function addCategory(){
-  const inp=$('cat-new-inp');
-  const name=(inp?.value||'').trim();
-  if(!name)return;
-  // Check duplicate
-  if(Object.values(_qCats).some(c=>c.name.toLowerCase()===name.toLowerCase())){
-    inp.style.borderColor='var(--c0)';
-    setTimeout(()=>inp.style.borderColor='',1500);
-    return;
-  }
-  const id='cat_'+Date.now();
-  const usedColors=Object.values(_qCats).map(c=>c.color);
-  const color=CAT_COLORS.find(c=>!usedColors.includes(c))||CAT_COLORS[Object.keys(_qCats).length%CAT_COLORS.length];
-  _qCats[id]={name, color};
-  saveCats();
-  if(inp){ inp.value=''; inp.focus(); }
-  renderCatManager();
-}
 
-function deleteCategory(id){
-  delete _qCats[id];
-  // Remove from all question assignments
-  Object.keys(_qCatMap).forEach(idx=>{
-    _qCatMap[idx]=(_qCatMap[idx]||[]).filter(c=>c!==id);
-    if(_qCatMap[idx].length===0) delete _qCatMap[idx];
-  });
-  if(_activeCatFilter===id) _activeCatFilter=null;
-  saveCats();
-  renderCatManager();
-}
 
-function renderCatManager(){
-  const list=$('cat-list-mgr');
-  if(!list)return;
-  const cats=Object.entries(_qCats);
-  if(cats.length===0){
-    list.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:12px;padding:8px 0">Brak kategorii — dodaj pierwszą poniżej</div>`;
-    return;
-  }
-  list.innerHTML=cats.map(([id,cat])=>{
-    const count=Object.values(_qCatMap).filter(arr=>arr&&arr.includes(id)).length;
-    return`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border-radius:8px">
-      <div style="width:12px;height:12px;border-radius:50%;background:${cat.color};flex-shrink:0"></div>
-      <span style="flex:1;font-size:13px;font-weight:600">${cat.name}</span>
-      <span style="font-size:11px;color:var(--muted)">${count} pytań</span>
-      <button onclick="deleteCategory('${id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0;line-height:1" title="Usuń kategorię">🗑</button>
-    </div>`;
-  }).join('');
-}
 
-// ── CATEGORY FILTER BAR ──
-function renderCatFilter(){
-  const bar=$('qb-cat-filter');
-  if(!bar)return;
-  const cats=Object.entries(_qCats);
-  if(cats.length===0){ bar.innerHTML=''; return; }
-  bar.innerHTML=`
-    <button onclick="setCatFilter(null)" style="padding:5px 12px;border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${_activeCatFilter===null?'var(--text)':'var(--rim)'};background:${_activeCatFilter===null?'var(--text)':'transparent'};color:${_activeCatFilter===null?'var(--bg)':'var(--muted)'}">Wszystkie</button>
-    ${cats.map(([id,cat])=>{
-      const active=_activeCatFilter===id;
-      return`<button onclick="setCatFilter('${id}')" style="padding:5px 12px;border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${active?cat.color:cat.color+'44'};background:${active?cat.color+'22':'transparent'};color:${active?cat.color:'var(--muted)'}">${cat.name}</button>`;
-    }).join('')}`;
-}
 
-function setCatFilter(id){
-  _activeCatFilter=id;
-  renderCatFilter();
-  renderQBrowser();
-}
 
-// ── BULK SELECTION ──
-function toggleBulkSelect(idx){
-  if(_bulkSelected.has(idx)) _bulkSelected.delete(idx);
-  else _bulkSelected.add(idx);
-  updateBulkBar();
-  // Update card border
-  const card=$('qcard-'+idx);
-  if(card){
-    const base=getCardBorder(idx);
-    card.style.borderColor=_bulkSelected.has(idx)?'#f59e0b':base;
-  }
-}
 
-function clearBulkSelection(){
-  _bulkSelected.forEach(idx=>{
-    const card=$('qcard-'+idx);
-    if(card) card.style.borderColor=getCardBorder(idx);
-  });
-  _bulkSelected.clear();
-  updateBulkBar();
-}
 
-function updateBulkBar(){
-  const bar=$('qb-bulk-bar');
-  const countEl=$('qb-bulk-count');
-  const catsEl=$('qb-bulk-cats');
-  if(!bar)return;
-  const n=_bulkSelected.size;
-  bar.style.display=n>0?'flex':'none';
-  if(countEl) countEl.textContent=`${n} zaznaczonych`;
-  if(catsEl){
-    const cats=Object.entries(_qCats);
-    if(cats.length===0){
-      catsEl.innerHTML=`<span style="font-size:11px;color:var(--muted)">Najpierw utwórz kategorie →</span>`;
-    } else {
-      catsEl.innerHTML=cats.map(([id,cat])=>
-        `<button onclick="assignBulkToCat('${id}')" style="padding:5px 12px;border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${cat.color};background:${cat.color}22;color:${cat.color}">+ ${cat.name}</button>`
-      ).join('');
-    }
-  }
-}
 
-function assignBulkToCat(catId){
-  _bulkSelected.forEach(idx=>{
-    if(!_qCatMap[idx]) _qCatMap[idx]=[];
-    if(!_qCatMap[idx].includes(catId)) _qCatMap[idx].push(catId);
-  });
-  saveCats();
-  clearBulkSelection();
-  renderQBrowser();
-}
 
-function removeCatFromQ(idx, e){
-  e.stopPropagation();
-  // Show mini picker to remove specific cat
-  delete _qCatMap[idx];
-  saveCats();
-  const card=$('qcard-'+idx);
-  if(card){ renderQCard(card,idx,false); const cr=card.querySelector('[id^="qcolor-"]'); if(cr) updateColorBtns(cr,idx); }
-}
 
-let _reportedThisQ=false; // track if current question was reported this render cycle
-let _swappedAfterReport=false; // one swap per report per round
 
-function resetReportBtns(screenSuffix){
-  if(_reportedThisQ){
-    const rb=$('report-btn-'+screenSuffix);
-    const sb=$('swap-btn-'+screenSuffix);
-    if(rb){ rb.textContent='✓ Zgłoszono!'; rb.style.color='var(--c2)'; rb.disabled=true; }
-    // Show swap button only if not yet swapped after report
-    if(sb){
-      if(_swappedAfterReport){
-        sb.style.display='none';
-      } else {
-        sb.style.display='block';
-      }
-    }
-    return;
-  }
-  const rb=$('report-btn-'+screenSuffix);
-  const sb=$('swap-btn-'+screenSuffix);
-  if(rb){ rb.textContent='⚑ Zgłoś błąd w pytaniu'; rb.style.color=''; rb.disabled=false; }
-  if(sb){ sb.style.display='none'; sb.textContent='🔄 Zamień pytanie na inne'; sb.style.color=''; sb.disabled=false; }
-}
 
-function reportCurrentQuestion(screenSuffix){
-  const rb=$('report-btn-'+screenSuffix);
-  if(rb){ rb.textContent='✓ Zgłoszono!'; rb.style.color='var(--c2)'; rb.disabled=true; }
-  if(!GS){ return; }
-  // Firebase may return qSeq as object with string keys
-  const seq=GS.qSeq;
-  const ri=GS.ri;
-  let idx;
-  if(Array.isArray(seq)){ idx=seq[ri]; }
-  else if(seq&&typeof seq==='object'){ idx=seq[String(ri)]; }
-  if(idx!==undefined&&idx!==null&&!isNaN(Number(idx))){
-    idx=Number(idx);
-    _qReported[idx]=true;
-    _reportedThisQ=true;
-    try{ localStorage.setItem('wiem_qreported',JSON.stringify(_qReported)); }catch(e){}
-    if(gameId) fbPatch('reports',{[String(idx)]:true}).catch(()=>{});
-    updateReportedTabCount();
-  }
-  // Only show swap button for subject screen — others just report silently
-  if(screenSuffix==='sj'){
-    const sb=$('swap-btn-sj');
-    if(sb){ sb.style.display='block'; }
-  }
-}
-
-async function swapReported(screenSuffix){
-  if(!GS||!gameId||_swappedAfterReport)return;
-  const sb=$('swap-btn-'+screenSuffix);
-  if(sb){ sb.disabled=true; sb.textContent='⏳ Zamieniam…'; }
-
-  const allUsed=new Set([...(GS.qSeq||[]),...(GS.usedQs||[])]);
-  allUsed.add(GS.qSeq[GS.ri]);
-  const available=QS.map((_,i)=>i).filter(i=>!allUsed.has(i));
-  const pool=available.length>0?available:QS.map((_,i)=>i).filter(i=>i!==GS.qSeq[GS.ri]);
-  if(!pool.length){ if(sb){sb.textContent='Brak dostępnych pytań';} return; }
-  const newQIdx=pool[Math.floor(Math.random()*pool.length)];
-
-  const usedQs=[...(GS.usedQs||[]),GS.qSeq[GS.ri]];
-  const newSeq=[...GS.qSeq];
-  newSeq[GS.ri]=newQIdx;
-
-  // Fix qAnswers for the new question at this round index
-  const newQ=QS[newQIdx];
-  const newQAnswers={...(GS.qAnswers||{})};
-  if(newQ&&newQ.type==='players'){
-    const playerNames=GS.players.filter(Boolean).map(p=>p.name);
-    if(playerNames.length>0) newQAnswers[GS.ri]=playerNames;
-    else delete newQAnswers[GS.ri];
-  } else {
-    delete newQAnswers[GS.ri];
-  }
-
-  GS.qSeq=newSeq; GS.usedQs=usedQs; GS.qAnswers=newQAnswers;
-  GS.votes={}; GS.bets={}; GS.sa=-1; GS.phase='subject';
-  const swapAt=Date.now();
-  _allVotedAt=null; _sjPending=null; _localVote=null; _confirmedVote=null;
-  _swappedAfterReport=true;
-  try{
-    await fbPatch(`games/${gameId}`,{qSeq:newSeq,usedQs,qAnswers:newQAnswers,votes:{},bets:{},sa:-1,phase:'subject',swapAt});
-    GS.swapAt=swapAt;
-    _reportedThisQ=false;
-    if(sb){ sb.style.display='none'; }
-    render();
-  }catch(e){
-    _swappedAfterReport=false;
-    if(sb){ sb.textContent='Błąd – spróbuj ponownie'; sb.disabled=false; }
-  }
-}
-
-function updateReportedTabCount(){
-  const n=Object.keys(_qReported).length;
-  const el=$('qtab-reported-count');
-  if(el){ el.textContent=n; el.style.display=n>0?'inline':'none'; }
-}
-
-function setQTab(tab){
-  _qTab=tab;
-  _qMarkedView=false;
-  ['all','reported'].forEach(k=>{
-    const b=$('qtab-'+k);
-    if(!b)return;
-    const active=k===tab;
-    b.style.background=active?'var(--text)':'var(--card)';
-    b.style.color=active?'var(--bg)':'var(--muted)';
-    b.style.border=active?'none':'1.5px solid var(--rim)';
-  });
-  const headers=$('qb-col-headers');
-  if(headers) headers.style.display=_qTab==='reported'?'none':'grid';
-  renderQBrowser();
-}
 
 function getCardBorder(idx){
   if(_qColors[idx]==='green') return '#16a34a';
@@ -2551,83 +2420,14 @@ function updateColorBtns(row, idx){
 }
 let _qFilter='all'; // kept for compatibility but not used in UI
 
-const ADMIN_HASH='41455bd85390f866c132887d4ec3771240b21700c1b8de233ddab2d832c20c00';
 
 // Pure JS SHA-256 — works on HTTP and HTTPS alike
-function sha256(str){
-  function rightRotate(v,a){return(v>>>a)|(v<<(32-a));}
-  const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
-  let h=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
-  const bytes=[];
-  for(let i=0;i<str.length;i++){
-    const c=str.charCodeAt(i);
-    if(c<128) bytes.push(c);
-    else if(c<2048){bytes.push((c>>6)|192);bytes.push((c&63)|128);}
-    else{bytes.push((c>>12)|224);bytes.push(((c>>6)&63)|128);bytes.push((c&63)|128);}
-  }
-  bytes.push(0x80);
-  while((bytes.length%64)!==56) bytes.push(0);
-  const l=str.length*8;
-  bytes.push(0,0,0,0,(l>>>24)&255,(l>>>16)&255,(l>>>8)&255,l&255);
-  for(let i=0;i<bytes.length;i+=64){
-    const w=[];
-    for(let j=0;j<16;j++) w[j]=(bytes[i+j*4]<<24)|(bytes[i+j*4+1]<<16)|(bytes[i+j*4+2]<<8)|bytes[i+j*4+3];
-    for(let j=16;j<64;j++){const s0=rightRotate(w[j-15],7)^rightRotate(w[j-15],18)^(w[j-15]>>>3);const s1=rightRotate(w[j-2],17)^rightRotate(w[j-2],19)^(w[j-2]>>>10);w[j]=(w[j-16]+s0+w[j-7]+s1)>>>0;}
-    let [a,b,c,d,e,f,g,hh]=h;
-    for(let j=0;j<64;j++){const S1=rightRotate(e,6)^rightRotate(e,11)^rightRotate(e,25);const ch=(e&f)^(~e&g);const temp1=(hh+S1+ch+K[j]+w[j])>>>0;const S0=rightRotate(a,2)^rightRotate(a,13)^rightRotate(a,22);const maj=(a&b)^(a&c)^(b&c);const temp2=(S0+maj)>>>0;hh=g;g=f;f=e;e=(d+temp1)>>>0;d=c;c=b;b=a;a=(temp1+temp2)>>>0;}
-    h[0]=(h[0]+a)>>>0;h[1]=(h[1]+b)>>>0;h[2]=(h[2]+c)>>>0;h[3]=(h[3]+d)>>>0;h[4]=(h[4]+e)>>>0;h[5]=(h[5]+f)>>>0;h[6]=(h[6]+g)>>>0;h[7]=(h[7]+hh)>>>0;
-  }
-  return h.map(v=>v.toString(16).padStart(8,'0')).join('');
-}
 
-function openQBrowser(){
-  if(sessionStorage.getItem('admin_ok')==='1'){
-    _qMarkedView=false; setQTab(_qTab); updateReportedTabCount();
-    renderCatFilter();
-    show('s-qbrowser');
-    return;
-  }
-  const modal=$('admin-modal');
-  const inp=$('admin-pw-inp');
-  const err=$('admin-pw-err');
-  if(!modal)return;
-  modal.style.display='flex';
-  if(err) err.style.display='none';
-  if(inp){ inp.value=''; setTimeout(()=>inp.focus(),50); }
-}
 
-function closeAdminModal(){
-  const modal=$('admin-modal');
-  if(modal) modal.style.display='none';
-}
 
-function submitAdminPw(){
-  const inp=$('admin-pw-inp');
-  const err=$('admin-pw-err');
-  const pw=(inp?.value||'').trim();
-  if(!pw)return;
-  const hash=sha256(pw);
-  if(hash===ADMIN_HASH){
-    sessionStorage.setItem('admin_ok','1');
-    closeAdminModal();
-    _qMarkedView=false; setQTab(_qTab); updateReportedTabCount(); show('s-qbrowser');
-  } else {
-    if(err){ err.style.display='block'; }
-    if(inp){ inp.value=''; inp.focus(); }
-  }
-}
 
 function setQFilter(f){ _qFilter=f; }
 
-function toggleMarkedView(){
-  _qMarkedView=!_qMarkedView;
-  const btn=$('qb-marked-btn');
-  if(btn){
-    btn.style.background=_qMarkedView?'#534AB7':'#1e1b4b';
-    btn.style.color='#fff';
-  }
-  renderQBrowser();
-}
 
 function toggleCheck(idx){
   if(_qMarked.has(idx)) _qMarked.delete(idx);
@@ -2650,409 +2450,1015 @@ function updateMarkedBtn(){
   if(countEl)countEl.textContent=n;
 }
 
-function copyMarkedForReview(){
-  const lines=['Zaznaczone pytania do sprawdzenia transformacji:\n'];
-  let i=1;
-  _qMarked.forEach(idx=>{
-    const item=QS[idx];
-    const hasName=item.q.includes('[imię]');
-    lines.push(`=== ${i++}. (index ${idx}) ===`);
-    lines.push(`ORYGINAŁ: ${item.q}`);
-    lines.push(`DLA INNYCH: ${item.q.replace(/\[imię\]/g,'[Temat]')}`);
-    if(hasName){
-      lines.push(`DLA TEMATU: ${item.qs||'—'}`);
-      lines.push('ODPOWIEDZI:');
-      item.a.forEach((a,j)=>lines.push(`  ${j+1}. oryg: ${a}  →  temat: ${item.as?item.as[j]:'—'}`));
-    } else {
-      lines.push('(pytanie bez [imię] — brak transformacji dla Tematu)');
-    }
-    lines.push('');
-  });
-  const text=lines.join('\n');
-  navigator.clipboard?.writeText(text).then(()=>{
-    const btn=$('qb-copy-btn');
-    if(btn){const orig=btn.textContent;btn.textContent='✓ Skopiowano!';btn.style.color='var(--c2)';setTimeout(()=>{btn.textContent=orig;btn.style.color='var(--muted)';},2000);}
-  }).catch(()=>alert(text));
-}
-
-function renderQBrowser(){
-  const list=$('qb-list');
-  const countEl=$('qb-count');
-  if(!list)return;
-  list.innerHTML='';
-
-  if(_qTab==='reported'){
-    // Re-read from localStorage to always be fresh
-    try{ _qReported=JSON.parse(localStorage.getItem('wiem_qreported')||'{}'); }catch(e){}
-    updateReportedTabCount();
-    const reportedIndices=Object.keys(_qReported).map(Number);
-    if(countEl) countEl.textContent=`${reportedIndices.length} zgłoszonych`;
-    if(reportedIndices.length===0){
-      list.innerHTML=`<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Brak zgłoszonych błędów</div>`;
-      return;
-    }
-    // Clear all button
-    const clearDiv=document.createElement('div');
-    clearDiv.style.cssText='display:flex;justify-content:flex-end';
-    clearDiv.innerHTML=`<button onclick="clearAllReports()" style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:var(--card);color:var(--muted);border:1.5px solid var(--rim)">🗑 Wyczyść wszystkie</button>`;
-    list.appendChild(clearDiv);
-    reportedIndices.forEach(realIdx=>{
-      const div=document.createElement('div');
-      div.id='qcard-'+realIdx;
-      div.style.cssText=`background:var(--card);border:1.5px solid #dc2626;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px`;
-      renderQCardReported(div, realIdx, false);
-      list.appendChild(div);
-      const colorRow=div.querySelector('[id^="qcolor-"]');
-      if(colorRow) updateColorBtns(colorRow, realIdx);
-    });
-    return;
-  }
-
-  let indices=QS.map((_,i)=>i).filter(i=>_qMarkedView?_qMarked.has(i):true);
-  // Apply category filter
-  if(_activeCatFilter){
-    indices=indices.filter(i=>(_qCatMap[i]||[]).includes(_activeCatFilter));
-  }
-  if(countEl) countEl.textContent=_qMarkedView?`${indices.length} zaznaczonych`:`${indices.length} pytań`;
-
-  indices.forEach(realIdx=>{
-    const div=document.createElement('div');
-    div.id='qcard-'+realIdx;
-    const border=_bulkSelected.has(realIdx)?'#f59e0b':getCardBorder(realIdx);
-    div.style.cssText=`background:var(--card);border:1.5px solid ${border};border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px`;
-    renderQCard(div, realIdx, _qMarkedView);
-    list.appendChild(div);
-    const colorRow=div.querySelector('[id^="qcolor-"]');
-    if(colorRow) updateColorBtns(colorRow, realIdx);
-  });
-
-  updateMarkedBtn();
-  updateBulkBar();
-}
-
-function renderQCardReported(div, idx, editing){
-  const item=QS[idx];
-  const qOther=item.q.replace(/\[imię\]/g,'[Temat]');
-  const qSubj=item.qs||'—';
-  if(!editing){
-    div.innerHTML=`
-      <div style="display:flex;align-items:flex-start;gap:8px">
-        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#f87171;font-weight:700;flex-shrink:0;margin-top:2px">⚑ ${idx+1}</div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex:1">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div>
-              <div style="font-size:9px;color:var(--muted);margin-bottom:3px;letter-spacing:1px;text-transform:uppercase">Dla innych</div>
-              <div style="font-size:11px;font-weight:700;line-height:1.4;text-transform:uppercase">${qOther}</div>
-            </div>
-            <div>
-              <div style="font-size:9px;color:var(--muted);margin-bottom:3px;letter-spacing:1px;text-transform:uppercase">Dla Tematu</div>
-              <div style="font-size:11px;font-weight:700;line-height:1.4;text-transform:uppercase;color:#a78bfa">${qSubj}</div>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--rim);padding-top:6px">
-            ${[0,1,2].map(j=>`
-              <div style="font-size:11px;color:var(--muted)">${j+1}. ${item.a[j]}</div>
-              <div style="font-size:11px;color:#a78bfa66">${j+1}. ${item.as?item.as[j]:'—'}</div>`).join('')}
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-items:center">
-          <div id="qcolor-${idx}" style="display:flex;align-items:center;gap:4px"></div>
-          <button onclick="startEditQReported(${idx})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0;line-height:1" title="Edytuj">✏️</button>
-          <button onclick="dismissReport(${idx})" style="background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;padding:0;line-height:1" title="Usuń zgłoszenie">🗑</button>
-        </div>
-      </div>`;
-  } else {
-    div.innerHTML=`
-      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#f87171;font-weight:700">⚑ Edycja zgłoszonego pytania ${idx+1}</div>
-      <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">Treść pytania <span style="color:var(--c3)">(użyj [imię] dla gracza Temat)</span></div>
-      <textarea id="eq-q-${idx}" style="width:100%;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:12px;color:var(--text);font-family:inherit;resize:vertical;min-height:56px">${item.q}</textarea>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">Odpowiedzi</div>
-        <div style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#a78bfa66">Podgląd dla Tematu</div>
-      </div>
-      ${[0,1,2].map(j=>`
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center">
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:18px;height:18px;border-radius:4px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${j+1}</div>
-            <input id="eq-a-${idx}-${j}" type="text" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" value="${item.a[j].replace(/"/g,'&quot;')}"
-              style="flex:1;min-width:0;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:6px 8px;font-size:11px;color:var(--text);font-family:inherit">
-          </div>
-          <div id="eq-prev-${idx}-${j}" style="font-size:11px;color:#a78bfa66;padding:0 4px;line-height:1.4">${item.as?item.as[j]||'—':'—'}</div>
-        </div>`).join('')}
-      <div style="display:flex;gap:8px;margin-top:2px">
-        <button onclick="saveEditQ(${idx});renderQCardReported($('qcard-${idx}'),${idx},false)" style="flex:1;background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Zapisz</button>
-        <button onclick="renderQCardReported($('qcard-${idx}'),${idx},false)" style="flex:1;background:var(--card);color:var(--muted);border:1.5px solid var(--rim);border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Anuluj</button>
-      </div>`;
-  }
-}
-
-function startEditQReported(idx){
-  const div=$('qcard-'+idx);
-  if(div) renderQCardReported(div, idx, true);
-}
-
-function clearAllReports(){
-  _qReported={};
-  try{ localStorage.setItem('wiem_qreported','{}'); }catch(e){}
-  updateReportedTabCount();
-  renderQBrowser();
-}
-
-function dismissReport(idx){
-  delete _qReported[idx];
-  try{ localStorage.setItem('wiem_qreported',JSON.stringify(_qReported)); }catch(e){}
-  updateReportedTabCount();
-  renderQBrowser();
-}
-
-function renderQCard(div, idx, editing){
-  const item=QS[idx];
-  // Both versions
-  const qOther=item.q.replace(/\[imię\]/g,'[Temat]');
-  const qSubj=item.qs||'—';
-  const hasName=item.q.includes('[imię]');
-
-  if(!editing){
-    // Build category chips
-    const myCats=(_qCatMap[idx]||[]).map(id=>_qCats[id]).filter(Boolean);
-    const isPlayerType=item.type==='players';
-    const catChips=myCats.length>0
-      ? `<div style="display:flex;flex-wrap:wrap;gap:4px;padding-top:4px">
-          ${myCats.map(c=>`<span style="padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;background:${c.color}22;color:${c.color};border:1px solid ${c.color}55">${c.name}</span>`).join('')}
-          <button onclick="removeCatFromQ(${idx},event)" style="padding:2px 6px;border-radius:99px;font-size:9px;background:none;border:1px solid var(--rim);color:var(--muted);cursor:pointer" title="Usuń z kategorii">✕</button>
-        </div>`
-      : '';
-    div.innerHTML=`
-      <div style="display:flex;align-items:flex-start;gap:8px">
-        <input type="checkbox" id="qbulk-${idx}" ${_bulkSelected.has(idx)?'checked':''} onchange="toggleBulkSelect(${idx})"
-          style="margin-top:3px;width:15px;height:15px;accent-color:#f59e0b;flex-shrink:0;cursor:pointer" title="Zaznacz do kategorii">
-        <input type="checkbox" id="qcb-${idx}" ${_qMarked.has(idx)?'checked':''} onchange="toggleCheck(${idx})"
-          style="margin-top:3px;width:15px;height:15px;accent-color:#7F77DD;flex-shrink:0;cursor:pointer">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;align-items:start">
-          <div style="font-size:11px;font-weight:700;line-height:1.4;text-transform:uppercase;letter-spacing:.3px;color:var(--text)">${qOther}</div>
-          <div style="font-size:11px;font-weight:700;line-height:1.4;text-transform:uppercase;letter-spacing:.3px;color:${isPlayerType?'#38bdf8':hasName?'#a78bfa':'var(--muted)'}">${isPlayerType?'Imiona graczy w danej rundzie':hasName?qSubj:'—'}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
-          <div id="qcolor-${idx}" style="display:flex;align-items:center;gap:4px"></div>
-          <button onclick="startEditQ(${idx})" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:0;line-height:1" title="Edytuj">✏️</button>
-        </div>
-      </div>
-      ${catChips}
-      ${isPlayerType?'':`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid var(--rim);padding-top:8px">
-        ${[0,1,2].map(j=>`
-          <div style="display:flex;align-items:center;gap:6px;font-size:11px">
-            <div style="width:18px;height:18px;border-radius:4px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${j+1}</div>
-            <span style="color:var(--muted)">${item.a[j]||''}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:11px">
-            <div style="width:18px;height:18px;border-radius:4px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${j+1}</div>
-            <span style="color:${hasName?'#a78bfa66':'var(--muted)'}">${item.as?item.as[j]||'—':'—'}</span>
-          </div>`).join('')}
-      </div>`}`;
-  } else {
-    div.style.borderColor='#7F77DD';
-    const isPlayers=item.type==='players';
-    div.innerHTML=`
-      <div style="display:flex;align-items:center;gap:8px">
-        <input type="checkbox" id="qcb-${idx}" checked onchange="toggleCheck(${idx})"
-          style="width:15px;height:15px;accent-color:#7F77DD;cursor:pointer">
-        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#a78bfa;font-weight:700;flex:1">Edycja pytania</div>
-        <button onclick="toggleEditQType(${idx})" style="padding:3px 8px;border-radius:99px;font-size:10px;font-weight:700;cursor:pointer;border:1.5px solid ${isPlayers?'#38bdf8':'var(--rim)'};background:${isPlayers?'#0c4a6e44':'transparent'};color:${isPlayers?'#38bdf8':'var(--muted)'}">${isPlayers?'👥 Gracze':'📝 Własne'}</button>
-      </div>
-      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Treść pytania <span style="color:var(--c3)">(użyj [imię] dla gracza Temat)</span></div>
-      <textarea id="eq-q-${idx}" style="width:100%;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:12px;color:var(--text);font-family:inherit;resize:vertical;min-height:56px">${item.q}</textarea>
-      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#a78bfa">Pytanie dla Tematu (2. osoba)</div>
-      <textarea id="eq-qs-${idx}" style="width:100%;background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:8px;font-size:12px;color:#a78bfa;font-family:inherit;resize:vertical;min-height:48px">${item.qs||''}</textarea>
-      ${isPlayers?`
-        <div style="background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6">
-          👥 Odpowiedziami będą <strong style="color:var(--text)">imiona graczy</strong> w danej rundzie
-        </div>
-      `:`
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Odpowiedzi (dla innych)</div>
-        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#a78bfa">Odpowiedzi (dla Tematu)</div>
-      </div>
-      ${[0,1,2].map(j=>`
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center">
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:18px;height:18px;border-radius:4px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${j+1}</div>
-            <input id="eq-a-${idx}-${j}" type="text" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" value="${(item.a[j]||'').replace(/"/g,'&quot;')}"
-              style="flex:1;min-width:0;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:6px 8px;font-size:11px;color:var(--text);font-family:inherit">
-          </div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:18px;height:18px;border-radius:4px;background:#3730a344;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;color:#a78bfa">${j+1}</div>
-            <input id="eq-as-${idx}-${j}" type="text" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" value="${(item.as?item.as[j]||'':'').replace(/"/g,'&quot;')}"
-              style="flex:1;min-width:0;background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:6px 8px;font-size:11px;color:#a78bfa;font-family:inherit">
-          </div>
-        </div>`).join('')}
-      `}
-      <div style="display:flex;gap:8px;margin-top:2px">
-        <button onclick="saveEditQ(${idx})" style="flex:1;background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Zapisz</button>
-        <button onclick="cancelEditQ(${idx})" style="flex:1;background:var(--card);color:var(--muted);border:1.5px solid var(--rim);border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Anuluj</button>
-      </div>`;
-  }
-}
 
 
 
-function toggleEditQType(idx){
-  QS[idx].type=QS[idx].type==='players'?undefined:'players';
-  if(QS[idx].type===undefined) delete QS[idx].type;
-  const div=$('qcard-'+idx);
-  if(div) renderQCard(div,idx,true);
-}
 
-function startEditQ(idx){
-  const div=$('qcard-'+idx);
-  if(div) renderQCard(div, idx, true);
-}
 
-function cancelEditQ(idx){
-  const div=$('qcard-'+idx);
-  if(div){
-    div.style.borderColor=getCardBorder(idx);
-    renderQCard(div, idx, false);
-    const colorRow=div.querySelector('[id^="qcolor-"]');
-    if(colorRow) updateColorBtns(colorRow, idx);
-  }
-}
+
+
+
+
+
+
 
 let _newQType='normal'; // 'normal' | 'players'
 
-function toggleNewQType(){
-  _newQType=_newQType==='normal'?'players':'normal';
-  const btn=$('nq-type-btn');
-  const ans=$('nq-answers-section');
-  const pl=$('nq-players-section');
-  if(_newQType==='players'){
-    if(btn){btn.textContent='👥 Gracze';btn.style.borderColor='#38bdf8';btn.style.color='#38bdf8';btn.style.background='#0c4a6e44';}
-    if(ans) ans.style.display='none';
-    if(pl) pl.style.display='block';
+
+
+
+
+
+
+// ══════════════════════════════════════════════
+// ── AUTH ──
+// ══════════════════════════════════════════════
+
+const ADMIN_EMAIL = 'jakub@humienny.com';
+
+let _authMode = 'login';
+
+window._onAuthStateChanged = function(user) {
+  const loggedOut = $('auth-logged-out');
+  const loggedIn  = $('auth-logged-in');
+  const adminBtn  = $('auth-admin-btn');
+  const myqBtn    = $('auth-myq-btn');
+  const emailEl   = $('auth-email');
+  if (!loggedOut || !loggedIn) return;
+  if (user) {
+    loggedOut.style.display = 'none';
+    loggedIn.style.display  = 'flex';
+    if (emailEl) emailEl.textContent = user.email;
+    authCheckRole(user.uid);
   } else {
-    if(btn){btn.textContent='📝 Własne';btn.style.borderColor='var(--rim)';btn.style.color='var(--muted)';btn.style.background='transparent';}
-    if(ans) ans.style.display='block';
-    if(pl) pl.style.display='none';
+    loggedOut.style.display = 'flex';
+    loggedIn.style.display  = 'none';
+    if (adminBtn) adminBtn.style.display = 'none';
+    if (myqBtn)   myqBtn.style.display   = 'none';
+  }
+};
+
+async function authCheckRole(uid) {
+  const adminBtn = $('auth-admin-btn');
+  const myqBtn   = $('auth-myq-btn');
+  try {
+    const user = window._currentUser;
+    const token = user ? await user.getIdToken() : null;
+    const url = DB_URL + '/users/' + uid + '.json' + (token ? '?auth=' + token : '');
+    const r = await fetch(url);
+    const userData = await r.json();
+    const data = userData ? userData.role : null;
+    if (userData === null && user && token) {
+      await fetch(DB_URL + '/users/' + uid + '.json?auth=' + token, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ email: user.email, role: 'user', createdAt: Date.now() })
+      });
+    }
+    const dn = (userData && userData.displayName) || '';
+    if ($('inp-name')) $('inp-name').value = dn;
+    if ($('slots-name-inp') && !$('slots-name-inp').dataset.touched) $('slots-name-inp').value = dn;
+    if (dn) sessionStorage.setItem('ego_name', dn);
+    else sessionStorage.removeItem('ego_name');
+    window._currentUserRole = data;
+    if (data === 'admin' || data === 'moderator') {
+      if (adminBtn) adminBtn.style.display = '';
+      if (myqBtn)   myqBtn.style.display   = 'none';
+    } else {
+      if (adminBtn) adminBtn.style.display = 'none';
+      if (myqBtn)   myqBtn.style.display   = '';
+    }
+  } catch(e) {
+    if (adminBtn) adminBtn.style.display = 'none';
+    if (myqBtn)   myqBtn.style.display   = 'none';
   }
 }
 
-function toggleAddQuestion(){
-  const form=$('qb-add-form');
-  const btn=$('qb-add-btn');
-  if(!form)return;
-  const opening=form.style.display==='none';
-  form.style.display=opening?'flex':'none';
-  if(btn) btn.style.color=opening?'#a78bfa':'var(--muted)';
-  if(opening){
-    _newQType='normal';
-    // Reset type toggle UI
-    const tBtn=$('nq-type-btn');
-    const ans=$('nq-answers-section');
-    const pl=$('nq-players-section');
-    if(tBtn){tBtn.textContent='📝 Własne';tBtn.style.borderColor='var(--rim)';tBtn.style.color='var(--muted)';tBtn.style.background='transparent';}
-    if(ans) ans.style.display='block';
-    if(pl) pl.style.display='none';
-    ['nq-q','nq-qs','nq-a1','nq-a2','nq-a3','nq-as1','nq-as2','nq-as3'].forEach(id=>{ const el=$(id); if(el) el.value=''; });
-    [1,2,3].forEach(j=>{ const el=$('nq-prev'+j); if(el) el.textContent='—'; });
-    setTimeout(()=>{ const q=$('nq-q'); if(q) q.focus(); },50);
+function openAuthModal(mode) {
+  _authMode = mode || 'login';
+  const modal = $('auth-modal');
+  if (!modal) return;
+  $('auth-err').style.display = 'none';
+  $('auth-inp-email').value = '';
+  $('auth-inp-pass').value = '';
+  if ($('auth-inp-name')) $('auth-inp-name').value = '';
+  updateAuthModalLabels();
+  modal.style.display = 'flex';
+  setTimeout(function(){ $('auth-inp-email').focus(); }, 80);
+}
+
+function closeAuthModal() {
+  const modal = $('auth-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function switchAuthMode() {
+  _authMode = _authMode === 'login' ? 'register' : 'login';
+  $('auth-err').style.display = 'none';
+  updateAuthModalLabels();
+}
+
+function updateAuthModalLabels() {
+  const isLogin = _authMode === 'login';
+  $('auth-modal-title').textContent = isLogin ? '\ud83d\udd11 Zaloguj si\u0119' : '\ud83d\udc64 Zarejestruj si\u0119';
+  $('auth-submit-btn').textContent  = isLogin ? 'Zaloguj si\u0119' : 'Zarejestruj si\u0119';
+  $('auth-switch-text').textContent = isLogin ? 'Nie masz konta?' : 'Masz ju\u017c konto?';
+  $('auth-switch-btn').textContent  = isLogin ? 'Zarejestruj si\u0119' : 'Zaloguj si\u0119';
+  const nameInp = $('auth-inp-name');
+  if (nameInp) nameInp.style.display = isLogin ? 'none' : '';
+}
+
+function authShowErr(msg) {
+  const el = $('auth-err');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function authFirebaseErrMsg(code) {
+  const map = {
+    'auth/invalid-email':          'Nieprawid\u0142owy adres email.',
+    'auth/user-not-found':         'Nie znaleziono konta z tym emailem.',
+    'auth/wrong-password':         'B\u0142\u0119dne has\u0142o.',
+    'auth/invalid-credential':     'B\u0142\u0119dne dane logowania.',
+    'auth/email-already-in-use':   'Ten email jest ju\u017c zaj\u0119ty.',
+    'auth/weak-password':          'Has\u0142o musi mie\u0107 co najmniej 6 znak\u00f3w.',
+    'auth/too-many-requests':      'Za du\u017co pr\u00f3b. Spr\u00f3buj za chwil\u0119.',
+    'auth/network-request-failed': 'B\u0142\u0105d sieci. Sprawd\u017a po\u0142\u0105czenie.',
+  };
+  return map[code] || ('B\u0142\u0105d: ' + code);
+}
+
+async function submitAuth() {
+  const email = ($('auth-inp-email').value || '').trim();
+  const pass  = ($('auth-inp-pass').value  || '');
+  if (!email) { authShowErr('Wpisz adres email.'); return; }
+  if (!pass)  { authShowErr('Wpisz has\u0142o.'); return; }
+  const btn = $('auth-submit-btn');
+  btn.disabled = true;
+  btn.textContent = '\u23f3';
+  $('auth-err').style.display = 'none';
+  try {
+    const auth = window._fbAuth;
+    const fns  = window._fbAuthFns;
+    if (!auth || !fns) throw new Error('auth/not-ready');
+    if (_authMode === 'login') {
+      const loginCred = await fns.signInWithEmailAndPassword(auth, email, pass);
+      try {
+        const loginToken = await loginCred.user.getIdToken();
+        const roleR = await fetch(DB_URL + '/users/' + loginCred.user.uid + '/role.json?auth=' + loginToken);
+        const roleData = roleR.ok ? await roleR.json() : null;
+        if (roleData === null) {
+          await fetch(DB_URL + '/users/' + loginCred.user.uid + '.json?auth=' + loginToken, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ email: email, role: 'user', createdAt: Date.now() })
+          });
+        }
+      } catch(e2) {}
+    } else {
+      const displayName = ($('auth-inp-name').value || '').trim();
+      const cred = await fns.createUserWithEmailAndPassword(auth, email, pass);
+      const uid = cred.user.uid;
+      const role = email === ADMIN_EMAIL ? 'admin' : 'user';
+      const regToken = await cred.user.getIdToken();
+      const regR = await fetch(DB_URL + '/users/' + uid + '.json?auth=' + regToken, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ email: email, role: role, createdAt: Date.now(), displayName: displayName })
+      });
+      if (!regR.ok) throw new Error('SET ' + regR.status);
+      if (displayName) {
+        sessionStorage.setItem('ego_name', displayName);
+        if ($('inp-name')) $('inp-name').value = displayName;
+      }
+    }
+    closeAuthModal();
+  } catch(e) {
+    authShowErr(authFirebaseErrMsg(e.code || e.message));
+  } finally {
+    btn.disabled = false;
+    updateAuthModalLabels();
   }
 }
 
-function saveNewQuestion(){
-  const q=($('nq-q')?.value||'').trim();
-  if(!q){ const el=$('nq-q'); if(el){el.style.borderColor='var(--c0)';setTimeout(()=>el.style.borderColor='',1500);} return; }
+async function authSignOut() {
+  const auth = window._fbAuth;
+  const fns  = window._fbAuthFns;
+  sessionStorage.removeItem('ego_name');
+  if ($('inp-name')) $('inp-name').value = '';
+  if (auth && fns) await fns.signOut(auth);
+}
 
-  let entry;
-  if(_newQType==='players'){
-    const qs=($('nq-qs')?.value||'').trim()||q;
-    entry={q,qs,a:[],type:'players'};
+async function fbSet(path, data) {
+  const r = await fetch(DB_URL + '/' + path + '.json', {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) throw new Error('SET ' + r.status);
+  return r.json();
+}
+
+
+// ══════════════════════════════════════════════
+// ── ADMIN PANEL ──
+// ══════════════════════════════════════════════
+
+let _admTab = 'questions';
+
+async function admGetToken() {
+  const user = window._currentUser;
+  if (!user) return null;
+  return await user.getIdToken();
+}
+
+async function admFetch(path) {
+  const token = await admGetToken();
+  const url = DB_URL + '/' + path + '.json' + (token ? '?auth=' + token : '');
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('GET ' + r.status);
+  return r.json();
+}
+
+async function admWrite(path, data, method) {
+  const token = await admGetToken();
+  const url = DB_URL + '/' + path + '.json' + (token ? '?auth=' + token : '');
+  const r = await fetch(url, {
+    method: method || 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  });
+  if (!r.ok) throw new Error((method||'PUT') + ' ' + r.status);
+  return r.json();
+}
+
+async function admDelete(path) {
+  const token = await admGetToken();
+  const url = DB_URL + '/' + path + '.json' + (token ? '?auth=' + token : '');
+  const r = await fetch(url, { method: 'DELETE' });
+  if (!r.ok) throw new Error('DELETE ' + r.status);
+}
+
+function admSetTab(tab) {
+  _admTab = tab;
+  ['questions','pending','reports','users'].forEach(t => {
+    const btn = $('adm-tab-' + t);
+    const pane = $('adm-pane-' + t);
+    if (btn) btn.classList.toggle('adm-tab-active', t === tab);
+    if (pane) pane.style.display = t === tab ? '' : 'none';
+  });
+  if (tab === 'questions') admRenderQuestions();
+  if (tab === 'pending')   admLoadPending();
+  if (tab === 'reports')   admLoadReports();
+  if (tab === 'users')     admLoadUsers();
+}
+
+// ── Show admin panel ──
+function admOpen() {
+  admSetTab('questions');
+  admLoadPendingCount();
+  admLoadReportsCount();
+}
+
+// Admin panel init is hooked directly into show()
+
+// ── TAB: ALL QUESTIONS ──
+function admRenderQuestions() {
+  const search = ($('adm-q-search') ? $('adm-q-search').value : '').toLowerCase();
+  const list = $('adm-q-list');
+  const countEl = $('adm-q-count');
+  if (!list) return;
+
+  const filtered = QS.map((q, i) => ({q, i})).filter(({q}) =>
+    !search || q.q.toLowerCase().includes(search) || (q.a||[]).join(' ').toLowerCase().includes(search)
+  );
+
+  if (countEl) countEl.textContent = filtered.length + ' / ' + QS.length;
+  list.innerHTML = '';
+
+  filtered.forEach(({q, i}) => {
+    const card = document.createElement('div');
+    card.className = 'adm-card';
+    card.id = 'admq-' + i;
+    card.innerHTML = admBuildQCard(q, i, false);
+    list.appendChild(card);
+  });
+}
+
+function admBuildQCard(q, i, editing) {
+  if (editing) {
+    const aRows = (q.a||[]).map((a, ai) =>
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">' +
+        '<input data-ai="' + ai + '" class="adm-a-inp" value="' + escHtml(a) + '" style="background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--text);font-family:inherit" onkeydown="event.stopPropagation()">' +
+        '<input data-ai="' + ai + '" class="adm-as-inp" value="' + escHtml((q.as||[])[ai]||'') + '" style="background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:6px 8px;font-size:12px;color:#a78bfa;font-family:inherit" onkeydown="event.stopPropagation()">' +
+      '</div>'
+    ).join('');
+    return '<div class="adm-card-meta">#' + (i+1) + ' — edycja</div>' +
+      '<div style="font-size:9px;color:#a78bfa;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:2px"><span>Dla innych</span><span>Dla Ciebie</span></div>' +
+      '<textarea id="adm-q-inp-' + i + '" style="width:100%;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:13px;color:var(--text);font-family:inherit;resize:vertical;min-height:52px;box-sizing:border-box" onkeydown="event.stopPropagation()">' + escHtml(q.q) + '</textarea>' +
+      '<textarea id="adm-qs-inp-' + i + '" style="width:100%;background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:8px;font-size:13px;color:#a78bfa;font-family:inherit;resize:vertical;min-height:48px;box-sizing:border-box" onkeydown="event.stopPropagation()">' + escHtml(q.qs||'') + '</textarea>' +
+      '<div id="adm-a-rows-' + i + '">' + aRows + '</div>' +
+      '<div style="display:flex;gap:8px">' +
+        '<button onclick="admSaveQ(' + i + ')" style="flex:1;background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Zapisz ✓</button>' +
+        '<button onclick="admCancelEditQ(' + i + ')" style="flex:1;background:var(--card);color:var(--muted);border:1.5px solid var(--rim);border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Anuluj</button>' +
+      '</div>';
+  }
+
+  const ans = (q.a||[]).map((a,ai) => '<span style="font-size:11px;background:var(--bg);border-radius:6px;padding:3px 8px;color:var(--muted)">' + escHtml(a) + '</span>').join('');
+  return '<div class="adm-card-meta">#' + (i+1) + (q.type==='players'?' · 👥 Gracze':''  ) + '</div>' +
+    '<div class="adm-card-q">' + escHtml(q.q) + '</div>' +
+    (ans ? '<div style="display:flex;flex-wrap:wrap;gap:4px">' + ans + '</div>' : '') +
+    '<div style="display:flex;gap:8px">' +
+      '<button onclick="admEditQ(' + i + ')" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer">✏ Edytuj</button>' +
+      '<button onclick="admDeleteQ(' + i + ')" style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--c0)44;background:transparent;color:var(--c0);font-size:12px;font-weight:600;cursor:pointer">🗑</button>' +
+    '</div>';
+}
+
+function escHtml(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function admEditQ(i) {
+  const card = $('admq-' + i);
+  if (card) card.innerHTML = admBuildQCard(QS[i], i, true);
+}
+
+function admCancelEditQ(i) {
+  const card = $('admq-' + i);
+  if (card) card.innerHTML = admBuildQCard(QS[i], i, false);
+}
+
+function admSaveQ(i) {
+  const qInp = $('adm-q-inp-' + i);
+  const qsInp = $('adm-qs-inp-' + i);
+  const card = $('admq-' + i);
+  if (!qInp || !card) return;
+  const aInps = card.querySelectorAll('.adm-a-inp');
+  const asInps = card.querySelectorAll('.adm-as-inp');
+  QS[i].q = qInp.value.trim();
+  if (qsInp) QS[i].qs = qsInp.value.trim();
+  aInps.forEach((inp, ai) => { if (QS[i].a) QS[i].a[ai] = inp.value.trim(); });
+  asInps.forEach((inp, ai) => { if (QS[i].as) QS[i].as[ai] = inp.value.trim(); });
+  card.innerHTML = admBuildQCard(QS[i], i, false);
+  // Note: edits to built-in QS are in-memory only (no backend for built-in questions)
+}
+
+function admDeleteQ(i) {
+  if (!confirm('Na pewno usunąć pytanie #' + (i+1) + '?')) return;
+  QS.splice(i, 1);
+  admRenderQuestions();
+}
+
+// ── TAB: PENDING USER QUESTIONS ──
+let _pendingData = {};
+
+function admPendSubTab(tab) {
+  const pendingList = $('adm-pending-list');
+  const historyList = $('adm-history-list');
+  const empty       = $('adm-pending-empty');
+  const btnP = $('pend-sub-btn-pending');
+  const btnH = $('pend-sub-btn-history');
+  if (tab === 'history') {
+    if (pendingList) pendingList.style.display = 'none';
+    if (empty)       empty.style.display       = 'none';
+    if (historyList) { historyList.style.display = 'flex'; }
+    if (btnP) { btnP.style.background = 'transparent'; btnP.style.color = 'var(--muted)'; btnP.style.border = '1.5px solid var(--rim)'; }
+    if (btnH) { btnH.style.background = 'var(--text)';  btnH.style.color = 'var(--bg)';   btnH.style.border = 'none'; }
+    admLoadHistory();
   } else {
-    const a=[1,2,3].map(j=>($('nq-a'+j)?.value||'').trim());
-    if(a.some(v=>!v)){
-      [1,2,3].forEach(j=>{ const el=$('nq-a'+j); if(el&&!el.value.trim()){el.style.borderColor='var(--c0)';setTimeout(()=>el.style.borderColor='',1500);} });
+    if (historyList) historyList.style.display = 'none';
+    if (pendingList) pendingList.style.display  = 'flex';
+    if (btnH) { btnH.style.background = 'transparent'; btnH.style.color = 'var(--muted)'; btnH.style.border = '1.5px solid var(--rim)'; }
+    if (btnP) { btnP.style.background = 'var(--text)';  btnP.style.color = 'var(--bg)';   btnP.style.border = 'none'; }
+  }
+}
+
+let _historyData = {};
+let _histCounter = 0;
+
+async function admLoadHistory() {
+  const list = $('adm-history-list');
+  if (!list) return;
+  list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Ładowanie…</div>';
+  _historyData = {}; _histCounter = 0;
+  try {
+    const data = await admFetch('userQuestions');
+    const items = [];
+    if (data) {
+      Object.entries(data).forEach(([uid, qs]) => {
+        Object.entries(qs||{}).forEach(([qid, q]) => {
+          if (q && (q.status === 'approved' || q.status === 'rejected')) items.push({uid, qid, q});
+        });
+      });
+    }
+    items.sort((a, b) => (b.q.resolvedAt||0) - (a.q.resolvedAt||0));
+    list.innerHTML = '';
+    if (items.length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:32px 0">Brak historii</div>';
       return;
     }
-    const qs=($('nq-qs')?.value||'').trim()||q;
-    const as=[1,2,3].map(j=>($('nq-as'+j)?.value||'').trim());
-    entry={q,qs,a,as};
-  }
-
-  QS.push(entry);
-  const idx=QS.length-1;
-  try{
-    const saved=JSON.parse(localStorage.getItem('wiem_qs')||'{}');
-    saved[idx]=entry;
-    localStorage.setItem('wiem_qs',JSON.stringify(saved));
-  }catch(e){}
-  toggleAddQuestion();
-  renderQBrowser();
-  setTimeout(()=>{
-    const card=$('qcard-'+idx);
-    if(card){ card.scrollIntoView({behavior:'smooth',block:'center'}); card.style.borderColor='var(--c2)'; }
-    setTimeout(()=>{ const card=$('qcard-'+idx); if(card) card.style.borderColor=getCardBorder(idx); },2000);
-  },100);
-}
-
-function saveEditQ(idx){
-  const qEl=$('eq-q-'+idx);
-  const newQ=qEl?qEl.value.trim():'';
-  if(!newQ)return;
-  const isPlayers=QS[idx]?.type==='players';
-  const newQs=($('eq-qs-'+idx)?.value||'').trim()||newQ;
-  let newA=[], newAs=[];
-  if(!isPlayers){
-    newA=[0,1,2].map(j=>{ const el=$('eq-a-'+idx+'-'+j); return el?el.value.trim():''; });
-    if(newA.some(a=>!a))return;
-    newAs=[0,1,2].map(j=>{ const el=$('eq-as-'+idx+'-'+j); return el?el.value.trim():''; });
-  }
-  const entry={q:newQ,qs:newQs,a:newA};
-  if(!isPlayers) entry.as=newAs;
-  if(isPlayers) entry.type='players';
-  QS[idx]=entry;
-  try{
-    const saved=JSON.parse(localStorage.getItem('wiem_qs')||'{}');
-    saved[idx]=entry;
-    localStorage.setItem('wiem_qs',JSON.stringify(saved));
-  }catch(e){}
-  const div=$('qcard-'+idx);
-  if(div){
-    div.style.borderColor='var(--c2)';
-    renderQCard(div, idx, _qMarkedView);
-    setTimeout(()=>{if(div)div.style.borderColor=getCardBorder(idx);},1500);
+    items.forEach(({uid, qid, q}) => {
+      const hid = _histCounter++;
+      _historyData[hid] = {uid, qid, q};
+      const card = document.createElement('div');
+      card.className = 'adm-card';
+      card.id = 'hist-' + hid;
+      card.innerHTML = histBuildCard(hid, q);
+      list.appendChild(card);
+    });
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--c0);font-size:13px;text-align:center;padding:16px">Błąd: ' + e.message + '</div>';
   }
 }
 
+function histBuildCard(hid, q) {
+  const approved = q.status === 'approved';
+  const resolvedStr = q.resolvedAt ? new Date(q.resolvedAt).toLocaleString('pl') : '—';
+  return (
+    '<div style="display:flex;align-items:center;gap:10px">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--text)">' + escHtml(q.q||'') + '</div>' +
+        '<div style="font-size:10px;color:var(--muted);margin-top:2px">Od: ' + escHtml(q.authorEmail||'—') + ' · Rozpatrzono: ' + resolvedStr + '</div>' +
+      '</div>' +
+      '<span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;white-space:nowrap;flex-shrink:0;' +
+        (approved ? 'background:#16a34a22;color:#4ade80' : 'background:#ef444422;color:#f87171') + '">' +
+        (approved ? '✓ Zatwierdzone' : '✗ Odrzucone') +
+      '</span>' +
+      '<button id="hist-arrow-' + hid + '" onclick="histToggle(' + hid + ')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;transition:transform .2s">▼</button>' +
+    '</div>' +
+    '<div id="hist-exp-' + hid + '" style="display:none;margin-top:12px;border-top:1px solid var(--rim);padding-top:12px">' +
+      histBuildExpanded(hid, q) +
+    '</div>'
+  );
+}
+
+function histBuildExpanded(hid, q) {
+  const ans = [0,1,2].map(i =>
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">' +
+      '<span style="font-size:12px;background:var(--bg);border-radius:6px;padding:4px 8px;color:var(--muted)">' + escHtml((q.a||[])[i]||'—') + '</span>' +
+      '<span style="font-size:12px;background:#3730a322;border-radius:6px;padding:4px 8px;color:#a78bfa">' + escHtml((q.as||[])[i]||'—') + '</span>' +
+    '</div>'
+  ).join('');
+  return (
+    (q.qs ? '<div style="font-size:11px;color:var(--muted);margin-bottom:3px">Pytanie dla graczy:</div>' +
+      '<div style="font-size:13px;color:var(--text);margin-bottom:10px">' + escHtml(q.qs) + '</div>' : '') +
+    '<div style="font-size:9px;color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px"><span>Dla innych</span><span>Dla Ciebie</span></div>' +
+    ans +
+    '<div style="margin-top:10px">' +
+      '<button onclick="histRestore(' + hid + ')" style="padding:7px 14px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer">↩ Przywróć do puli</button>' +
+    '</div>'
+  );
+}
+
+function histBuildEditForm(hid, q) {
+  const aRows = [0,1,2].map(i =>
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">' +
+      '<input class="hist-a-inp" value="' + escHtml((q.a||[])[i]||'') + '" style="background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--text);font-family:inherit" onkeydown="event.stopPropagation()">' +
+      '<input class="hist-as-inp" value="' + escHtml((q.as||[])[i]||'') + '" style="background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:6px 8px;font-size:12px;color:#a78bfa;font-family:inherit" onkeydown="event.stopPropagation()">' +
+    '</div>'
+  ).join('');
+  return (
+    '<div style="font-size:9px;color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:2px"><span>Pytanie dla graczy</span><span>Pytanie dla Ciebie</span></div>' +
+    '<textarea id="hist-q-inp-' + hid + '" style="width:100%;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:13px;color:var(--text);font-family:inherit;resize:vertical;min-height:52px;box-sizing:border-box" onkeydown="event.stopPropagation()">' + escHtml(q.q||'') + '</textarea>' +
+    '<textarea id="hist-qs-inp-' + hid + '" style="width:100%;background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:8px;font-size:13px;color:#a78bfa;font-family:inherit;resize:vertical;min-height:48px;box-sizing:border-box;margin-top:6px" onkeydown="event.stopPropagation()">' + escHtml(q.qs||'') + '</textarea>' +
+    '<div style="font-size:9px;color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 2px"><span>Odpowiedź dla innych</span><span>Odpowiedź dla Ciebie</span></div>' +
+    '<div id="hist-a-rows-' + hid + '">' + aRows + '</div>' +
+    '<div style="display:flex;gap:8px;margin-top:8px">' +
+      '<button onclick="histAddToPool(' + hid + ')" style="flex:1;background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">+ Dodaj do puli</button>' +
+      '<button onclick="histCancelRestore(' + hid + ')" style="padding:9px 14px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer">Anuluj</button>' +
+    '</div>'
+  );
+}
+
+function histToggle(hid) {
+  const exp = $('hist-exp-' + hid);
+  const arrow = $('hist-arrow-' + hid);
+  if (!exp) return;
+  const isOpen = exp.style.display !== 'none';
+  exp.style.display = isOpen ? 'none' : '';
+  if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+function histRestore(hid) {
+  const d = _historyData[hid];
+  if (!d) return;
+  const exp = $('hist-exp-' + hid);
+  if (exp) exp.innerHTML = histBuildEditForm(hid, d.q);
+}
+
+function histCancelRestore(hid) {
+  const d = _historyData[hid];
+  if (!d) return;
+  const exp = $('hist-exp-' + hid);
+  if (exp) exp.innerHTML = histBuildExpanded(hid, d.q);
+}
+
+function histAddToPool(hid) {
+  const d = _historyData[hid];
+  if (!d) return;
+  const card = $('hist-' + hid);
+  const newQ  = ($('hist-q-inp-'  + hid)?.value || '').trim() || d.q.q;
+  const newQs = ($('hist-qs-inp-' + hid)?.value || '').trim();
+  const aInps  = card ? [...card.querySelectorAll('.hist-a-inp')]  : [];
+  const asInps = card ? [...card.querySelectorAll('.hist-as-inp')] : [];
+  const newA  = aInps.map(inp => inp.value.trim()).filter(Boolean);
+  const newAs = asInps.map(inp => inp.value.trim());
+  QS.push({q: newQ, qs: newQs, a: newA, as: newAs, type: d.q.type || 'custom'});
+  const exp = $('hist-exp-' + hid);
+  if (exp) exp.innerHTML = '<div style="text-align:center;color:#4ade80;font-size:13px;padding:8px 0">✓ Dodano do puli pytań</div>';
+  setTimeout(() => {
+    if (exp) exp.style.display = 'none';
+    const arrow = $('hist-arrow-' + hid);
+    if (arrow) arrow.style.transform = '';
+  }, 1500);
+}
+
+async function admLoadPending() {
+  const list = $('adm-pending-list');
+  const empty = $('adm-pending-empty');
+  if (!list) return;
+  list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Ładowanie…</div>';
+  _pendingData = {};
+
+  try {
+    const data = await admFetch('userQuestions');
+    const items = [];
+    if (data) {
+      Object.entries(data).forEach(([uid, qs]) => {
+        Object.entries(qs||{}).forEach(([qid, q]) => {
+          if (q && q.status === 'pending') {
+            items.push({uid, qid, q});
+            _pendingData[qid] = {uid, q};
+          }
+        });
+      });
+    }
+    items.sort((a, b) => (b.q.createdAt||0) - (a.q.createdAt||0));
+
+    list.innerHTML = '';
+    if (items.length === 0) { if (empty) empty.style.display = ''; return; }
+    if (empty) empty.style.display = 'none';
+
+    items.forEach(({uid, qid, q}) => {
+      const card = document.createElement('div');
+      card.className = 'adm-card';
+      card.id = 'pend-' + qid;
+      card.innerHTML = admBuildPendCard(qid, q, false);
+      list.appendChild(card);
+    });
+    admLoadPendingCount();
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--c0);font-size:13px;text-align:center;padding:16px">Błąd: ' + e.message + '</div>';
+  }
+}
+
+function admBuildPendCard(qid, q, editing) {
+  const createdStr = q.createdAt ? new Date(q.createdAt).toLocaleString('pl') : '—';
+  const meta = '<div class="adm-card-meta">Od: ' + escHtml(q.authorEmail||'') + ' · Wysłano: ' + createdStr + '</div>';
+
+  if (editing) {
+    const aRows = [0,1,2].map(i =>
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">' +
+        '<input class="pend-a-inp" data-i="' + i + '" value="' + escHtml((q.a||[])[i]||'') + '" style="background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--text);font-family:inherit;box-sizing:border-box;width:100%" onkeydown="event.stopPropagation()">' +
+        '<input class="pend-as-inp" data-i="' + i + '" value="' + escHtml((q.as||[])[i]||'') + '" style="background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:6px 8px;font-size:12px;color:#a78bfa;font-family:inherit;box-sizing:border-box;width:100%" onkeydown="event.stopPropagation()">' +
+      '</div>'
+    ).join('');
+    return meta +
+      '<div style="font-size:9px;color:#a78bfa;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:2px"><span>Dla innych</span><span>Dla Ciebie</span></div>' +
+      '<textarea id="pend-q-' + qid + '" style="width:100%;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:13px;color:var(--text);font-family:inherit;resize:vertical;min-height:52px;box-sizing:border-box" onkeydown="event.stopPropagation()">' + escHtml(q.q) + '</textarea>' +
+      '<textarea id="pend-qs-' + qid + '" style="width:100%;background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:8px;font-size:13px;color:#a78bfa;font-family:inherit;resize:vertical;min-height:48px;box-sizing:border-box" onkeydown="event.stopPropagation()">' + escHtml(q.qs||'') + '</textarea>' +
+      '<div id="pend-arows-' + qid + '">' + aRows + '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button onclick="admActPending(\'' + qid + '\',\'approve\')" style="flex:1;min-width:110px;padding:9px;border-radius:8px;border:none;background:#16a34a;color:#fff;font-size:12px;font-weight:700;cursor:pointer">✓ Zatwierdź</button>' +
+        '<button onclick="admActPending(\'' + qid + '\',\'reject\')" style="flex:1;min-width:90px;padding:9px;border-radius:8px;border:1.5px solid var(--c0)44;background:transparent;color:var(--c0);font-size:12px;font-weight:700;cursor:pointer">✗ Odrzuć</button>' +
+        '<button onclick="admCancelPendEdit(\'' + qid + '\')" style="padding:9px 14px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer">Anuluj</button>' +
+      '</div>';
+  }
+
+  const ans = (q.a||[]).map(a => '<span style="font-size:11px;background:var(--bg);border-radius:6px;padding:3px 8px;color:var(--muted)">' + escHtml(a) + '</span>').join('');
+  return meta +
+    '<div class="adm-card-q">' + escHtml(q.q) + '</div>' +
+    (ans ? '<div style="display:flex;flex-wrap:wrap;gap:4px">' + ans + '</div>' : '') +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button onclick="admEditPendCard(\'' + qid + '\')" style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer">✏ Edytuj</button>' +
+      '<button onclick="admActPending(\'' + qid + '\',\'approve\')" style="flex:1;padding:9px;border-radius:8px;border:none;background:#16a34a;color:#fff;font-size:12px;font-weight:700;cursor:pointer">✓ Zatwierdź</button>' +
+      '<button onclick="admActPending(\'' + qid + '\',\'reject\')" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--c0)44;background:transparent;color:var(--c0);font-size:12px;font-weight:700;cursor:pointer">✗ Odrzuć</button>' +
+    '</div>';
+}
+
+function admEditPendCard(qid) {
+  const d = _pendingData[qid];
+  if (!d) return;
+  const card = $('pend-' + qid);
+  if (card) card.innerHTML = admBuildPendCard(qid, d.q, true);
+}
+
+function admCancelPendEdit(qid) {
+  const d = _pendingData[qid];
+  if (!d) return;
+  const card = $('pend-' + qid);
+  if (card) card.innerHTML = admBuildPendCard(qid, d.q, false);
+}
+
+async function admActPending(qid, action) {
+  const d = _pendingData[qid];
+  if (!d) return;
+  const {uid, q} = d;
+
+  const card = $('pend-' + qid);
+  const isEditing = card && !!$('pend-q-' + qid);
+  let updatedQ = q.q, updatedQs = q.qs||'';
+  let updatedA = [...(q.a||[])], updatedAs = [...(q.as||[])];
+
+  if (isEditing) {
+    updatedQ  = ($('pend-q-'  + qid)?.value||'').trim() || updatedQ;
+    updatedQs = ($('pend-qs-' + qid)?.value||'').trim();
+    card.querySelectorAll('.pend-a-inp').forEach((inp,i)  => { updatedA[i]  = inp.value.trim(); });
+    card.querySelectorAll('.pend-as-inp').forEach((inp,i) => { updatedAs[i] = inp.value.trim(); });
+  }
+
+  try {
+    const resolvedAt = Date.now();
+    await admWrite('userQuestions/' + uid + '/' + qid, {
+      ...q, q: updatedQ, qs: updatedQs, a: updatedA, as: updatedAs,
+      status: action === 'approve' ? 'approved' : 'rejected',
+      resolvedAt
+    });
+    if (action === 'approve') {
+      QS.push({q: updatedQ, qs: updatedQs, a: updatedA, as: updatedAs, type: q.type||'custom'});
+    }
+    if (card) card.remove();
+    delete _pendingData[qid];
+    admLoadPendingCount();
+  } catch(e) { alert('Błąd: ' + e.message); }
+}
+
+async function admLoadPendingCount() {
+  try {
+    const data = await admFetch('userQuestions');
+    let n = 0;
+    if (data) Object.values(data).forEach(qs => Object.values(qs||{}).forEach(q => { if (q && q.status === 'pending') n++; }));
+    const el = $('adm-pending-count');
+    if (el) { el.textContent = n; el.style.display = n > 0 ? 'inline' : 'none'; }
+  } catch(e) {}
+}
+
+// ── TAB: REPORTS ──
+async function reportQuestion(btn) {
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = '⏳';
+  try {
+    const qIdx  = GS ? GS.ri : 0;
+    const qText = (GS && GS.qSeq) ? (QS[GS.qSeq[qIdx]]?.q || '') : '';
+    const reporterName = (GS && mySlot !== null) ? (GS.players[mySlot]?.name || 'Gracz') : 'Gracz';
+    await fetch(DB_URL + '/reports.json', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ qText, qIdx, gameId, reporterName, reportedAt: Date.now(), resolved: false })
+    });
+    btn.textContent = '✓ Zgłoszono';
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
+}
+
+function resetReportBtns() {
+  ['btn-report-v', 'btn-report-sj'].forEach(id => {
+    const btn = $(id);
+    if (btn) { btn.disabled = false; btn.textContent = '⚑ Zgłoś błąd w pytaniu/odpowiedzi'; }
+  });
+}
+
+async function admLoadReports() {
+  const list = $('adm-reports-list');
+  const empty = $('adm-reports-empty');
+  if (!list) return;
+  list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Ładowanie…</div>';
+
+  try {
+    const data = await admFetch('reports');
+    const items = [];
+    if (data) Object.entries(data).forEach(([rid, r]) => { if (r && !r.resolved) items.push({rid, r}); });
+
+    list.innerHTML = '';
+    if (items.length === 0) { if (empty) empty.style.display = ''; return; }
+    if (empty) empty.style.display = 'none';
+
+    items.forEach(({rid, r}) => {
+      const card = document.createElement('div');
+      card.className = 'adm-card';
+      card.id = 'rep-' + rid;
+      card.innerHTML =
+        '<div class="adm-card-meta">Pytanie #' + ((r.qIdx||0)+1) + ' · ' + new Date(r.reportedAt||0).toLocaleDateString('pl') + '</div>' +
+        '<div class="adm-card-q">' + escHtml(r.qText||'(brak treści)') + '</div>' +
+        (r.message ? '<div style="font-size:12px;color:var(--muted);font-style:italic">"' + escHtml(r.message) + '"</div>' : '') +
+        '<button onclick="admResolveReport(\'' + rid + '\')" style="padding:9px;border-radius:8px;border:none;background:var(--text);color:var(--bg);font-size:12px;font-weight:700;cursor:pointer">✓ Oznacz jako rozwiązane</button>';
+      list.appendChild(card);
+    });
+    admLoadReportsCount();
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--c0);font-size:13px;text-align:center;padding:16px">Błąd: ' + e.message + '</div>';
+  }
+}
+
+async function admResolveReport(rid) {
+  try {
+    await admWrite('reports/' + rid + '/resolved', true);
+    const card = $('rep-' + rid);
+    if (card) card.remove();
+    admLoadReportsCount();
+  } catch(e) { alert('Błąd: ' + e.message); }
+}
+
+async function admLoadReportsCount() {
+  try {
+    const data = await admFetch('reports');
+    let n = 0;
+    if (data) Object.values(data).forEach(r => { if (r && !r.resolved) n++; });
+    const el = $('adm-reports-count');
+    if (el) { el.textContent = n; el.style.display = n > 0 ? 'inline' : 'none'; }
+  } catch(e) {}
+}
+
+// ── TAB: USERS ──
+async function admLoadUsers() {
+  const list = $('adm-users-list');
+  if (!list) return;
+  list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Ładowanie…</div>';
+
+  try {
+    const data = await admFetch('users');
+    list.innerHTML = '';
+    if (!data || Object.keys(data).length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Brak użytkowników</div>';
+      return;
+    }
+    Object.entries(data).forEach(([uid, u]) => {
+      const card = document.createElement('div');
+      card.className = 'adm-card';
+      card.id = 'usr-' + uid;
+      const isAdmin = u.role === 'admin';
+      const isMod   = u.role === 'moderator';
+      const isSelf  = window._currentUser && window._currentUser.uid === uid;
+      const curIsAdmin = window._currentUserRole === 'admin';
+      const roleLabel = isAdmin ? '⚙ Admin' : isMod ? '🛡 Moderator' : '👤 Użytkownik';
+      card.innerHTML =
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<div style="flex:1">' +
+            '<div style="font-size:13px;font-weight:600;color:var(--text)">' + escHtml(u.email||uid) + (isSelf ? ' <span style="font-size:10px;color:#a78bfa">(ty)</span>' : '') + '</div>' +
+            '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + roleLabel + ' · ' + new Date(u.createdAt||0).toLocaleDateString('pl') + '</div>' +
+          '</div>' +
+          (!isSelf && curIsAdmin && !isAdmin ? '<button onclick="admToggleRole(\'' + uid + '\',\'' + (isMod?'user':'moderator') + '\')" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer">' + (isMod ? '→ User' : '→ Mod') + '</button>' : '') +
+          (!isSelf && !isAdmin ? '<button onclick="admDeleteUser(\'' + uid + '\')" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--c0)44;background:transparent;color:var(--c0);font-size:11px;font-weight:600;cursor:pointer">🗑</button>' : '') +
+        '</div>';
+      list.appendChild(card);
+    });
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--c0);font-size:13px;text-align:center;padding:16px">Błąd: ' + e.message + '</div>';
+  }
+}
+
+async function admToggleRole(uid, newRole) {
+  try {
+    await admWrite('users/' + uid + '/role', newRole);
+    admLoadUsers();
+  } catch(e) { alert('Błąd: ' + e.message); }
+}
+
+async function admDeleteUser(uid) {
+  if (!confirm('Usunąć tego użytkownika z bazy?')) return;
+  try {
+    await admDelete('users/' + uid);
+    admLoadUsers();
+  } catch(e) { alert('Błąd: ' + e.message); }
+}
+
+// ══════════════════════════════════════════════
+// ── MOJE PYTANIA ──
+// ══════════════════════════════════════════════
+
+function myqOpen() {
+  myqLoadList();
+}
+
+let _myqData = {};
+
+async function myqLoadList() {
+  const user = window._currentUser;
+  if (!user) return;
+  const list = $('myq-list');
+  if (!list) return;
+  list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Ładowanie…</div>';
+  _myqData = {};
+
+  try {
+    const token = await user.getIdToken();
+    const r = await fetch(DB_URL + '/userQuestions/' + user.uid + '.json?auth=' + token);
+    const data = await r.json();
+
+    list.innerHTML = '';
+    if (!data || Object.keys(data).length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:32px 0">Nie wysłałeś/aś jeszcze żadnych pytań 📭</div>';
+      return;
+    }
+
+    Object.entries(data)
+      .sort((a, b) => (b[1].createdAt||0) - (a[1].createdAt||0))
+      .forEach(([qid, q]) => {
+        _myqData[qid] = q;
+        const card = document.createElement('div');
+        card.className = 'adm-card';
+        card.id = 'myqcard-' + qid;
+        card.innerHTML = myqBuildView(qid, q);
+        list.appendChild(card);
+      });
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--c0);font-size:13px;text-align:center;padding:16px">Błąd: ' + escHtml(e.message) + '</div>';
+  }
+}
+
+function myqBuildView(qid, q) {
+  const statusMap = {
+    pending:  {label:'⏳ Oczekuje',    bg:'#78350f22', color:'#fbbf24', border:'#f59e0b55'},
+    approved: {label:'✅ Zatwierdzone', bg:'#052e1622', color:'#4ade80', border:'#16a34a55'},
+    rejected: {label:'✗ Odrzucone',    bg:'#450a0a22', color:'#f87171', border:'#dc262655'}
+  };
+  const s = statusMap[q.status] || statusMap.pending;
+  const createdStr  = q.createdAt  ? new Date(q.createdAt).toLocaleString('pl')  : '—';
+  const resolvedStr = q.resolvedAt ? new Date(q.resolvedAt).toLocaleString('pl') : null;
+  const ans = (q.a||[]).map(a => '<span style="font-size:11px;background:var(--bg);border-radius:6px;padding:3px 8px;color:var(--muted)">' + escHtml(a) + '</span>').join('');
+  return (
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">' +
+      '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:' + s.bg + ';color:' + s.color + ';border:1.5px solid ' + s.border + '">' + s.label + '</span>' +
+      '<span style="font-size:10px;color:var(--muted);margin-left:auto">Wysłano: ' + createdStr + '</span>' +
+    '</div>' +
+    '<div class="adm-card-q">' + escHtml(q.q) + '</div>' +
+    (ans ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">' + ans + '</div>' : '') +
+    (resolvedStr ? '<div style="font-size:11px;color:var(--muted);margin-top:6px">' + (q.status === 'approved' ? '✅ Zatwierdzone' : '✗ Odrzucone') + ': ' + resolvedStr + '</div>' : '') +
+    (q.status === 'pending' ?
+      '<button onclick="myqEditCard(\'' + qid + '\')" style="margin-top:10px;padding:7px 14px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer">✏ Edytuj</button>'
+      : '')
+  );
+}
+
+function myqEditCard(qid) {
+  const q = _myqData[qid];
+  if (!q) return;
+  const card = $('myqcard-' + qid);
+  if (!card) return;
+  const aRows = [0,1,2].map(i =>
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">' +
+      '<input class="myq-edit-a" value="' + escHtml((q.a||[])[i]||'') + '" placeholder="Odpowiedź ' + (i+1) + ' — dla innych" style="background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--text);font-family:inherit;box-sizing:border-box;width:100%" onkeydown="event.stopPropagation()">' +
+      '<input class="myq-edit-as" value="' + escHtml((q.as||[])[i]||'') + '" placeholder="Odpowiedź ' + (i+1) + ' — dla Ciebie" style="background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:6px 8px;font-size:12px;color:#a78bfa;font-family:inherit;box-sizing:border-box;width:100%" onkeydown="event.stopPropagation()">' +
+    '</div>'
+  ).join('');
+  card.innerHTML =
+    '<div style="font-size:9px;color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:2px"><span>Dla innych — pamiętaj o [imię]</span><span>Dla Ciebie</span></div>' +
+    '<textarea id="myq-edit-q-' + qid + '" style="width:100%;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px;font-size:13px;color:var(--text);font-family:inherit;resize:vertical;min-height:52px;box-sizing:border-box" onkeydown="event.stopPropagation()">' + escHtml(q.q||'') + '</textarea>' +
+    '<textarea id="myq-edit-qs-' + qid + '" style="width:100%;background:#3730a322;border:1.5px solid #a78bfa55;border-radius:8px;padding:8px;font-size:13px;color:#a78bfa;font-family:inherit;resize:vertical;min-height:48px;box-sizing:border-box;margin-top:6px" onkeydown="event.stopPropagation()">' + escHtml(q.qs||'') + '</textarea>' +
+    '<div style="font-size:9px;color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 2px"><span>Odpowiedź dla innych</span><span>Odpowiedź dla Ciebie</span></div>' +
+    aRows +
+    '<div style="display:flex;gap:8px;margin-top:8px">' +
+      '<button onclick="myqSaveEdit(\'' + qid + '\')" style="flex:1;background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">Zapisz</button>' +
+      '<button onclick="myqCancelEdit(\'' + qid + '\')" style="padding:9px 14px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer">Anuluj</button>' +
+    '</div>';
+}
+
+function myqCancelEdit(qid) {
+  const q = _myqData[qid];
+  const card = $('myqcard-' + qid);
+  if (card && q) card.innerHTML = myqBuildView(qid, q);
+}
+
+async function myqSaveEdit(qid) {
+  const user = window._currentUser;
+  if (!user) return;
+  const card = $('myqcard-' + qid);
+  const newQ  = ($('myq-edit-q-'  + qid)?.value || '').trim();
+  const newQs = ($('myq-edit-qs-' + qid)?.value || '').trim();
+  const aInps  = card ? [...card.querySelectorAll('.myq-edit-a')]  : [];
+  const asInps = card ? [...card.querySelectorAll('.myq-edit-as')] : [];
+  const newA  = aInps.map(inp => inp.value.trim());
+  const newAs = asInps.map(inp => inp.value.trim());
+
+  if (!newQ)            { alert('Wpisz treść pytania dla innych.');  return; }
+  if (!newQs)           { alert('Wpisz treść pytania dla Ciebie.'); return; }
+  if (newA.some(x=>!x)) { alert('Wypełnij wszystkie 3 odpowiedzi dla innych.'); return; }
+  if (newAs.some(x=>!x)){ alert('Wypełnij wszystkie 3 odpowiedzi dla Ciebie.'); return; }
+
+  try {
+    const token = await user.getIdToken();
+    const updated = {..._myqData[qid], q: newQ, qs: newQs, a: newA, as: newAs};
+    const r = await fetch(DB_URL + '/userQuestions/' + user.uid + '/' + qid + '.json?auth=' + token, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(updated)
+    });
+    if (!r.ok) throw new Error('PUT ' + r.status);
+    _myqData[qid] = updated;
+    if (card) card.innerHTML = myqBuildView(qid, updated);
+  } catch(e) {
+    alert('Błąd: ' + e.message);
+  }
+}
+
+async function submitMyQuestion() {
+  const user = window._currentUser;
+  if (!user) { alert('Musisz być zalogowany!'); return; }
+
+  const q  = ($('myq-q')  ? $('myq-q').value  : '').trim();
+  const qs = ($('myq-qs') ? $('myq-qs').value : '').trim();
+  const a  = [0,1,2].map(i => ($('myq-a' +i) ? $('myq-a' +i).value : '').trim());
+  const as = [0,1,2].map(i => ($('myq-as'+i) ? $('myq-as'+i).value : '').trim());
+  const errEl = $('myq-err');
+
+  if (!q)             { errEl.textContent='Wpisz treść pytania dla innych.';          errEl.style.display='block'; return; }
+  if (!qs)            { errEl.textContent='Wpisz treść pytania dla Ciebie.';           errEl.style.display='block'; return; }
+  if (a.some(x=>!x)) { errEl.textContent='Wypełnij wszystkie 3 odpowiedzi dla innych.'; errEl.style.display='block'; return; }
+  if (as.some(x=>!x)){ errEl.textContent='Wypełnij wszystkie 3 odpowiedzi dla Ciebie.'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+
+  const btn = $('myq-submit');
+  btn.disabled = true; btn.textContent = '⏳ Wysyłanie…';
+
+  try {
+    const token = await user.getIdToken();
+    const r = await fetch(DB_URL + '/userQuestions/' + user.uid + '.json?auth=' + token, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({q, qs, a, as, status:'pending', authorEmail: user.email, createdAt: Date.now()})
+    });
+    if (!r.ok) throw new Error('POST ' + r.status);
+
+    ['myq-q','myq-qs'].forEach(id => { if($(id)) $(id).value=''; });
+    [0,1,2].forEach(i => {
+      if($('myq-a' +i)) $('myq-a' +i).value='';
+      if($('myq-as'+i)) $('myq-as'+i).value='';
+    });
+
+    btn.textContent = '✓ Wysłano!';
+    setTimeout(() => { if(btn){ btn.textContent='Wyślij pytanie →'; btn.disabled=false; } }, 2000);
+    myqLoadList();
+  } catch(e) {
+    errEl.textContent = 'Błąd: ' + e.message; errEl.style.display='block';
+    btn.disabled=false; btn.textContent='Wyślij pytanie →';
+  }
+}
 </script>
 <!-- ══ ADMIN PASSWORD MODAL ══ -->
-<div id="admin-modal" style="display:none;position:fixed;inset:0;background:#000a;z-index:9999;align-items:center;justify-content:center">
-  <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:16px;padding:24px;width:min(320px,90vw);display:flex;flex-direction:column;gap:14px">
-    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-align:center">🔒 Panel administratora</div>
-    <input id="admin-pw-inp" type="password" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" placeholder="Hasło" autocomplete="off"
-      style="background:var(--bg);border:1.5px solid var(--rim);border-radius:10px;padding:12px;font-size:16px;color:var(--text);font-family:inherit;text-align:center;letter-spacing:3px"
-      onkeydown="event.stopPropagation();if(event.key==='Enter')submitAdminPw()">
-    <div id="admin-pw-err" style="display:none;color:var(--c0);font-size:12px;text-align:center">❌ Błędne hasło</div>
-    <div style="display:flex;gap:8px">
-      <button onclick="closeAdminModal()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--rim);background:var(--card);color:var(--muted);font-size:13px;font-weight:700;cursor:pointer">Anuluj</button>
-      <button onclick="submitAdminPw()" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--text);color:var(--bg);font-size:13px;font-weight:700;cursor:pointer">Wejdź →</button>
-    </div>
-  </div>
-</div>
 
-<!-- ══ CATEGORY MANAGER MODAL ══ -->
-<div id="cat-modal" style="display:none;position:fixed;inset:0;background:#000a;z-index:9999;align-items:center;justify-content:center">
-  <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:16px;padding:20px;width:min(340px,92vw);display:flex;flex-direction:column;gap:12px;max-height:80vh;overflow-y:auto">
+<!-- ══ AUTH MODAL ══ -->
+<div id="settings-modal" style="display:none;position:fixed;inset:0;background:#000b;z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:16px;padding:24px;width:min(320px,92vw);display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;align-items:center;gap:8px">
-      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);flex:1">🏷 Zarządzaj kategoriami</div>
-      <button onclick="closeCatManager()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0;line-height:1">×</button>
+      <div style="font-size:13px;font-weight:700;flex:1">✏️ Zmień imię</div>
+      <button onclick="closeSettings()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">×</button>
     </div>
-    <div id="cat-list-mgr" style="display:flex;flex-direction:column;gap:6px"></div>
-    <div style="display:flex;gap:6px">
-      <input id="cat-new-inp" type="text" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" placeholder="Nowa kategoria…" maxlength="24"
-        style="flex:1;background:var(--bg);border:1.5px solid var(--rim);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text);font-family:inherit"
-        onkeydown="event.stopPropagation();if(event.key==='Enter')addCategory()">
-      <button onclick="addCategory()" style="padding:8px 14px;border-radius:8px;border:none;background:var(--text);color:var(--bg);font-size:13px;font-weight:700;cursor:pointer">+</button>
-    </div>
+    <input id="settings-inp-name" type="text" autocomplete="off" placeholder="Twoje imię" maxlength="14"
+      style="background:var(--bg);border:1.5px solid var(--rim);border-radius:10px;padding:11px 13px;font-size:14px;color:var(--text);font-family:inherit;width:100%;box-sizing:border-box"
+      onkeydown="event.stopPropagation();if(event.key==='Enter')saveSettings()">
+    <button id="settings-save-btn" onclick="saveSettings()" style="background:var(--text);color:var(--bg);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">Zapisz</button>
   </div>
 </div>
 
+<div id="dupname-modal" style="display:none;position:fixed;inset:0;background:#000b;z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:16px;padding:24px;width:min(320px,92vw);display:flex;flex-direction:column;gap:14px">
+    <div style="font-size:13px;font-weight:700">To imię jest już zajęte w tej grze</div>
+    <div style="font-size:12px;color:var(--muted)">Gracz na wcześniejszym slocie używa tego imienia. Wpisz inne.</div>
+    <input id="dupname-inp" type="text" autocomplete="off" placeholder="Nowe imię" maxlength="14"
+      style="background:var(--bg);border:1.5px solid var(--rim);border-radius:10px;padding:11px 13px;font-size:14px;color:var(--text);font-family:inherit;width:100%;box-sizing:border-box"
+      onkeydown="event.stopPropagation();if(event.key==='Enter')confirmDupName()">
+    <div id="dupname-err" style="display:none;color:var(--c0);font-size:12px;text-align:center">To imię też jest zajęte. Wpisz inne.</div>
+    <button onclick="confirmDupName()" style="background:var(--text);color:var(--bg);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer">Potwierdź</button>
+  </div>
+</div>
+
+<div id="auth-modal" style="display:none;position:fixed;inset:0;background:#000b;z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:16px;padding:24px;width:min(340px,92vw);display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div id="auth-modal-title" style="font-size:13px;font-weight:700;flex:1"></div>
+      <button onclick="closeAuthModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">×</button>
+    </div>
+    <input id="auth-inp-email" type="email" autocomplete="email" placeholder="Email"
+      style="background:var(--bg);border:1.5px solid var(--rim);border-radius:10px;padding:11px 13px;font-size:14px;color:var(--text);font-family:inherit;width:100%;box-sizing:border-box"
+      onkeydown="event.stopPropagation();if(event.key==='Enter')$('auth-inp-pass').focus()">
+    <input id="auth-inp-pass" type="password" autocomplete="current-password" placeholder="Hasło (min. 6 znaków)"
+      style="background:var(--bg);border:1.5px solid var(--rim);border-radius:10px;padding:11px 13px;font-size:14px;color:var(--text);font-family:inherit;width:100%;box-sizing:border-box"
+      onkeydown="event.stopPropagation();if(event.key==='Enter' && _authMode==='login')submitAuth();else if(event.key==='Enter')$('auth-inp-name').focus()">
+    <input id="auth-inp-name" type="text" autocomplete="off" placeholder="Twoje imię (widoczne w grze)" maxlength="14"
+      style="display:none;background:var(--bg);border:1.5px solid var(--rim);border-radius:10px;padding:11px 13px;font-size:14px;color:var(--text);font-family:inherit;width:100%;box-sizing:border-box"
+      onkeydown="event.stopPropagation();if(event.key==='Enter')submitAuth()">
+    <div id="auth-err" style="display:none;color:var(--c0);font-size:12px;text-align:center"></div>
+    <button id="auth-submit-btn" onclick="submitAuth()" style="background:var(--text);color:var(--bg);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer"></button>
+    <div style="text-align:center;font-size:12px;color:var(--muted)">
+      <span id="auth-switch-text"></span>
+      <button id="auth-switch-btn" onclick="switchAuthMode()" style="background:none;border:none;color:var(--text);font-size:12px;font-weight:700;cursor:pointer;padding:0;margin-left:4px"></button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
