@@ -25,10 +25,11 @@
 html,body{height:100%;}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;display:flex;justify-content:center;min-height:100dvh;}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--rim) 1px,transparent 1px),linear-gradient(90deg,var(--rim) 1px,transparent 1px);background-size:32px 32px;opacity:.18;pointer-events:none;z-index:0;}
-.app{position:relative;z-index:1;width:100%;max-width:440px;min-height:100dvh;display:flex;flex-direction:column;}
-.scr{display:none;flex-direction:column;flex:1;padding:20px 16px max(32px,calc(env(safe-area-inset-bottom) + 24px));gap:16px;animation:pop .28s ease;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.app{position:relative;z-index:1;width:100%;max-width:440px;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+.scr{display:none;flex-direction:column;flex:1;min-height:0;padding:20px 16px max(32px,calc(env(safe-area-inset-bottom) + 24px));gap:16px;animation:pop .28s ease;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .scr.on{display:flex;}
 @keyframes pop{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .logo{font-family:'Syne',sans-serif;font-size:62px;font-weight:800;letter-spacing:-1px;line-height:1;}
 .logo em{color:var(--c0);font-style:normal;}
 .sub{color:var(--muted);font-size:13px;}
@@ -59,18 +60,27 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .sb-you{background:var(--text);color:var(--bg);}
 .sb-free{background:var(--rim);color:var(--muted);}
 
-.codebox{background:var(--card);border:1.5px solid var(--rim);border-radius:var(--rad);padding:20px;text-align:center;}
-.codelbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
-.codelink{font-size:13px;color:var(--c1);word-break:break-all;line-height:1.5;cursor:pointer;}
-.codesub{font-size:11px;color:var(--muted);margin-top:8px;}
+.codebox{background:var(--card);border:1.5px solid var(--rim);border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;grid-template-areas:'label code' 'hint code';align-items:center;column-gap:14px;row-gap:2px;text-align:left;position:relative;cursor:pointer;transition:background .18s ease,border-color .18s ease,box-shadow .18s ease;}
+.codebox.copied{background:#052e16;border-color:#22c55e;box-shadow:0 0 0 3px #22c55e22;}
+.codelbl{grid-area:label;font-size:9px;letter-spacing:1.7px;text-transform:uppercase;color:var(--muted);margin:0;line-height:1.1;}
+.codelink{grid-area:code;font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--c1);line-height:.95;white-space:nowrap;align-self:center;}
+.codesub{grid-area:hint;display:block;font-size:11px;color:var(--muted);line-height:1.2;}
+.copy-note{grid-area:hint;font-size:11px;font-weight:800;color:#86efac;line-height:1.2;opacity:0;transform:translateY(-2px);pointer-events:none;transition:opacity .15s ease,transform .15s ease;}
+.copy-note.show{opacity:1;transform:translateY(0);}
+.codebox.copied .codesub{display:none;}
+.lob-actions{display:flex;gap:8px;align-items:stretch;min-height:50px;}
+.lob-actions .btn{min-width:0;min-height:50px;transform:none!important;}
+.lob-start-note{flex:1;min-height:50px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:10px 12px;font-size:12px;font-weight:800;color:var(--muted);line-height:1.25;}
 .sbar{display:flex;gap:4px;background:var(--card);border-radius:10px;padding:8px 10px;}
 .sbi{flex:1;text-align:center;}
 .sbi-n{font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .sbi-v{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;}
 .plist{display:flex;flex-direction:column;gap:8px;}
-.prow{background:var(--card);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:15px;font-weight:500;}
+.prow{background:var(--card);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;font-size:15px;font-weight:500;position:relative;min-height:54px;box-sizing:border-box;}
+.kick-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);opacity:0;pointer-events:none;transition:opacity .15s;}
+.prow:hover .kick-btn{opacity:1;pointer-events:auto;}
 .prow-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.ptag{margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;}
+.ptag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;}
 .tag-host{background:var(--text);color:var(--bg);}
 .tag-you{background:var(--rim);color:var(--muted);}
 .rrow-cfg{background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;}
@@ -94,7 +104,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .abtn.correct .anum{background:var(--c2);color:var(--bg);}
 .voter-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
 .vchip{font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;}
-.wmid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:20px 0;}
+.wmid{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding:20px 0 8px;}
 .wav{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;margin:0 auto;}
 .wtitle{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:1px;}
 .wdesc{font-size:14px;color:var(--muted);line-height:1.6;max-width:260px;}
@@ -133,6 +143,23 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .mode-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px;border-radius:12px;border:1.5px solid var(--rim);background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s;}
 .mode-btn:active{transform:scale(.97);}
 .mode-btn-active{border-color:#7F77DD;background:#1e1b4b;color:var(--text);}
+.onb-card{background:linear-gradient(135deg,#1e1b4b55,#161621);border:1.5px solid #818cf855;border-radius:var(--rad);padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 10px 30px #0002;}
+.onb-head{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;}
+.onb-toggle{width:30px;height:30px;border:1.5px solid #818cf855;border-radius:50%;background:#818cf814;display:flex;align-items:center;justify-content:center;color:#a5b4fc;flex-shrink:0;transition:transform .18s ease,border-color .18s ease,color .18s ease,background .18s ease;}
+.onb-toggle svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;fill:none;}
+.onb-card.open .onb-toggle{transform:rotate(180deg);color:#a5b4fc;border-color:#818cf855;background:#818cf814;}
+.onb-badge{width:34px;height:34px;border-radius:11px;background:#818cf822;color:#a5b4fc;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.onb-title{font-weight:800;font-size:14px;color:var(--text);}
+.onb-sub{font-size:12px;color:var(--muted);line-height:1.45;margin-top:2px;}
+.onb-body{display:none;border-top:1px solid #818cf833;padding-top:10px;font-size:13px;color:var(--muted);line-height:1.55;}
+.onb-card.open .onb-body{display:block;}
+.onb-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;}
+.onb-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.onb-mini-btn{border:1.5px solid var(--rim);background:transparent;color:var(--muted);border-radius:9px;padding:7px 10px;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;}
+.onb-mini-btn.primary{background:var(--text);border-color:var(--text);color:var(--bg);}
+.onb-hint{background:#1e3a5f22;border:1.5px solid #60a5fa55;color:#bfdbfe;border-radius:12px;padding:9px 12px;font-size:12px;line-height:1.45;font-weight:600;}
+.cat-scroll{display:flex;gap:6px;overflow-x:auto;padding:0 18px 4px 18px;margin:0 -18px;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 28px,#000 calc(100% - 34px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 28px,#000 calc(100% - 34px),transparent 100%);}
+.cat-scroll::-webkit-scrollbar{display:none;}
 .adm-tab{flex:1;min-width:0;padding:8px 6px;border-radius:10px;font-size:11px;font-weight:600;cursor:pointer;background:var(--card);color:var(--muted);border:1.5px solid var(--rim);text-align:center;line-height:1.3;}
 .adm-tab-active{background:#1e1b4b;border-color:#534AB7;color:#a5b4fc;}
 .adm-card{background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;}
@@ -184,6 +211,7 @@ onAuthStateChanged(auth, (user) => {
         <span id="auth-email" style="font-size:11px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
         <button id="auth-admin-btn" onclick="show('s-admin')" style="display:none;padding:6px 12px;border-radius:8px;border:none;background:#534AB7;color:#fff;font-size:11px;font-weight:700;cursor:pointer">⚙ Panel</button>
         <button id="auth-myq-btn" onclick="show('s-my-questions')" style="display:none;padding:6px 12px;border-radius:8px;border:none;background:var(--text);color:var(--bg);font-size:11px;font-weight:700;cursor:pointer">📝 Pytania</button>
+        <button id="auth-stats-btn" onclick="openStatsModal()" style="display:none;padding:6px 10px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:14px;cursor:pointer" title="Twoje statystyki">📊</button>
         <button onclick="openSettings()" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer" title="Ustawienia imienia">✏️</button>
         <button onclick="authSignOut()" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer">Wyloguj</button>
       </div>
@@ -268,12 +296,13 @@ onAuthStateChanged(auth, (user) => {
         <div style="font-size:28px;flex-shrink:0;width:40px;text-align:center">✍️</div>
         <div>
           <div style="font-weight:700;font-size:14px;margin-bottom:3px">Rejestracja jest opcjonalna</div>
-          <div style="font-size:13px;color:var(--muted);line-height:1.5">Do grania konto nie jest potrzebne — bez rejestracji korzystasz z domyślnej puli pytań. <strong style="color:var(--text)">Załóż konto</strong>, jeśli chcesz dodawać własne pytania.</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.5">Do grania nie jest potrzebne konto — bez rejestracji korzystasz z przygotowanych pytań i kategorii. <button onclick="openAuthModal('register')" style="background:none;border:none;padding:0;font-family:inherit;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;text-decoration:underline">Załóż konto</button>, jeśli chcesz dodawać własne pytania i śledzić statystyki swoich rozgrywek.</div>
         </div>
       </div>
 
     </div>
   </div>
+
 
 </div>
 
@@ -300,42 +329,46 @@ onAuthStateChanged(auth, (user) => {
   <div style="padding-top:12px">
     <div class="logo" style="font-size:42px">Wiem<em>!</em></div>
   </div>
-  <div class="codebox">
-    <div class="codelbl">Kod gry — wyślij znajomym</div>
-    <div class="codelink" id="lob-code" onclick="copyCode()">----</div>
-    <div class="codesub">Kliknij aby skopiować · Każdy wpisuje kod w aplikacji</div>
+  <div class="codebox" onclick="copyCode()">
+    <div class="codelbl">Kod gry</div>
+    <div class="codelink" id="lob-code">----</div>
+    <div class="codesub">Kliknij, skopiuj i wyślij znajomym</div>
+    <div class="copy-note" id="lob-copy-note">✓ Skopiowano</div>
+  </div>
+  <div class="onb-card" id="lob-onboarding">
+    <div class="onb-head" onclick="toggleOnboardingHelp()">
+      <div class="onb-badge">💡</div>
+      <div style="flex:1;min-width:0">
+        <div class="onb-title">Grasz pierwszy raz?</div>
+        <div class="onb-sub">W skrócie: odpowiadasz, zgadujesz i zbierasz żetony.</div>
+      </div>
+      <div class="onb-toggle" id="lob-onb-toggle" aria-label="Rozwiń"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+    </div>
+    <div class="onb-body">
+      <ul class="onb-list">
+        <li>Jedna osoba odpowiada na pytanie.</li>
+        <li>Reszta zgaduje jej odpowiedź.</li>
+        <li>Stawiasz 1 albo 2 żetony.</li>
+        <li>Trafisz — zyskujesz. Pudło — tracisz.</li>
+      </ul>
+      <div class="onb-actions">
+        <button class="onb-mini-btn primary" onclick="event.stopPropagation();dismissOnboardingHelp()">Nie pokazuj więcej</button>
+      </div>
+    </div>
   </div>
   <div class="label" id="lob-cnt">Gracze (0/4)</div>
   <div class="plist" id="lob-list"></div>
 
-  <!-- Name change row -->
-  <div class="field" id="lob-name-row" style="display:none">
-    <label>Twoje imię:</label>
-    <input id="lob-name-inp" type="text" data-1p-ignore data-lpignore="true" data-form-type="other" autocomplete="off" maxlength="14" autocomplete="off" placeholder="Zmień imię"
-      oninput="this.dataset.touched='1'"
-      onkeydown="event.stopPropagation();if(event.key==='Enter')changeName()"
-      onkeyup="event.stopPropagation()">
-    <button onclick="changeName()" style="background:var(--text);color:var(--bg);border:none;border-radius:8px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0">OK</button>
+  <!-- Main lobby actions -->
+  <div class="lob-actions" id="lob-action-row" style="display:none">
+    <button class="btn" id="btn-ready" style="display:none" onclick="toggleReady()"></button>
+    <button class="btn btn-lit" id="btn-start" style="display:none" onclick="hostStart()">Rozpocznij grę ▶</button>
+    <div class="lob-start-note" id="lob-start-note" style="display:none"></div>
   </div>
-
-  <!-- Ready button (everyone) -->
-  <button class="btn" id="btn-ready" style="display:none" onclick="toggleReady()"></button>
 
   <!-- Host controls -->
   <div id="lob-host" style="display:none;flex-direction:column;gap:10px;">
-    <div class="rrow-cfg">
-      <label>Liczba graczy</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="maxp-btn" data-n="2" onclick="setMaxPlayers(2)">2</button>
-        <button class="maxp-btn" data-n="3" onclick="setMaxPlayers(3)">3</button>
-        <button class="maxp-btn active" data-n="4" onclick="setMaxPlayers(4)">4</button>
-        <button class="maxp-btn" data-n="5" onclick="setMaxPlayers(5)">5</button>
-        <button class="maxp-btn" data-n="6" onclick="setMaxPlayers(6)">6</button>
-        <button class="maxp-btn" data-n="7" onclick="setMaxPlayers(7)">7</button>
-        <button class="maxp-btn" data-n="8" onclick="setMaxPlayers(8)">8</button>
-      </div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:8px">
+    <div id="lob-settings" style="display:flex;flex-direction:column;gap:8px">
       <label style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Tryb gry</label>
       <div style="display:flex;gap:8px">
         <button id="mode-pool" class="mode-btn mode-btn-active" onclick="setGameMode('pool')">
@@ -346,11 +379,11 @@ onAuthStateChanged(auth, (user) => {
         <button id="mode-rounds" class="mode-btn" onclick="setGameMode('rounds')">
           <span style="font-size:18px">🔢</span>
           <span style="font-size:13px;font-weight:700">Na rundy</span>
-          <span style="font-size:10px;opacity:.65">X rund na gracza</span>
+          <span style="font-size:10px;opacity:.65">łączna liczba rund</span>
         </button>
       </div>
       <div id="rpp-row" style="display:none;align-items:center;gap:10px;background:var(--bg);border-radius:10px;padding:10px 12px">
-        <span style="font-size:13px;color:var(--muted);flex:1">Rund na gracza</span>
+        <span style="font-size:13px;color:var(--muted);flex:1">Liczba rund</span>
         <div style="display:flex;align-items:center;gap:8px">
           <button onclick="adjustRpp(-1)" style="width:28px;height:28px;border-radius:8px;border:1.5px solid var(--rim);background:var(--card);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
           <span id="rpp-display" style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;min-width:24px;text-align:center">3</span>
@@ -359,7 +392,6 @@ onAuthStateChanged(auth, (user) => {
         </div>
       </div>
     </div>
-    <button class="btn btn-lit" id="btn-start" onclick="hostStart()">Rozpocznij grę ▶</button>
     <!-- Category selector - rendered by JS -->
     <div id="lob-cat-row" style="display:flex;flex-direction:column;gap:6px"></div>
   </div>
@@ -394,19 +426,20 @@ onAuthStateChanged(auth, (user) => {
   </div>
   <div class="vstatus" id="v-st"></div>
   <button class="btn btn-lit" id="btn-vote" style="display:none" onclick="confirmVote()">Zatwierdź odpowiedź ✓</button>
-  <button id="btn-report-v" onclick="reportQuestion(this)" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 0;text-decoration:underline;text-underline-offset:3px">⚑ Zgłoś błąd w pytaniu/odpowiedzi</button>
+  <button onclick="reportError(this)" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:4px 0;text-align:center;width:100%;transition:color .2s">⚑ Zgłoś błąd</button>
   <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33;margin-top:4px" onclick="leaveGame()">← Opuść grę</button>
 </div>
 
 <!-- ══ WAIT ══ -->
 <div class="scr" id="s-wait">
   <div class="sbar" id="sb-w"></div>
-  <div class="wmid">
+  <div class="wmid" id="w-mid">
     <div class="wav pulse" id="w-av"></div>
     <div class="wtitle" id="w-title"></div>
     <div class="wdesc" id="w-desc"></div>
     <div class="wq" id="w-q"></div>
   </div>
+  <div id="w-preview"></div>
   <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33" onclick="leaveGame()">← Opuść grę</button>
 </div>
 
@@ -422,7 +455,7 @@ onAuthStateChanged(auth, (user) => {
   <div class="ans-list" id="sj-ans"></div>
   <button class="btn btn-dim" id="btn-swap-sj" style="display:none" onclick="swapQuestionSJ()"></button>
   <button class="btn btn-lit" id="btn-sj" style="display:none" onclick="submitSJ()">Zatwierdź i pozwól innym odpowiedzieć →</button>
-  <button id="btn-report-sj" onclick="reportQuestion(this)" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:4px 0;text-decoration:underline;text-underline-offset:3px">⚑ Zgłoś błąd w pytaniu/odpowiedzi</button>
+  <button onclick="reportError(this)" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:4px 0;text-align:center;width:100%;transition:color .2s">⚑ Zgłoś błąd</button>
   <button class="btn btn-dim" style="font-size:12px;padding:10px;color:var(--c0);border-color:var(--c0)33;margin-top:4px" onclick="leaveGame()">← Opuść grę</button>
 </div>
 
@@ -453,11 +486,17 @@ onAuthStateChanged(auth, (user) => {
 
   <!-- Tab: All questions -->
   <div id="adm-pane-questions">
+    <div id="adm-cat-filter-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
       <input id="adm-q-search" type="text" placeholder="Szukaj pytania…" autocomplete="off"
         style="flex:1;background:var(--card);border:1.5px solid var(--rim);border-radius:10px;padding:9px 12px;font-size:13px;color:var(--text);font-family:inherit"
         oninput="admRenderQuestions()" onkeydown="event.stopPropagation()">
       <div id="adm-q-count" style="font-size:11px;color:var(--muted);white-space:nowrap"></div>
+    </div>
+    <div id="adm-bulk-bar" style="display:none;background:#1e1b4b;border:1.5px solid #534AB7;border-radius:10px;padding:10px 14px;margin-bottom:8px;align-items:center;gap:10px">
+      <span id="adm-bulk-count" style="font-size:12px;color:#a5b4fc;flex:1">0 zaznaczonych</span>
+      <button onclick="admBulkDelete()" style="padding:6px 14px;border-radius:8px;border:1.5px solid var(--c0)44;background:transparent;color:var(--c0);font-size:12px;font-weight:700;cursor:pointer">🗑 Usuń zaznaczone</button>
+      <button onclick="admClearSelection()" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:11px;cursor:pointer">✕</button>
     </div>
     <div id="adm-q-list" style="display:flex;flex-direction:column;gap:10px"></div>
   </div>
@@ -532,6 +571,7 @@ onAuthStateChanged(auth, (user) => {
   </div>
   <div class="podium" id="end-pod"></div>
   <div class="rcard" id="end-sc"></div>
+  <div class="rcard" id="end-rounds"></div>
   <div id="end-btns" style="display:flex;flex-direction:column;gap:8px;"></div>
 </div>
 
@@ -588,6 +628,33 @@ const QS=[
   {q:"Kto z graczy nagrałby TikToka z tańcem i wrzucił bez mrugnięcia okiem?",           qs:"Kto z graczy nagrałby TikToka z tańcem i wrzucił bez mrugnięcia okiem?",           a:[],type:"players"},
   {q:"Kto z graczy najpewniej płakałby przy reklamie z psem?",                            qs:"Kto z graczy najpewniej płakałby przy reklamie z psem?",                            a:[],type:"players"},
   {q:"Kto z graczy byłby pierwszą ofiarą w horrorze?",                                    qs:"Kto z graczy byłby pierwszą ofiarą w horrorze?",                                    a:[],type:"players"},
+  // Impreza (indices 42-49)
+  {q:"Co [imię] robi gdy muzyka na imprezie jest zbyt głośna?",qs:"Co robisz gdy muzyka na imprezie jest zbyt głośna?",a:["Krzyczy jeszcze głośniej żeby zagłuszyć","Szuka cichego kąta","Prosi o zmniejszenie głośności"],as:["Krzyczę jeszcze głośniej żeby zagłuszyć","Szukam cichego kąta","Proszę o zmniejszenie głośności"],cat:"impreza"},
+  {q:"Jak [imię] zachowuje się gdy skończy się alkohol na imprezie?",qs:"Jak zachowujesz się gdy skończy się alkohol na imprezie?",a:["Organizuje ekspresową zbiórkę na dosłanie","Uznaje to za znak i jedzie do domu","Przechodzi na wodę jakby nigdy nic"],as:["Organizuję ekspresową zbiórkę na dosłanie","Uznaję to za znak i jadę do domu","Przechodzę na wodę jakby nigdy nic"],cat:"impreza"},
+  {q:"Czym [imię] zajmuje się gdy nie zna nikogo na imprezie?",qs:"Czym się zajmujesz gdy nie znasz nikogo na imprezie?",a:["Siada przy barze i udaje że jest zajęty/a","Podchodzi do pierwszej lepszej osoby i zagaduje","Pisze SMSy do znajomych: «kiedy przychodzisz?»"],as:["Siadam przy barze i udaję że jestem zajęty/a","Podchodzę do pierwszej lepszej osoby i zagaduję","Piszę SMSy do znajomych: «kiedy przychodzisz?»"],cat:"impreza"},
+  {q:"Jak [imię] reaguje gdy ktoś wyleje drinka na jego/jej ubranie?",qs:"Jak reagujesz gdy ktoś wyleje drinka na twoje ubranie?",a:["Wybucha ale szybko mu/jej odpuszcza","Uśmiecha się i idzie do łazienki","Wystawia rachunek za pranie"],as:["Wybucham ale szybko odpuszczam","Uśmiecham się i idę do łazienki","Wystawiam rachunek za pranie"],cat:"impreza"},
+  {q:"Co robi [imię] gdy jest jedyną trzeźwą osobą na imprezie?",qs:"Co robisz gdy jesteś jedyną trzeźwą osobą na imprezie?",a:["Cieszy się — będzie dużo do opowiadania","Ucieka jak najszybciej","Zostaje i zbiera amunicję na przyszłość"],as:["Cieszę się — będzie dużo do opowiadania","Uciekam jak najszybciej","Zostaję i zbieram amunicję na przyszłość"],cat:"impreza"},
+  {q:"Jak [imię] kończy imprezę?",qs:"Jak kończysz imprezę?",a:["Znika bez słowa — metoda ghost","Żegna się pół godziny z każdym","Zostaje do samego końca i pomaga sprzątać"],as:["Znikam bez słowa — metoda ghost","Żegnam się pół godziny z każdym","Zostaję do samego końca i pomagam sprzątać"],cat:"impreza"},
+  {q:"Co [imię] robi gdy DJ gra utwór który uwielbia?",qs:"Co robisz gdy DJ gra utwór który uwielbiasz?",a:["Wyciąga wszystkich na parkiet czy chcą czy nie","Śpiewa każde słowo w kierunku sufitu","Dyskretnie kiwa głową bo to zbyt fajne na reakcję"],as:["Wyciągam wszystkich na parkiet czy chcą czy nie","Śpiewam każde słowo w kierunku sufitu","Dyskretnie kiwam głową bo to zbyt fajne na reakcję"],cat:"impreza"},
+  {q:"Skąd [imię] wraca z imprezy?",qs:"Skąd wracasz z imprezy?",a:["Taksówką — bezpieczeństwo przede wszystkim","Piechotą bo «tu jest blisko»","Zostaje — nie wraca"],as:["Taksówką — bezpieczeństwo przede wszystkim","Piechotą bo «tu jest blisko»","Zostaję — nie wracam"],cat:"impreza"},
+  // Życiówka (indices 50-57)
+  {q:"Jak [imię] reaguje gdy Internet przestaje działać?",qs:"Jak reagujesz gdy Internet przestaje działać?",a:["Restartuje router siedem razy w ciągu minuty","Traktuje to jako znak że czas na przerwę","Przechodzi na mobilne dane bez chwili wahania"],as:["Restartuję router siedem razy w ciągu minuty","Traktuję to jako znak że czas na przerwę","Przechodzę na mobilne dane bez chwili wahania"],cat:"zyciowka"},
+  {q:"Co [imię] robi w niedzielny wieczór?",qs:"Co robisz w niedzielny wieczór?",a:["Smuci się że jutro poniedziałek","Planuje tydzień z notatnikiem","Udaje że poniedziałek jeszcze nie istnieje"],as:["Smucę się że jutro poniedziałek","Planuję tydzień z notatnikiem","Udaję że poniedziałek jeszcze nie istnieje"],cat:"zyciowka"},
+  {q:"Jak [imię] zachowuje się w kolejce w sklepie?",qs:"Jak zachowujesz się w kolejce w sklepie?",a:["Cały czas ocenia która kolejka jest szybsza","Stoi spokojnie i scrolluje telefon","Wyraźnie wzdycha gdy ktoś płaci gotówką"],as:["Cały czas oceniam która kolejka jest szybsza","Stoję spokojnie i scrolluję telefon","Wyraźnie wzdycham gdy ktoś płaci gotówką"],cat:"zyciowka"},
+  {q:"Co [imię] zrobi gdy znajdzie na ulicy 100 zł?",qs:"Co zrobisz gdy znajdziesz na ulicy 100 zł?",a:["Odniesie na policję — sumienie czyste","Wyda natychmiast na coś głupiego","Zatrzyma — ktoś inny by też zatrzymał"],as:["Odniosę na policję — sumienie czyste","Wydam natychmiast na coś głupiego","Zatrzymam — ktoś inny by też zatrzymał"],cat:"zyciowka"},
+  {q:"Jak [imię] reaguje gdy dostanie niedopałek paragonu?",qs:"Jak reagujesz gdy dostaniesz niedopałek paragonu?",a:["Wraca do kasy i dochodzi swoich praw","Wzdycha i odpuszcza","Fotografuje paragon na przyszłość"],as:["Wracam do kasy i dochodzę swoich praw","Wzdycham i odpuszczam","Fotografuję paragon na przyszłość"],cat:"zyciowka"},
+  {q:"Co [imię] je na śniadanie?",qs:"Co jesz na śniadanie?",a:["Cokolwiek co znajdzie w lodówce","Zawsze to samo — rytuał świętości","Pomija śniadanie — kawa wystarczy"],as:["Cokolwiek co znajdę w lodówce","Zawsze to samo — rytuał świętości","Pomijam śniadanie — kawa wystarczy"],cat:"zyciowka"},
+  {q:"Jak [imię] spędza wolną sobotę?",qs:"Jak spędzasz wolną sobotę?",a:["Leży do południa i nie czuje się winny/a","Wstaje o 7 bo «tyle rzeczy do zrobienia»","Zaczyna od planu a kończy na Netflixie"],as:["Leżę do południa i nie czuję się winny/a","Wstaję o 7 bo «tyle rzeczy do zrobienia»","Zaczynam od planu a kończę na Netflixie"],cat:"zyciowka"},
+  {q:"Jak [imię] reaguje gdy prąd gaśnie w połowie serialu?",qs:"Jak reagujesz gdy prąd gaśnie w połowie serialu?",a:["Panikuje i szuka świeczek","Idzie spać — to znak od wszechświata","Natychmiast sprawdza na telefonie co się stało dalej"],as:["Paniokuję i szukam świeczek","Idę spać — to znak od wszechświata","Natychmiast sprawdzam na telefonie co się stało dalej"],cat:"zyciowka"},
+  // Ambicje i cele (indices 58-65)
+  {q:"Co by zrobił/a [imię] gdyby wygrał/a milion złotych?",qs:"Co byś zrobił/a gdybyś wygrał/a milion złotych?",a:["Zainwestowałby/aby rozważnie","Spełniłby/aby jedno wielkie marzenie","Podzieliłby/aby się z rodziną"],as:["Zainwestowałbym/abym rozważnie","Spełniłbym/abym jedno wielkie marzenie","Podzieliłbym/abym się z rodziną"],cat:"ambicje"},
+  {q:"Gdzie [imię] widzi siebie za 10 lat?",qs:"Gdzie widzisz siebie za 10 lat?",a:["W innym kraju — zmiana scenerii","W tym samym miejscu ale szczęśliwszy/a","Nie planuje tak daleko — żyje chwilą"],as:["W innym kraju — zmiana scenerii","W tym samym miejscu ale szczęśliwszy/a","Nie planuję tak daleko — żyję chwilą"],cat:"ambicje"},
+  {q:"Co [imię] zrobiłby/aby gdyby miał/a rok wolnego?",qs:"Co byś zrobił/a gdybyś miał/a rok wolnego?",a:["Podróżował/a bez wytchnienia","Nauczył/a się czegoś zupełnie nowego","Odpoczął/a i nic więcej"],as:["Podróżowałbym/abym bez wytchnienia","Nauczył/abym się czegoś zupełnie nowego","Odpocząłbym/abym i nic więcej"],cat:"ambicje"},
+  {q:"Czego [imię] żałuje że nie zaczął/a wcześniej?",qs:"Czego żałujesz że nie zacząłeś/zaczęłaś wcześniej?",a:["Oszczędzania i inwestowania","Dbania o zdrowie i ruch","Rozwijania pasji lub talentu"],as:["Oszczędzania i inwestowania","Dbania o zdrowie i ruch","Rozwijania pasji lub talentu"],cat:"ambicje"},
+  {q:"Co jest dla [imię] ważniejsze?",qs:"Co jest dla ciebie ważniejsze?",a:["Wolność i niezależność","Stabilizacja i bezpieczeństwo","Relacje z bliskimi"],as:["Wolność i niezależność","Stabilizacja i bezpieczeństwo","Relacje z bliskimi"],cat:"ambicje"},
+  {q:"Jak [imię] radzi sobie z porażką?",qs:"Jak radzisz sobie z porażką?",a:["Analizuje co poszło nie tak i próbuje ponownie","Odcina się i potrzebuje czasu","Żartuje żeby nie płakać"],as:["Analizuję co poszło nie tak i próbuję ponownie","Odcinam się i potrzebuję czasu","Żartuję żeby nie płakać"],cat:"ambicje"},
+  {q:"Czego [imię] nigdy nie zrobiłby/aby dla pieniędzy?",qs:"Czego nigdy nie zrobiłbyś/abyś dla pieniędzy?",a:["Zdradzić kogoś bliskiego","Zrezygnować z wartości","Pracy którą gardzi"],as:["Zdradzić kogoś bliskiego","Zrezygnować z wartości","Pracy którą gardzę"],cat:"ambicje"},
+  {q:"Jaki jest największy strach [imię]?",qs:"Jaki jest twój największy strach?",a:["Samotność na starość","Marnowanie życia na coś bez sensu","Utrata kogoś ważnego"],as:["Samotność na starość","Marnowanie życia na coś bez sensu","Utrata kogoś ważnego"],cat:"ambicje"},
 ];
 /* ═══════════════════════════════════════════════════════════════ */
 
@@ -875,7 +942,7 @@ function norm(gs){
   gs.bets     = gs.bets  || {};
   gs.pool     = gs.pool  != null ? parseInt(gs.pool)||0 : 0;
   gs.ready      = gs.ready || {};
-  gs.maxPlayers = gs.maxPlayers || 4;
+  gs.maxPlayers = 8;
   gs.swapAt     = gs.swapAt || null;
   gs.gameMode   = gs.gameMode || 'pool';
   gs.qAnswers   = gs.qAnswers || {};
@@ -920,29 +987,93 @@ function startCountdown(ms, onTick, onDone){
 function stopCountdown(){
   if(_countdownTimer){clearInterval(_countdownTimer);_countdownTimer=null;}
 }
-let _maxPlayers=4; // host-controlled, 2-8
+let _maxPlayers=8;
 let _gameMode='pool'; // 'rounds' | 'pool'
-let _selectedCat=null; // null = wszystkie, or catId
+let _selectedCats=new Set(['cat_demo']); // set of selected category ids
+let _lobEditingName=false; // inline name edit mode in lobby
+
+const ONB_SEEN_KEY='wiem_onboarding_help_hidden_v2';
+let _onboardingOpen=false;
+let _onboardingInitialized=false;
+
+function isFirstRound(){ return GS && (GS.ri||0)===0; }
+function shouldShowOnboardingHints(){
+  try{return !localStorage.getItem(ONB_SEEN_KEY);}catch(e){return true;}
+}
+function markOnboardingSeen(){
+  try{localStorage.setItem(ONB_SEEN_KEY,'1');}catch(e){}
+}
+function toggleOnboardingHelp(force){
+  _onboardingOpen=typeof force==='boolean'?force:!_onboardingOpen;
+  updateOnboardingHelp();
+}
+function dismissOnboardingHelp(){
+  markOnboardingSeen();
+  _onboardingOpen=false;
+  updateOnboardingHelp();
+}
+function updateOnboardingHelp(){
+  const card=$('lob-onboarding'); if(!card)return;
+  if(!_onboardingInitialized){
+    _onboardingOpen=shouldShowOnboardingHints();
+    _onboardingInitialized=true;
+  }
+  const dismissed=!shouldShowOnboardingHints();
+  card.style.display=dismissed?'none':'flex';
+  card.classList.toggle('open',_onboardingOpen&&!dismissed);
+  const tog=$('lob-onb-toggle'); if(tog) tog.setAttribute('aria-label',_onboardingOpen?'Zwiń':'Rozwiń');
+}
+function onboardingHint(kind){
+  if(!shouldShowOnboardingHints()||!isFirstRound()) return '';
+  const copy={
+    subject:'To pytanie jest o Tobie. Wybierz odpowiedź — reszta będzie zgadywać.',
+    waiting:'Pomyśl, co ta osoba wybierze. Zaraz będziesz zgadywać.',
+    vote:'Wybierz odpowiedź i stawkę. Możesz zmienić wybór przed zatwierdzeniem.',
+    afterVote:'Gotowe — czekasz na resztę.'
+  };
+  return copy[kind]?`<div class="onb-hint">💡 ${copy[kind]}</div>`:'';
+}
 
 function renderLobCatSelector(){
   const row=$('lob-cat-row');
   if(!row)return;
-  const cats=Object.entries(_qCats||{});
+  const cats=Object.entries(_qCats||{}).sort((a,b)=>a[0]==='cat_demo'?-1:b[0]==='cat_demo'?1:0);
   if(cats.length===0){ row.innerHTML=''; return; }
+  const hasNonDemo=[..._selectedCats].some(c=>c!=='cat_demo');
   row.innerHTML=`
-    <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Kategoria pytań</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px">
-      <button onclick="setLobCat(null)" style="padding:6px 12px;border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${_selectedCat===null?'var(--text)':'var(--rim)'};background:${_selectedCat===null?'var(--text)':'transparent'};color:${_selectedCat===null?'var(--bg)':'var(--muted)'}">Wszystkie</button>
+    <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Kategorie pytań</div>
+    <div class="cat-scroll">
       ${cats.map(([id,cat])=>{
-        const active=_selectedCat===id;
+        const active=_selectedCats.has(id);
+        const isDemo=id==='cat_demo';
+        const disabled=isDemo&&hasNonDemo;
         const count=Object.values(_qCatMap||{}).filter(arr=>arr&&arr.includes(id)).length;
-        return`<button onclick="setLobCat('${id}')" style="padding:6px 12px;border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${active?cat.color:cat.color+'55'};background:${active?cat.color+'33':'transparent'};color:${active?cat.color:'var(--muted)'}">${cat.name} <span style="opacity:.6">${count}</span></button>`;
+        return`<button ${disabled?'disabled':''} onclick="toggleLobCat('${id}')" style="flex-shrink:0;padding:6px 12px;border-radius:99px;font-size:11px;font-weight:700;border:1.5px solid ${active?cat.color:cat.color+'55'};background:${active?cat.color+'33':'transparent'};color:${active?cat.color:'var(--muted)'};cursor:${disabled?'default':'pointer'};opacity:${disabled?'0.35':'1'}">${cat.name} <span style="opacity:.6">${count}</span></button>`;
       }).join('')}
     </div>`;
 }
 
-function setLobCat(id){
-  _selectedCat=id;
+function toggleLobCat(id){
+  if(id==='cat_demo'){
+    // Toggle demo
+    if(_selectedCats.has('cat_demo')){
+      // Only deselect if something else is selected
+      const otherSelected=[..._selectedCats].filter(c=>c!=='cat_demo');
+      if(otherSelected.length>0) _selectedCats.delete('cat_demo');
+    } else {
+      _selectedCats.add('cat_demo');
+    }
+  } else {
+    if(_selectedCats.has(id)){
+      _selectedCats.delete(id);
+      // If nothing else selected, fall back to demo
+      if(_selectedCats.size===0) _selectedCats.add('cat_demo');
+    } else {
+      // Selecting any non-demo category → always remove demo
+      _selectedCats.delete('cat_demo');
+      _selectedCats.add(id);
+    }
+  }
   renderLobCatSelector();
 }
 
@@ -1112,9 +1243,12 @@ async function handleGSUpdate(){
           const mode=_gameMode;
           const idx=GS.players.map((p,i)=>p?i:null).filter(i=>i!==null);
           let sub=[];
-          if(mode==='rounds'){const rpp=Math.max(1,parseInt($('rpp')?.value)||3);for(let r=0;r<rpp;r++)sub=[...sub,...[...idx]];}
+          if(mode==='rounds'){
+            const rounds=Math.max(1,parseInt($('rpp')?.value)||3);
+            for(let r=0;r<rounds;r++)sub.push(idx[r%idx.length]);
+          }
           else{for(let r=0;r<100;r++)sub=[...sub,...[...idx]];}
-          const qPool=_selectedCat?QS.map((_,i)=>i).filter(i=>(_qCatMap[i]||[]).includes(_selectedCat)):QS.map((_,i)=>i);
+          const qPool=_selectedCats.size>0?QS.map((_,i)=>i).filter(i=>[..._selectedCats].some(cat=>(_qCatMap[i]||[]).includes(cat))):QS.map((_,i)=>i);
           const qPoolFinal=qPool.length>0?qPool:QS.map((_,i)=>i);
           if(qPoolFinal.length===0) return;
           let qp=shuf([...qPoolFinal]),_s=0;
@@ -1124,7 +1258,7 @@ async function handleGSUpdate(){
           const playerNames=GS.players.map((p,i)=>p?{name:p.name,slot:i}:null).filter(Boolean);
           const qAnswers={};
           qSeq.forEach((qIdx,ri)=>{const qq=QS[qIdx];if(qq&&qq.type==='players'){const opts=playerNames.map(p=>p.name);if(opts.length>0)qAnswers[ri]=opts;}});
-          GS={...GS,phase:'subject',gameMode:mode,subjects:sub,qSeq,qAnswers,rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:playerCount*10};
+          GS={...GS,phase:'subject',gameMode:mode,subjects:sub,qSeq,qAnswers,rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:playerCount*10,roundHistory:[]};
           await writeGS();
         }
       } else { if(_allVotedAt) stopCountdown(); _allVotedAt=null; }
@@ -1142,6 +1276,7 @@ async function handleGSUpdate(){
         // GS here is already a fresh re-fetch from SSE handler — use it directly
         const next=norm(dc(GS));
         next.phase='reveal';
+        appendRoundHistory(next);
         let poolDelta=0;
         next.players.forEach((p,i)=>{
           if(!p||i===si)return;
@@ -1156,10 +1291,7 @@ async function handleGSUpdate(){
           }
         });
         next.pool=Math.max(0,(next.pool||0)+poolDelta);
-        const mode=next.gameMode||'rounds';
-        const anyBroke=next.players.some(p=>p&&p.pts<=0);
-        if(mode==='pool'&&(next.pool<=0||anyBroke)) next.phase='ended';
-        else if(mode==='rounds'&&next.ri+1>=next.rt) next.phase='ended';
+        // Always go to reveal first — nextRound() will handle transition to 'ended'
         GS=next;
         await writeGS();
         render();
@@ -1261,7 +1393,7 @@ async function createGame(){
   $('home-err').style.color='var(--muted)';
   try{
     gameId=rnd4();
-    GS={phase:'lobby',players:[{name,pts:10},null,null,null],subjects:[],qSeq:[],rt:0,ri:0,votes:{},bets:{},sa:-1,ready:{},maxPlayers:4,pool:0,hostSlot:0};
+    GS={phase:'lobby',players:[{name,pts:10},null,null,null,null,null,null,null],subjects:[],qSeq:[],rt:0,ri:0,votes:{},bets:{},sa:-1,ready:{},maxPlayers:8,pool:0,hostSlot:0,roundHistory:[]};
     await fbPut(`games/${gameId}`,GS);
     mySlot=0;isHost=true;
     sessionStorage.setItem('ego_sess',JSON.stringify({gameId,mySlot}));
@@ -1291,11 +1423,17 @@ async function joinGame(){
       showErr('home-err','❌ Ta gra już się rozpoczęła. Poczekaj na kolejną rozgrywkę.');
       $('home-err').style.color='var(--c0)';return;
     }
-    gameId=code;GS=norm(gs);
+    const normGs=norm(gs);
+    const firstFree=normGs.players.findIndex(p=>!p);
+    if(firstFree===-1){
+      showErr('home-err','❌ W grze uczestniczy już maksymalna liczba graczy.');
+      $('home-err').style.color='var(--c0)';return;
+    }
+    gameId=code;GS=normGs;
     sessionStorage.setItem('ego_name',name);
     hideErr('home-err');
-    renderSlots(gs,name);show('s-slots');
     startPoll();
+    await claimSlot(firstFree,name);
   }catch(e){
     console.error('joinGame error:',e);
     showErr('home-err','❌ Błąd: '+e.message);
@@ -1337,10 +1475,10 @@ function changeSlotName(){
 function renderSlotsGrid(gs,name){
   const grid=$('slot-grid');if(!grid)return;
   grid.innerHTML='';
-  const max=gs.maxPlayers||4;
-  for(let i=0;i<8;i++){
-    if(i>=max) continue;
-    const p=gs.players[i];
+  const firstFree=gs.players.findIndex(p=>!p);
+  // Show only occupied slots + one free slot (to join)
+  const slotsToShow=gs.players.map((p,i)=>({p,i})).filter(({p,i})=>p||i===firstFree);
+  for(const {p,i} of slotsToShow){
     const isMine=mySlot===i;
     const div=document.createElement('div');
     div.className='slot'+(p&&!isMine?' taken':'')+(isMine?' mine':'');
@@ -1365,12 +1503,11 @@ async function claimSlot(slot,name){
     const gs=await fbGet(`games/${gameId}`);
     const fresh=norm(gs);
     if(fresh.players[slot]&&mySlot!==slot){
-      alert('Ten slot jest właśnie zajęty przez kogoś innego!');
-      GS=fresh;renderSlots(fresh,name);return;
+      // Slot was taken by someone else — find next free slot automatically
+      const nextFree=fresh.players.findIndex(p=>!p);
+      if(nextFree===-1){showErr('home-err','❌ W grze uczestniczy już maksymalna liczba graczy.');$('home-err').style.color='var(--c0)';show('s-home');return;}
+      GS=fresh;await claimSlot(nextFree,name);return;
     }
-    const normalName=(name||'Gracz').trim().toLowerCase();
-    const lowerSlotDupe=fresh.players.some((p,i)=>p&&i<slot&&p.name.trim().toLowerCase()===normalName);
-    if(lowerSlotDupe){showDuplicateNameModal(slot);return;}
     // Use PATCH with only the changed player slot — minimal write, atomic
     const patch={};
     patch[`players/${slot}`]={name:name||'Gracz',pts:fresh.players[slot]?.pts??10};
@@ -1385,6 +1522,17 @@ async function claimSlot(slot,name){
 }
 
 // ── COPY CODE ──
+function showCopyNote(id='lob-copy-note'){
+  const note=$(id); if(!note)return;
+  const box=note.closest('.codebox');
+  note.classList.add('show');
+  if(box) box.classList.add('copied');
+  clearTimeout(note._hideTimer);
+  note._hideTimer=setTimeout(()=>{
+    note.classList.remove('show');
+    if(box) box.classList.remove('copied');
+  },1700);
+}
 function copyCode(){
   const code=gameId||$('lob-code').textContent;
   if(navigator.clipboard){
@@ -1392,8 +1540,7 @@ function copyCode(){
   } else {
     fallbackCopy(code);
   }
-  $('lob-code').textContent='✓ Skopiowano!';
-  setTimeout(()=>{ if($('lob-code')) $('lob-code').textContent=gameId||code; },2000);
+  showCopyNote();
 }
 function fallbackCopy(text){
   const ta=document.createElement('textarea');
@@ -1411,66 +1558,85 @@ function renderLobby(){
   $('lob-code').textContent=gameId||'----';
   const ready=GS.ready||{};
   const players=GS.players;
-  const max=GS.maxPlayers||4;
+  const max=8;
   const activePlayers=players.slice(0,max);
   const filled=activePlayers.filter(Boolean).length;
   $('lob-cnt').textContent=`Gracze (${filled}/${max})`;
 
-  // Sync maxp-btn active state for host
+  const hostLocked=isHost&&!!(GS.ready||{})[mySlot];
   if(isHost){
-    document.querySelectorAll('.maxp-btn[data-n]').forEach(b=>{
-      b.classList.toggle('active', parseInt(b.dataset.n)===max);
-    });
-    _maxPlayers=max;
     // Sync game mode
-    const savedMode=GS.gameMode||'rounds';
-    if(savedMode!==_gameMode) setGameMode(savedMode);
+    const savedMode=GS.gameMode||'pool';
+    setGameMode(savedMode);
     renderLobCatSelector();
+    // Lock settings when host is ready
+    const lock=hostLocked;
+    ['lob-settings','lob-cat-row'].forEach(id=>{
+      const el=$(id);if(!el)return;
+      el.style.pointerEvents=lock?'none':'';
+      el.style.opacity=lock?'0.35':'';
+    });
   }
 
+  // Close inline name edit if host just became ready
+  if(hostLocked && _lobEditingName) _lobEditingName=false;
+
+  const firstFreeSlot=activePlayers.findIndex(p=>!p);
+  const joinRow=(mySlot===null && firstFreeSlot!==-1)
+    ? `<div onclick="claimSlot(${firstFreeSlot},($('slots-name-inp')?.value||sessionStorage.getItem('ego_name')||'Gracz').trim())" style="background:var(--card);border:1.5px dashed var(--rim);border-radius:12px;padding:12px 16px;font-size:13px;color:var(--muted);cursor:pointer;text-align:center">+ Dołącz do gry</div>`
+    : '';
   $('lob-list').innerHTML=activePlayers.map((p,i)=>{
-    if(!p)return`<div style="background:var(--card);border:1.5px dashed var(--rim);border-radius:12px;padding:12px 16px;font-size:13px;color:var(--muted)">Slot ${i+1} — wolny</div>`;
+    if(!p)return'';
     const isReady=!!ready[i];
     const readyBadge=isReady
-      ? `<span style="background:#14532d;color:#4ade80;border:1.5px solid #16a34a;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap">✓ ${gW(p.name,'gotowy','gotowa')}</span>`
-      : `<span style="background:#2d1a1a;color:#f87171;border:1.5px solid #dc262655;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap">⏳ czeka</span>`;
-    const kickBtn=isHost&&i!==mySlot
-      ? `<button onclick="kickPlayer(${i})" style="flex-shrink:0;background:#2d1a1a;border:1.5px solid #dc262655;color:#f87171;font-size:12px;font-weight:700;cursor:pointer;padding:5px 12px;border-radius:8px;white-space:nowrap">✕ Usuń</button>`
+      ? `<span style="width:92px;box-sizing:border-box;text-align:center;background:#14532d;color:#4ade80;border:1.5px solid #16a34a;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap;display:inline-block">✓ gotowy</span>`
+      : `<span style="width:92px;box-sizing:border-box;text-align:center;background:#2d1a1a;color:#f87171;border:1.5px solid #dc262655;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap;display:inline-block">⏳ czeka</span>`;
+    const kickBtn=isHost&&i!==mySlot&&!hostLocked
+      ? `<button class="kick-btn" onclick="kickPlayer(${i})" title="Usuń gracza" style="width:30px;height:30px;background:#2d1a1a;border:1.5px solid #dc262655;color:#f87171;font-size:15px;font-weight:700;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0">✕</button>`
       : '';
-    return`<div class="prow" style="border:1.5px solid ${isReady?'#16a34a':C(i)+'44'};gap:8px;">
-      <div class="prow-dot" style="background:${C(i)};flex-shrink:0"></div>
-      <span style="font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${p.name}</span>
-      ${i===(GS.hostSlot??0)?'<span class="ptag tag-host" style="flex-shrink:0">HOST</span>':''}
-      ${i===mySlot?'<span class="ptag tag-you" style="flex-shrink:0">ty</span>':''}
-      ${readyBadge}
+    const nameCell = (i===mySlot && _lobEditingName)
+      ? `<input id="lob-name-inp" type="text" value="${p.name}" maxlength="14" autocomplete="off" data-1p-ignore data-lpignore="true"
+           style="flex:1;min-width:0;background:var(--bg);border:1.5px solid ${C(i)};border-radius:8px;padding:4px 8px;font-size:14px;font-weight:600;color:var(--text);font-family:inherit"
+           onkeydown="event.stopPropagation();if(event.key==='Enter')changeName();if(event.key==='Escape'){_lobEditingName=false;renderLobby();}"
+           onkeyup="event.stopPropagation()">
+         <button onclick="changeName()" style="flex-shrink:0;background:${C(i)};color:#000;border:none;border-radius:8px;padding:4px 10px;font-weight:700;font-size:13px;cursor:pointer">✓</button>
+         <button onclick="_lobEditingName=false;renderLobby()" style="flex-shrink:0;background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px">✕</button>`
+      : `<span style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
+         ${i===mySlot&&!hostLocked?`<button onclick="_lobEditingName=true;renderLobby()" style="flex-shrink:0;background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:0 0 0 4px;line-height:1" title="Zmień imię">✏️</button>`:''}`;
+    return`<div class="prow" style="border:1.5px solid ${isReady?'#16a34a':C(i)+'44'};">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow:hidden">
+        <div class="prow-dot" style="background:${C(i)}"></div>
+        ${nameCell}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        ${i===(GS.hostSlot??0)?'<span class="ptag tag-host">HOST</span>':''}
+        ${readyBadge}
+      </div>
       ${kickBtn}
     </div>`;
-  }).join('');
+  }).join('')+joinRow;
 
-  // Name change field
-  if(mySlot!==null){
-    $('lob-name-row').style.display='flex';
-    const curName=players[mySlot]?.name||'';
-    const inp=$('lob-name-inp');
-    if(inp){
-      inp.placeholder=curName;
-      // Only clear the field if user hasn't started typing — ensures placeholder shows current name
-      if(!inp.dataset.touched) inp.value='';
-    }
+  // Focus inline name input if editing
+  if(_lobEditingName){
+    setTimeout(()=>{ const inp=$('lob-name-inp'); if(inp){inp.focus();inp.select();} },50);
   }
 
-  // Ready button
-  if(mySlot!==null){
-    const btn=$('btn-ready');
-    btn.style.display='block';
-    const iAmReady=!!ready[mySlot];
-    const myName=GS.players[mySlot]?.name||'';
+  // Ready / start actions
+  const actionRow=$('lob-action-row');
+  const readyBtn=$('btn-ready');
+  const startBtn=$('btn-start');
+  const startNote=$('lob-start-note');
+  const iAmReady=mySlot!==null&&!!ready[mySlot];
+  const myName=mySlot!==null?(GS.players[mySlot]?.name||''):'';
+  if(actionRow) actionRow.style.display=mySlot!==null?'flex':'none';
+  if(readyBtn){
+    readyBtn.style.display=mySlot!==null?'block':'none';
     if(iAmReady){
-      btn.textContent=`✅ ${gW(myName,'Jesteś gotowy','Jesteś gotowa')} — kliknij aby cofnąć`;
-      btn.style.cssText='background:#14532d;color:#4ade80;border:2px solid #16a34a;border-radius:12px;padding:15px;font-size:15px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;width:100%;';
+      readyBtn.textContent='Cofnij';
+      readyBtn.style.cssText='background:#14532d;color:#4ade80;border:2px solid #16a34a;border-radius:12px;padding:12px 14px;font-size:13px;font-weight:800;font-family:\'DM Sans\',sans-serif;cursor:pointer;flex:0 0 86px;white-space:nowrap;min-height:50px;transform:none;';
     } else {
-      btn.textContent=gW(myName,'Jestem gotowy ✓','Jestem gotowa ✓');
-      btn.style.cssText='background:var(--text);color:var(--bg);border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;width:100%;';
+      readyBtn.textContent=gW(myName,'Jestem gotowy ✓','Jestem gotowa ✓');
+      readyBtn.style.cssText='background:var(--text);color:var(--bg);border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;font-family:\'DM Sans\',sans-serif;cursor:pointer;width:100%;flex:1;min-height:50px;transform:none;';
     }
   }
 
@@ -1479,21 +1645,29 @@ function renderLobby(){
   if(isHost){
     $('lob-host').style.display='flex';
     $('lob-guest').style.display='none';
-    const btn=$('btn-start');
     const readyCount=activePlayers.filter((p,i)=>p&&!!ready[i]).length;
-    if(allReady && filled>=2){
-      btn.disabled=false;
-      btn.style.opacity='1';
-      // Show how many players will play and allow manual start
-      btn.textContent=filled===activePlayers.filter(Boolean).length && filled===(GS.maxPlayers||4)
-        ? '▶ Rozpocznij grę'
-        : `▶ Rozpocznij z ${filled} graczami`;
-    } else {
-      btn.disabled=true;
-      btn.style.opacity='0.4';
-      btn.textContent=`Gotowych: ${readyCount}/${filled} — czekaj…`;
+    if(startBtn){
+      const canStart=allReady&&filled>=2;
+      startBtn.style.display=iAmReady&&canStart?'block':'none';
+      startBtn.style.flex='1';
+      startBtn.style.padding='12px 10px';
+      startBtn.style.fontSize='13px';
+      startBtn.style.minHeight='50px';
+      startBtn.style.transform='none';
+      startBtn.style.lineHeight='1.15';
+      startBtn.style.whiteSpace='nowrap';
+      startBtn.disabled=!canStart;
+      startBtn.style.opacity='1';
+      startBtn.textContent=`▶ Start (${filled})`;
+    }
+    if(startNote){
+      const canStart=allReady&&filled>=2;
+      startNote.style.display=iAmReady&&!canStart?'flex':'none';
+      startNote.textContent=filled<2?'Minimum 2 osoby':`Gotowych: ${readyCount}/${filled}`;
     }
   } else {
+    if(startBtn) startBtn.style.display='none';
+    if(startNote) startNote.style.display='none';
     $('lob-host').style.display='none';
     $('lob-guest').style.display='block';
     const readyCount=activePlayers.filter((p,i)=>p&&!!ready[i]).length;
@@ -1501,6 +1675,7 @@ function renderLobby(){
       ? `<span class="cdot dok"></span>Wszyscy gotowi! Gra startuje za chwilę…`
       : `<span class="cdot dwait"></span>Gotowych: ${readyCount}/${filled} — czekaj na pozostałych`;
   }
+  updateOnboardingHelp();
   // Note: show('s-lobby') is NOT called here — renderLobby only updates content, screen switching is done explicitly
 }
 
@@ -1520,7 +1695,6 @@ async function changeName(){
   const inp=$('lob-name-inp');
   const newName=(inp?.value||'').trim();
   if(!newName||mySlot===null){inp?.focus();return;}
-  // Check duplicate
   const norm2=newName.toLowerCase();
   const dup=GS.players.some((p,i)=>p&&i!==mySlot&&p.name.trim().toLowerCase()===norm2);
   if(dup){alert(`Imię "${newName}" jest już zajęte. Wybierz inne.`);return;}
@@ -1532,8 +1706,7 @@ async function changeName(){
     patch[`ready/${mySlot}`]=false;
     await fbPatch(`games/${gameId}`,patch);
     GS.players[mySlot].name=newName;
-    // Clear input, update placeholder
-    if(inp){ inp.value=''; delete inp.dataset.touched; inp.placeholder=newName; }
+    _lobEditingName=false;
     renderLobby();
   }catch(e){console.error('changeName',e);}
 }
@@ -1558,14 +1731,14 @@ async function leaveGame(){
         const ordered=[rawHostSlot,...remainingSlots.filter(s=>s!==rawHostSlot)];
         const compactPlayers=ordered.map(s=>({name:GS.players[s].name,pts:10}));
         // Pad to maxPlayers with nulls
-        const max=GS.maxPlayers||4;
+        const max=8;
         while(compactPlayers.length<max)compactPlayers.push(null);
         // Build remap: oldSlot → newSlot
         const slotRemap={};
         ordered.forEach((oldSlot,newSlot)=>{slotRemap[oldSlot]=newSlot;});
         await fbPut(`games/${gameId}`,{
           phase:'lobby',players:compactPlayers,hostSlot:0,slotRemap,
-          subjects:[],qSeq:[],qAnswers:{},rt:0,ri:0,
+          subjects:[],qSeq:[],qAnswers:{},rt:0,ri:0,roundHistory:[],
           votes:{},bets:{},sa:-1,ready:{},maxPlayers:max,pool:0
         });
       }
@@ -1615,15 +1788,15 @@ async function hostStart(){
   const mode=_gameMode;
   const idx=GS.players.map((p,i)=>p?i:null).filter(i=>i!==null);
   const playerCount=GS.players.filter(Boolean).length;
-  let sub,qp;
+  let sub=[],qp;
   if(mode==='rounds'){
-    const rpp=Math.max(1,parseInt($('rpp').value)||3);
-    for(let r=0;r<rpp;r++) sub=[...(sub||[]),...[...idx]];
+    const rounds=Math.max(1,parseInt($('rpp').value)||3);
+    for(let r=0;r<rounds;r++) sub.push(idx[r%idx.length]);
   } else {
     for(let r=0;r<100;r++) sub=[...(sub||[]),...[...idx]];
   }
-  const qPool=_selectedCat
-    ? QS.map((_,i)=>i).filter(i=>(_qCatMap[i]||[]).includes(_selectedCat))
+  const qPool=_selectedCats.size>0
+    ? QS.map((_,i)=>i).filter(i=>[..._selectedCats].some(cat=>(_qCatMap[i]||[]).includes(cat)))
     : QS.map((_,i)=>i);
   const qPoolFinal=qPool.length>0?qPool:QS.map((_,i)=>i);
   if(qPoolFinal.length===0){alert('Brak pytań w bazie! Dodaj pytania aby rozpocząć grę.');return;}
@@ -1646,7 +1819,7 @@ async function hostStart(){
     }
   });
 
-  GS={...GS,phase:'subject',gameMode:mode,subjects:sub,qSeq,qAnswers,rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:playerCount*10};
+  GS={...GS,phase:'subject',gameMode:mode,subjects:sub,qSeq,qAnswers,rt:sub.length,ri:0,votes:{},bets:{},sa:-1,ready:{},pool:playerCount*10,roundHistory:[]};
   await writeGS();render();
 }
 
@@ -1692,11 +1865,6 @@ function render(){
     }
   }
 
-  // If on slots screen, keep updating it
-  if($('s-slots').classList.contains('on')){
-    renderSlots(GS,sessionStorage.getItem('ego_name')||'Gracz');
-    return;
-  }
   switch(GS.phase){
     case'lobby':   renderLobby(); show('s-lobby'); break;
     case'voting':  renderVoting(); break;
@@ -1715,7 +1883,7 @@ function showSwapToast(){
   if(!t){
     t=document.createElement('div');
     t.id='swap-toast';
-    t.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:999;background:#1e1b4b;border:2px solid #818cf8;color:#a5b4fc;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;text-align:center;max-width:300px;box-shadow:0 4px 20px #0006;animation:pop .3s ease;';
+    t.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:999;background:#1e1b4b;border:2px solid #818cf8;color:#a5b4fc;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;text-align:center;max-width:300px;box-shadow:0 4px 20px #0006;animation:toastIn .35s cubic-bezier(.34,1.56,.64,1);';
     document.body.appendChild(t);
   }
   t.textContent=`🔄 ${name} ${gW(name,'zmienił','zmieniła')} pytanie!`;
@@ -1724,11 +1892,78 @@ function showSwapToast(){
   t._timer=setTimeout(()=>{t.style.display='none';},3500);
 }
 
+async function reportError(btn){
+  if(!GS||!gameId)return;
+  if(btn&&btn._reported)return; // prevent double-click
+  try{
+    const qIdx=GS.qSeq?.[GS.ri]??GS.ri;
+    const q=CQ();
+    const reportedBy=(GS.players[mySlot]?.name||'Gracz')+(window._currentUser?' ('+(window._currentUser.email||'').replace(/@wiem\.app$/,'')+')':'');
+    const data={
+      questionIndex:qIdx,
+      questionText:q?q.q:'',
+      answers:getQAnswers(GS.ri),
+      gameId:gameId,
+      reportedAt:new Date().toISOString(),
+      reportedBy:reportedBy,
+      status:'open'
+    };
+    await fetch(`${DB_URL}/reports.json`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    // Animate button instead of toast
+    if(btn){
+      btn._reported=true;
+      btn.textContent='✓ Zgłoszono!';
+      btn.style.color='#4ade80';
+      btn.style.fontWeight='700';
+      clearTimeout(btn._resetTimer);
+      btn._resetTimer=setTimeout(()=>{
+        btn.textContent='⚑ Zgłoś błąd';
+        btn.style.color='';
+        btn.style.fontWeight='';
+        btn._reported=false;
+      },3000);
+    }
+  }catch(e){console.error('reportError',e);}
+}
+
 // ── helpers ──
 const SI=()=>GS.subjects[GS.ri]??0;
 const SP=()=>GS.players[SI()];
 const CQ=()=>QS[GS.qSeq[GS.ri]];
 const amSJ=()=>mySlot===SI();
+const roundLabel=(ri,tot=GS?.rt)=> (GS?.gameMode||'rounds')==='pool' ? `${ri}. runda` : `Runda ${ri} / ${tot}`;
+const esc=s=>String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+
+function buildRoundHistoryEntry(gs){
+  const ri=gs.ri??0;
+  const si=gs.subjects?.[ri]??0;
+  const sp=gs.players?.[si];
+  const qIdx=gs.qSeq?.[ri];
+  const q=QS[qIdx];
+  const answers=(gs.qAnswers&&gs.qAnswers[ri])||(q?q.a:[]);
+  const correct=gs.sa;
+  return{
+    round:ri+1,
+    subjectSlot:si,
+    subjectName:sp?.name||'',
+    question:q?q.q.replace('[imię]',sp?.name||''):'',
+    correctAnswer:answers[correct]||'',
+    players:(gs.players||[]).map((p,i)=>p?{
+      slot:i,
+      name:p.name,
+      isSubject:i===si,
+      vote:gs.votes?.[i],
+      answer:answers[gs.votes?.[i]]||'',
+      correct:i===si?null:gs.votes?.[i]===correct
+    }:null).filter(Boolean)
+  };
+}
+
+function appendRoundHistory(gs){
+  const entry=buildRoundHistoryEntry(gs);
+  const history=(gs.roundHistory||[]).filter(r=>r.round!==entry.round);
+  gs.roundHistory=[...history,entry].sort((a,b)=>a.round-b.round);
+}
 
 // Dynamically scale question text font size based on character count
 function setQText(elId, text){
@@ -1790,12 +2025,11 @@ function mkSbar(id){
 
 function copySbarCode(){
   if(!gameId)return;
-  navigator.clipboard?.writeText(gameId).catch(()=>{});
+  navigator.clipboard?.writeText(gameId).catch(()=>fallbackCopy(gameId));
   document.querySelectorAll('[id^="code-row-"]').forEach(el=>{
-    const orig=el.textContent;
-    el.textContent='✓  SKOPIOWANO';
     el.style.color='var(--c2)';
-    setTimeout(()=>{el.textContent=orig;el.style.color='';},1500);
+    clearTimeout(el._copyTimer);
+    el._copyTimer=setTimeout(()=>{el.style.color='';},900);
   });
 }
 
@@ -1813,12 +2047,14 @@ function buildAns(cid,answers,locked,chosen,correct,cb){
 }
 
 function setWait(color,name,title,desc,qt){
+  if($('w-mid')) $('w-mid').style.display='';
   const av=$('w-av');
   av.style.cssText=`width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;background:${color}22;color:${color};margin:0 auto;`;
   av.textContent=name.charAt(0).toUpperCase();
   $('w-title').textContent=title;
   $('w-desc').textContent=desc;
   $('w-q').textContent=qt;
+  $('w-q').style.display=qt?'':'none';
 }
 
 // ── VOTING (guessers only) ──
@@ -1841,27 +2077,36 @@ function renderVoting(){
     }).length;
     mkSbar('sb-v');
     $('qc-v').style.setProperty('--ac',C(si));
-    $('v-meta').textContent=`Runda ${ri} / ${tot}`;
+    $('v-meta').textContent=roundLabel(ri,tot);
     $('v-about').innerHTML=`Inni zgadują Twoją odpowiedź…`;
     setQText('v-q',q.q.replace('[imię]',sp.name));
     buildAns('v-ans',getQAnswers(GS.ri),true,GS.sa,null,null);
     $('btn-vote').style.display='none';
     $('v-bet').style.display='none';
+    const pending=GS.players.map((p,i)=>({p,i})).filter(({p,i})=>p&&i!==si&&GS.votes[i]===undefined);
+    const chips=pending.map(({p,i})=>`<span style="padding:6px 16px;border-radius:99px;background:${C(i)}22;color:${C(i)};border:1.5px solid ${C(i)}55;font-size:13px;font-weight:700">${p.name}</span>`).join('');
     $('v-st').innerHTML=`
-      <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:14px 16px;text-align:center;margin-top:4px">
-        <div style="font-size:20px;margin-bottom:6px">🤫</div>
-        <div style="font-weight:600;font-size:14px;margin-bottom:4px">${gW(GS.players[mySlot]?.name||'','Już odpowiedziałeś!','Już odpowiedziałaś!')}</div>
-        <div style="color:var(--muted);font-size:13px">Zagłosowało ${done} z ${guessers.length} graczy</div>
-        ${buildPendingVoters(si)}
+      <div style="padding:12px 14px;background:var(--card);border:1.5px solid var(--rim);border-radius:14px;margin-top:4px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:${pending.length>0?'10px':'0'}">
+          <span style="font-size:20px">🤫</span>
+          <span style="font-weight:700;font-size:14px">${gW(GS.players[mySlot]?.name||'','Już odpowiedziałeś!','Już odpowiedziałaś!')}</span>
+        </div>
+        ${pending.length>0?`
+          <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px">
+            <span style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Czekasz na</span>
+            ${chips}
+          </div>
+        `:''}
       </div>`;
     show('s-vote'); return;
   }
   if(mySlot===null||!GS.players[mySlot]){
     setWait('#888','?','Trwa głosowanie…','Czekaj',q.q.replace('[imię]',sp.name));
+    const _wp=$('w-preview'); if(_wp) _wp.innerHTML='';
     show('s-wait'); return;
   }
 
-  $('v-meta').textContent=`Runda ${ri} / ${tot}`;
+  $('v-meta').textContent=roundLabel(ri,tot);
   $('v-about').innerHTML=`Pytanie o: <strong style="color:${C(si)}">${sp.name}</strong>`;
   setQText('v-q',q.q.replace('[imię]',sp.name));
 
@@ -1895,14 +2140,14 @@ function renderVoting(){
       $('v-bet').style.gap='8px';
       // Don't override _localBet if user already picked — only init on first show
       updateBetUI();
-      $('v-st').textContent='';
+      $('v-st').innerHTML=onboardingHint('vote');
     } else {
       $('btn-vote').style.display='none';
       $('v-bet').style.display='none';
-      $('v-st').textContent='Jak twoim zdaniem odpowie?';
+      $('v-st').innerHTML=onboardingHint('vote')||'Jak twoim zdaniem odpowie?';
     }
   }
-  resetReportBtns(); show('s-vote');
+  show('s-vote');
 }
 
 // ── SWAP QUESTION ──
@@ -1993,7 +2238,9 @@ function confirmVote(){
   $('v-bet').style.display='none';
   buildAns('v-ans',getQAnswers(GS.ri),true,_confirmedVote,null,null);
   const myName=GS&&mySlot!==null?GS.players[mySlot]?.name||'':'';
-  $('v-st').innerHTML=`<span style="color:var(--c2)">✓ ${gW(myName,'Zatwierdziłeś','Zatwierdziłaś')}! Czekaj na pozostałych…</span>`;
+  const afterVoteHint=onboardingHint('afterVote');
+  markOnboardingSeen();
+  $('v-st').innerHTML=`<span style="color:var(--c2)">✓ ${gW(myName,'Zatwierdziłeś','Zatwierdziłaś')}! Czekaj na pozostałych…</span>${afterVoteHint}`;
   castVote(_confirmedVote);
 }
 
@@ -2006,6 +2253,18 @@ async function castVote(ans){
     GS.votes[mySlot]=ans;
     if(!GS.bets) GS.bets={};
     GS.bets[mySlot]=_localBet;
+
+    // Track stats for logged-in user
+    if(window._currentUser && mySlot!==null && !amSJ()){
+      const myVoteLocal=GS.votes[mySlot];
+      if(myVoteLocal!==undefined){
+        updateUserStats({
+          totalAnswers:1,
+          correctAnswers:myVoteLocal===GS.sa?1:0,
+          maxTokensEver:GS.players[mySlot]?.pts||0
+        });
+      }
+    }
 
     // Check if I was the last voter — if so, compute reveal immediately
     const si=SI();
@@ -2023,6 +2282,7 @@ async function castVote(ans){
       if(!fresh||fresh.phase!=='voting'){render();return;} // already transitioned
       const next=norm(dc(fresh));
       next.phase='reveal';
+      appendRoundHistory(next);
       let poolDelta=0;
       next.players.forEach((p,i)=>{
         if(!p||i===si)return;
@@ -2037,10 +2297,7 @@ async function castVote(ans){
         }
       });
       next.pool=Math.max(0,(next.pool||0)+poolDelta);
-      const mode=next.gameMode||'rounds';
-      const anyBroke=next.players.some(p=>p&&p.pts<=0);
-      if(mode==='pool'&&(next.pool<=0||anyBroke)) next.phase='ended';
-      else if(mode==='rounds'&&next.ri+1>=next.rt) next.phase='ended';
+      // Always go to reveal first — nextRound() will handle transition to 'ended'
       GS=next;
       await writeGS();
     }
@@ -2060,22 +2317,56 @@ function renderSubj(){
   $('qc-sj').style.setProperty('--ac',C(si));
   const ri=GS.ri+1,tot=GS.rt;
 
-  // Non-subject players see wait screen
+  // Non-subject players see wait screen with question preview
   if(!amSJ()){
     setWait(C(si),sp.name,`${sp.name} wybiera odpowiedź…`,
-      'Twoja kolej zaraz — poczekaj!',
-      q.type==='players'?q.q:q.q.replace('[imię]',sp.name));
+      'Twoja kolej zaraz — poczekaj!', '');
+    // Hide wmid — banner below already shows who's deciding
+    if($('w-mid')) $('w-mid').style.display='none';
+    // Clear the w-q element – question shown in preview below instead
+    const wq=$('w-q'); if(wq) wq.textContent='';
+    // Populate preview with question and disabled answer buttons
+    const prev=$('w-preview');
+    if(prev){
+      const answers=getQAnswers(GS.ri);
+      const qText=q.type==='players'?q.q:q.q.replace('[imię]',sp.name);
+      prev.innerHTML=`
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:10px 12px;background:${C(si)}11;border:1.5px solid ${C(si)}44;border-radius:12px">
+          <div style="width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;background:${C(si)}33;color:${C(si)}">${sp.name.charAt(0).toUpperCase()}</div>
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.5px;color:${C(si)}">${sp.name}</div>
+            <div style="font-size:12px;color:var(--muted)">wybiera teraz odpowiedź…</div>
+          </div>
+        </div>
+        <div style="margin-bottom:10px;padding:10px 14px;border:2px solid #3b82f6;border-radius:12px;background:#1e3a5f22;font-size:12px;color:#60a5fa;font-weight:600;text-align:center">
+          👀 Zastanów się – wybierzesz gdy <strong style="color:#93c5fd">${sp.name}</strong> się zdecyduje
+        </div>
+        ${onboardingHint('waiting')}
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(14px,4.5vw,20px);letter-spacing:.5px;line-height:1.35;margin:8px 0;word-break:break-word">${qText}</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${answers.map((a,i)=>`<div style="background:var(--card);border:2px solid var(--rim);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;opacity:0.5;pointer-events:none">
+            <div style="width:32px;height:32px;border-radius:8px;background:var(--rim);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0">${i+1}</div>
+            <span style="font-size:14px">${a}</span>
+          </div>`).join('')}
+        </div>`;
+    }
     show('s-wait'); return;
   }
 
   // Subject screen
-  $('sj-meta').textContent=`Runda ${ri} / ${tot} — To pytanie jest o Tobie!`;
+  $('sj-meta').textContent=`${roundLabel(ri,tot)} — To pytanie jest o Tobie!`;
   $('sj-about').textContent=`Odpowiedz szczerze!`;
   // Build answer buttons — always unlocked so subject can change
   const ac=$('sj-ans'); ac.innerHTML='';
   const isPlayerType=q.type==='players';
   const answers=getQAnswers(GS.ri);
   setQText('sj-q',q.qs);
+  const sjHint=onboardingHint('subject');
+  if(sjHint){
+    const hint=document.createElement('div');
+    hint.innerHTML=sjHint;
+    ac.appendChild(hint.firstElementChild);
+  }
   answers.forEach((a,i)=>{
     const btn=document.createElement('button');
     btn.className='abtn';
@@ -2096,7 +2387,7 @@ function renderSubj(){
   $('btn-sj').style.display=_sjPending!==null?'block':'none';
   $('btn-sj').textContent='Zatwierdź i pozwól innym odpowiedzieć →';
 
-  resetReportBtns(); show('s-subj');
+  show('s-subj');
 }
 
 async function submitSJ(){
@@ -2153,7 +2444,7 @@ function renderReveal(){
   const rvQText=q.q.replace('[imię]',sp.name);
   const rvQSize=rvQText.length>90?'14px':rvQText.length>65?'15px':'18px';
   bannerHtml+=`<div style="background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:14px 16px;margin-top:12px">
-    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Runda ${ri} / ${tot} · Pytanie o <strong style="color:${C(si)}">${sp.name}</strong></div>
+    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">${roundLabel(ri,tot)} · Pytanie o <strong style="color:${C(si)}">${sp.name}</strong></div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:${rvQSize};letter-spacing:.3px;line-height:1.35;word-break:break-word">${rvQText}</div>
   </div>`;
 
@@ -2211,14 +2502,19 @@ function renderReveal(){
   const isLast=mode==='pool'?(poolLeft<=0||anyBroke):(GS.ri+1>=GS.rt);
   const modeInfo=mode==='pool'
     ? `W puli pozostało: <strong style="color:var(--c3)">${poolLeft} 🪙</strong>${anyBroke?' · <span style="color:var(--c0)">Ktoś zbankrutował!</span>':''}`
-    : `Runda <strong>${GS.ri+1}</strong> z <strong>${GS.rt}</strong>`;
+    : `${roundLabel(GS.ri+1,GS.rt)}`;
   $('rv-btn').innerHTML=`
     <div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:8px">${modeInfo}</div>
-    <button class="btn btn-lit" onclick="nextRound()">${isLast?'🏆 Wyniki końcowe':'Następna runda →'}</button>`;
+    ${isHost
+      ?`<button class="btn btn-lit" onclick="nextRound()">${isLast?'🏆 Wyniki końcowe':'Następna runda →'}</button>`
+      :`<div style="text-align:center;padding:14px;font-size:14px;color:var(--muted)">⏳ Czekaj aż host przejdzie dalej…</div>`
+    }
+    <button onclick="reportError(this)" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;padding:4px 0;text-align:center;width:100%;margin-top:4px;transition:color .2s">⚑ Zgłoś błąd</button>`;
   show('s-reveal');
 }
 
 async function nextRound(){
+  if(!isHost) return;
   try{
     const gs=await fbGet(`games/${gameId}`);
     GS=norm(dc(gs));
@@ -2235,6 +2531,13 @@ async function nextRound(){
 
 // ── END ──
 function renderEnd(){
+  // Track game completion stats
+  if(window._currentUser && mySlot!==null){
+    updateUserStats({
+      gamesPlayed:1,
+      maxTokensEver:GS.players[mySlot]?.pts||0
+    });
+  }
   const ps=[...GS.players.entries()].filter(([,p])=>p).map(([i,p])=>({...p,i})).sort((a,b)=>b.pts-a.pts);
   const med=['🥇','🥈','🥉',''];
   const maxPts=Math.max(...ps.map(p=>p.pts),1);
@@ -2245,11 +2548,34 @@ function renderEnd(){
   }).join('');
   $('end-sc').innerHTML='<div class="rctitle">Wyniki końcowe</div>'+
     ps.map(p=>`<div class="rvrow"><div class="rvl"><div class="rvdot" style="background:${C(p.i)}"></div><span>${p.name}</span></div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:${C(p.i)}">${p.pts} 🪙</div></div>`).join('');
+
+  const rh=GS.roundHistory||[];
+  const roundsEl=$('end-rounds');
+  if(roundsEl){
+    roundsEl.innerHTML='<div class="rctitle">Podsumowanie rund</div>'+(rh.length?rh.map(r=>{
+      const myResult=(r.players||[]).find(p=>p.slot===mySlot&&!p.isSubject);
+      const cardColor=myResult?(myResult.correct?'#22c55e':'#ef4444'):'var(--rim)';
+      const cardBg=myResult?(myResult.correct?'#052e1622':'#450a0a22'):'transparent';
+      const ok=(r.players||[]).filter(p=>!p.isSubject&&p.correct);
+      const bad=(r.players||[]).filter(p=>!p.isSubject&&!p.correct);
+      const chip=(p,type)=>`<span class="vchip" style="display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:99px;font-size:11px;font-weight:700;background:${type==='ok'?'#14532d':type==='bad'?'#450a0a':C(p.slot)+'22'};color:${type==='ok'?'#86efac':type==='bad'?'#fca5a5':C(p.slot)};border:1px solid ${type==='ok'?'#22c55e66':type==='bad'?'#ef444466':C(p.slot)+'55'}">${type==='ok'?'✓':type==='bad'?'✗':'●'} ${esc(p.name)}</span>`;
+      return `<div style="border:1.5px solid ${cardColor};background:${cardBg};border-radius:14px;padding:12px;margin-top:10px">
+        <div style="font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">${esc(roundLabel(r.round,GS.rt))} · <strong style="color:${C(r.subjectSlot)}">${esc(r.subjectName)}</strong></div>
+        <div style="font-size:13px;line-height:1.35;margin-bottom:8px">${esc(r.question)}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">✓ <strong style="color:var(--c2)">${esc(r.correctAnswer)}</strong></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:11px;color:var(--muted);min-width:52px">Trafili</span>${ok.length?ok.map(p=>chip(p,'ok')).join(''):'<span style="font-size:11px;color:var(--muted)">nikt</span>'}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:11px;color:var(--muted);min-width:52px">Pudła</span>${bad.length?bad.map(p=>chip(p,'bad')).join(''):'<span style="font-size:11px;color:var(--muted)">brak</span>'}</div>
+        </div>
+      </div>`;
+    }).join(''):'<div style="font-size:13px;color:var(--muted)">Brak zapisanych rund.</div>');
+  }
+
   const eb=$('end-btns');eb.innerHTML='';
   if(isHost){
     const b=document.createElement('button');b.className='btn btn-lit';b.textContent='Zagraj ponownie';
     b.onclick=async()=>{
-      GS={...GS,phase:'lobby',subjects:[],qSeq:[],ri:0,votes:{},bets:{},sa:-1,pool:0};
+      GS={...GS,phase:'lobby',subjects:[],qSeq:[],ri:0,votes:{},bets:{},sa:-1,pool:0,roundHistory:[]};
       GS.players.forEach(p=>{if(p)p.pts=10;});
       await writeGS();render();
     };
@@ -2347,23 +2673,29 @@ let _bulkSelected=new Set(); // indices selected for bulk category assign
   try{ _qCats=JSON.parse(localStorage.getItem('wiem_cats')||'{}'); }catch(e){}
   try{ _qCatMap=JSON.parse(localStorage.getItem('wiem_catmap')||'{}'); }catch(e){}
 
-  // Ensure "Gracze" category always exists
-  if(!_qCats['cat_players']){
-    _qCats['cat_players']={name:'Gracze',color:'#38bdf8'};
-    try{ localStorage.setItem('wiem_cats',JSON.stringify(_qCats)); }catch(e){}
-  }
+  // Ensure categories always exist
+  if(!_qCats['cat_players'])  _qCats['cat_players']  = {name:'Kto z graczy', color:'#38bdf8'};
+  if(!_qCats['cat_demo'])     _qCats['cat_demo']     = {name:'Demo',          color:'#a78bfa'};
+  if(!_qCats['cat_impreza'])  _qCats['cat_impreza']  = {name:'Impreza',       color:'#fb923c'};
+  if(!_qCats['cat_zyciowka']) _qCats['cat_zyciowka'] = {name:'Życiówka',      color:'#34d399'};
+  if(!_qCats['cat_ambicje'])  _qCats['cat_ambicje']  = {name:'Ambicje i cele',color:'#facc15'};
+  try{ localStorage.setItem('wiem_cats',JSON.stringify(_qCats)); }catch(e){}
 
-  // Auto-assign all player-type questions to "Gracze" category
+  // Auto-assign questions to categories
   let catMapChanged=false;
+  // Helper to assign a category to a question index
+  function _ensureCat(idx, catId){
+    if(!_qCatMap[idx]) _qCatMap[idx]=[];
+    if(!_qCatMap[idx].includes(catId)){ _qCatMap[idx].push(catId); catMapChanged=true; }
+  }
   QS.forEach((q,i)=>{
-    if(q.type==='players'){
-      if(!_qCatMap[i]) _qCatMap[i]=[];
-      if(!_qCatMap[i].includes('cat_players')){
-        _qCatMap[i].push('cat_players');
-        catMapChanged=true;
-      }
-    }
+    if(q.type==='players') _ensureCat(i,'cat_players');
+    if(q.cat==='impreza')  _ensureCat(i,'cat_impreza');
+    if(q.cat==='zyciowka') _ensureCat(i,'cat_zyciowka');
+    if(q.cat==='ambicje')  _ensureCat(i,'cat_ambicje');
   });
+  // Demo category: custom indices 0,4,7,11,17,20; player indices 24,28,31,36; impreza 42,43; zyciowka 50,51; ambicje 58,59
+  [0,4,7,11,17,20,24,28,31,36,42,43,50,51,58,59].forEach(i=>{ if(QS[i]) _ensureCat(i,'cat_demo'); });
   if(catMapChanged){
     try{ localStorage.setItem('wiem_catmap',JSON.stringify(_qCatMap)); }catch(e){}
   }
@@ -2475,26 +2807,30 @@ let _newQType='normal'; // 'normal' | 'players'
 // ══════════════════════════════════════════════
 
 const ADMIN_EMAIL = 'jakub@humienny.com';
+const ADMIN_USERNAME = 'kuba';
 
 let _authMode = 'login';
 
 window._onAuthStateChanged = function(user) {
-  const loggedOut = $('auth-logged-out');
-  const loggedIn  = $('auth-logged-in');
-  const adminBtn  = $('auth-admin-btn');
-  const myqBtn    = $('auth-myq-btn');
-  const emailEl   = $('auth-email');
+  const loggedOut  = $('auth-logged-out');
+  const loggedIn   = $('auth-logged-in');
+  const adminBtn   = $('auth-admin-btn');
+  const myqBtn     = $('auth-myq-btn');
+  const statsBtn   = $('auth-stats-btn');
+  const emailEl    = $('auth-email');
   if (!loggedOut || !loggedIn) return;
   if (user) {
     loggedOut.style.display = 'none';
     loggedIn.style.display  = 'flex';
-    if (emailEl) emailEl.textContent = user.email;
+    if (emailEl)  emailEl.textContent   = (user.email||'').replace(/@wiem\.app$/,'');
+    if (statsBtn) statsBtn.style.display = '';
     authCheckRole(user.uid);
   } else {
     loggedOut.style.display = 'flex';
     loggedIn.style.display  = 'none';
     if (adminBtn) adminBtn.style.display = 'none';
     if (myqBtn)   myqBtn.style.display   = 'none';
+    if (statsBtn) statsBtn.style.display = 'none';
   }
 };
 
@@ -2512,7 +2848,7 @@ async function authCheckRole(uid) {
       await fetch(DB_URL + '/users/' + uid + '.json?auth=' + token, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ email: user.email, role: 'user', createdAt: Date.now() })
+        body: JSON.stringify({ username: (user.email||'').replace(/@wiem\.app$/,''), role: 'user', createdAt: Date.now() })
       });
     }
     const dn = (userData && userData.displayName) || '';
@@ -2533,6 +2869,86 @@ async function authCheckRole(uid) {
     if (myqBtn)   myqBtn.style.display   = 'none';
   }
 }
+
+async function updateUserStats(statsUpdate) {
+  const user = window._currentUser;
+  if (!user) return;
+  try {
+    const token = await user.getIdToken();
+    const url = DB_URL + '/users/' + user.uid + '/stats.json?auth=' + token;
+    const r = await fetch(url);
+    const current = (await r.json()) || {};
+    const merged = {
+      gamesPlayed: (current.gamesPlayed||0) + (statsUpdate.gamesPlayed||0),
+      correctAnswers: (current.correctAnswers||0) + (statsUpdate.correctAnswers||0),
+      totalAnswers: (current.totalAnswers||0) + (statsUpdate.totalAnswers||0),
+      maxTokensEver: Math.max(current.maxTokensEver||0, statsUpdate.maxTokensEver||0)
+    };
+    await fetch(url, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(merged)
+    });
+  } catch(e) {}
+}
+
+function statCard(icon, label, value, note) {
+  return `<div style="background:var(--card);border:1.5px solid var(--rim);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+    <div style="font-size:22px">${icon}</div>
+    <div style="flex:1"><div style="font-size:12px;color:var(--muted)">${label}${note?' <span style="font-size:9px;background:var(--rim);padding:1px 6px;border-radius:99px;color:var(--muted)">'+note+'</span>':''}</div><div style="font-size:20px;font-family:'Bebas Neue',sans-serif;letter-spacing:1px">${value}</div></div>
+  </div>`;
+}
+
+function openStatsModal() {
+  const modal = $('stats-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  loadStatsIntoModal();
+}
+
+function closeStatsModal() {
+  const modal = $('stats-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function loadStatsIntoModal() {
+  const user = window._currentUser;
+  const body = $('stats-modal-body');
+  if (!body) return;
+  if (!user) {
+    body.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Zaloguj się, aby zobaczyć statystyki.</div>';
+    return;
+  }
+  body.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Ładowanie…</div>';
+  try {
+    const token = await user.getIdToken();
+    const url = DB_URL + '/users/' + user.uid + '/stats.json?auth=' + token;
+    const r = await fetch(url);
+    const s = await r.json();
+    if (!s || !s.gamesPlayed) {
+      body.innerHTML = `
+        <div style="opacity:0.35;pointer-events:none;display:flex;flex-direction:column;gap:8px">
+          ${statCard('🎮','Rozegranych gier','12','przykład')}
+          ${statCard('🏆','Rekord żetonów','18 🪙','przykład')}
+          ${statCard('✅','Trafne odpowiedzi','67% (45/67)','przykład')}
+        </div>
+        <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px">Zagraj swoją pierwszą grę, żeby zobaczyć tu swoje statystyki!</div>`;
+    } else {
+      const pct = s.totalAnswers > 0 ? Math.round(100*s.correctAnswers/s.totalAnswers) : 0;
+      body.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${statCard('🎮','Rozegranych gier',String(s.gamesPlayed||0),'')}
+          ${statCard('🏆','Rekord żetonów',(s.maxTokensEver||0)+' 🪙','')}
+          ${statCard('✅','Trafne odpowiedzi',pct+'% ('+s.correctAnswers+'/'+(s.totalAnswers||0)+')','')}
+        </div>`;
+    }
+  } catch(e) {
+    body.innerHTML = '<div style="text-align:center;color:var(--c0);font-size:13px;padding:20px 0">Błąd ładowania statystyk.</div>';
+  }
+}
+
+// kept for backward compat (called from _onAuthStateChanged)
+function loadAndShowUserStats() {}
 
 function openAuthModal(mode) {
   _authMode = mode || 'login';
@@ -2577,23 +2993,27 @@ function authShowErr(msg) {
 
 function authFirebaseErrMsg(code) {
   const map = {
-    'auth/invalid-email':          'Nieprawid\u0142owy adres email.',
-    'auth/user-not-found':         'Nie znaleziono konta z tym emailem.',
+    'auth/user-not-found':         'Nie znaleziono konta z takim loginem.',
     'auth/wrong-password':         'B\u0142\u0119dne has\u0142o.',
-    'auth/invalid-credential':     'B\u0142\u0119dne dane logowania.',
-    'auth/email-already-in-use':   'Ten email jest ju\u017c zaj\u0119ty.',
+    'auth/invalid-credential':     'B\u0142\u0119dny login lub has\u0142o.',
+    'auth/email-already-in-use':   'Podany login jest ju\u017c zaj\u0119ty.',
     'auth/weak-password':          'Has\u0142o musi mie\u0107 co najmniej 6 znak\u00f3w.',
     'auth/too-many-requests':      'Za du\u017co pr\u00f3b. Spr\u00f3buj za chwil\u0119.',
     'auth/network-request-failed': 'B\u0142\u0105d sieci. Sprawd\u017a po\u0142\u0105czenie.',
+    'auth/invalid-email':          'Nieprawid\u0142owy login.',
   };
   return map[code] || ('B\u0142\u0105d: ' + code);
 }
 
 async function submitAuth() {
-  const email = ($('auth-inp-email').value || '').trim();
-  const pass  = ($('auth-inp-pass').value  || '');
-  if (!email) { authShowErr('Wpisz adres email.'); return; }
-  if (!pass)  { authShowErr('Wpisz has\u0142o.'); return; }
+  const username = ($('auth-inp-email').value || '').trim().toLowerCase();
+  const pass     = ($('auth-inp-pass').value  || '');
+  if (!username) { authShowErr('Wpisz login.'); return; }
+  if (_authMode === 'register' && !/^[a-z0-9_.-]{3,20}$/.test(username)) {
+    authShowErr('Login: 3\u201320 znak\u00f3w, tylko litery, cyfry, _ . -'); return;
+  }
+  if (!pass) { authShowErr('Wpisz has\u0142o.'); return; }
+  const fakeEmail = username + '@wiem.app';
   const btn = $('auth-submit-btn');
   btn.disabled = true;
   btn.textContent = '\u23f3';
@@ -2603,7 +3023,7 @@ async function submitAuth() {
     const fns  = window._fbAuthFns;
     if (!auth || !fns) throw new Error('auth/not-ready');
     if (_authMode === 'login') {
-      const loginCred = await fns.signInWithEmailAndPassword(auth, email, pass);
+      const loginCred = await fns.signInWithEmailAndPassword(auth, fakeEmail, pass);
       try {
         const loginToken = await loginCred.user.getIdToken();
         const roleR = await fetch(DB_URL + '/users/' + loginCred.user.uid + '/role.json?auth=' + loginToken);
@@ -2612,20 +3032,33 @@ async function submitAuth() {
           await fetch(DB_URL + '/users/' + loginCred.user.uid + '.json?auth=' + loginToken, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ email: email, role: 'user', createdAt: Date.now() })
+            body: JSON.stringify({ username: username, role: 'user', createdAt: Date.now() })
           });
         }
       } catch(e2) {}
     } else {
+      // Check username availability before creating account
+      const unCheck = await fetch(DB_URL + '/usernames/' + username + '.json');
+      const unData  = unCheck.ok ? await unCheck.json() : null;
+      if (unData !== null) {
+        authShowErr('Podany login jest niedost\u0119pny.');
+        return;
+      }
       const displayName = ($('auth-inp-name').value || '').trim();
-      const cred = await fns.createUserWithEmailAndPassword(auth, email, pass);
-      const uid = cred.user.uid;
-      const role = email === ADMIN_EMAIL ? 'admin' : 'user';
+      const cred = await fns.createUserWithEmailAndPassword(auth, fakeEmail, pass);
+      const uid  = cred.user.uid;
+      const role = username === ADMIN_USERNAME ? 'admin' : 'user';
       const regToken = await cred.user.getIdToken();
+      // Reserve username \u2192 uid mapping
+      await fetch(DB_URL + '/usernames/' + username + '.json?auth=' + regToken, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(uid)
+      });
       const regR = await fetch(DB_URL + '/users/' + uid + '.json?auth=' + regToken, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ email: email, role: role, createdAt: Date.now(), displayName: displayName })
+        body: JSON.stringify({ username: username, role: role, createdAt: Date.now(), displayName: displayName || username })
       });
       if (!regR.ok) throw new Error('SET ' + regR.status);
       if (displayName) {
@@ -2666,6 +3099,8 @@ async function fbSet(path, data) {
 // ══════════════════════════════════════════════
 
 let _admTab = 'questions';
+let _admCatFilter = null;
+let _admSelectedQs = new Set();
 
 async function admGetToken() {
   const user = window._currentUser;
@@ -2724,15 +3159,70 @@ function admOpen() {
 // Admin panel init is hooked directly into show()
 
 // ── TAB: ALL QUESTIONS ──
+function admRenderCatFilter() {
+  const row = $('adm-cat-filter-row');
+  if (!row) return;
+  const cats = Object.entries(_qCats || {});
+  row.innerHTML =
+    '<button onclick="admSetCatFilter(null)" style="padding:5px 10px;border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ' + (_admCatFilter===null?'var(--text)':'var(--rim)') + ';background:' + (_admCatFilter===null?'var(--text)':'transparent') + ';color:' + (_admCatFilter===null?'var(--bg)':'var(--muted)') + '">Wszystkie</button>' +
+    cats.map(([id,cat]) => {
+      const active = _admCatFilter === id;
+      return '<button onclick="admSetCatFilter(\'' + id + '\')" style="padding:5px 10px;border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ' + (active?cat.color:cat.color+'55') + ';background:' + (active?cat.color+'33':'transparent') + ';color:' + (active?cat.color:'var(--muted)') + '">' + escHtml(cat.name) + '</button>';
+    }).join('');
+}
+
+function admSetCatFilter(catId) {
+  _admCatFilter = catId;
+  admRenderCatFilter();
+  admRenderQuestions();
+}
+
+function admUpdateBulkBar() {
+  const bar = $('adm-bulk-bar');
+  const countEl = $('adm-bulk-count');
+  if (!bar) return;
+  const n = _admSelectedQs.size;
+  bar.style.display = n > 0 ? 'flex' : 'none';
+  if (countEl) countEl.textContent = n + ' zaznaczonych';
+}
+
+function admToggleQSelect(i) {
+  if (_admSelectedQs.has(i)) _admSelectedQs.delete(i);
+  else _admSelectedQs.add(i);
+  const cb = $('admcb-' + i);
+  if (cb) cb.checked = _admSelectedQs.has(i);
+  admUpdateBulkBar();
+}
+
+function admClearSelection() {
+  _admSelectedQs.clear();
+  document.querySelectorAll('[id^="admcb-"]').forEach(cb => { cb.checked = false; });
+  admUpdateBulkBar();
+}
+
+function admBulkDelete() {
+  if (_admSelectedQs.size === 0) return;
+  if (!confirm('Usunąć ' + _admSelectedQs.size + ' zaznaczonych pytań?')) return;
+  const toDelete = [..._admSelectedQs].sort((a,b) => b-a); // delete from end to preserve indices
+  toDelete.forEach(i => QS.splice(i, 1));
+  _admSelectedQs.clear();
+  admRenderQuestions();
+}
+
 function admRenderQuestions() {
+  admRenderCatFilter();
   const search = ($('adm-q-search') ? $('adm-q-search').value : '').toLowerCase();
   const list = $('adm-q-list');
   const countEl = $('adm-q-count');
   if (!list) return;
 
-  const filtered = QS.map((q, i) => ({q, i})).filter(({q}) =>
-    !search || q.q.toLowerCase().includes(search) || (q.a||[]).join(' ').toLowerCase().includes(search)
-  );
+  const filtered = QS.map((q, i) => ({q, i})).filter(({q, i}) => {
+    if (_admCatFilter) {
+      const cats = _qCatMap[i] || [];
+      if (!cats.includes(_admCatFilter)) return false;
+    }
+    return !search || q.q.toLowerCase().includes(search) || (q.a||[]).join(' ').toLowerCase().includes(search);
+  });
 
   if (countEl) countEl.textContent = filtered.length + ' / ' + QS.length;
   list.innerHTML = '';
@@ -2744,6 +3234,7 @@ function admRenderQuestions() {
     card.innerHTML = admBuildQCard(q, i, false);
     list.appendChild(card);
   });
+  admUpdateBulkBar();
 }
 
 function admBuildQCard(q, i, editing) {
@@ -2766,13 +3257,24 @@ function admBuildQCard(q, i, editing) {
   }
 
   const ans = (q.a||[]).map((a,ai) => '<span style="font-size:11px;background:var(--bg);border-radius:6px;padding:3px 8px;color:var(--muted)">' + escHtml(a) + '</span>').join('');
-  return '<div class="adm-card-meta">#' + (i+1) + (q.type==='players'?' · 👥 Gracze':''  ) + '</div>' +
-    '<div class="adm-card-q">' + escHtml(q.q) + '</div>' +
-    (ans ? '<div style="display:flex;flex-wrap:wrap;gap:4px">' + ans + '</div>' : '') +
-    '<div style="display:flex;gap:8px">' +
-      '<button onclick="admEditQ(' + i + ')" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer">✏ Edytuj</button>' +
-      '<button onclick="admDeleteQ(' + i + ')" style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--c0)44;background:transparent;color:var(--c0);font-size:12px;font-weight:600;cursor:pointer">🗑</button>' +
-    '</div>';
+  const catTags = (_qCatMap[i]||[]).map(cid => {
+    const cat = (_qCats||{})[cid];
+    return cat ? '<span style="font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid ' + cat.color + '55;color:' + cat.color + ';background:' + cat.color + '22">' + escHtml(cat.name) + '</span>' : '';
+  }).join('');
+  const isChecked = _admSelectedQs.has(i);
+  return '<div style="display:flex;align-items:flex-start;gap:8px">' +
+    '<input type="checkbox" id="admcb-' + i + '" ' + (isChecked?'checked':'') + ' onchange="admToggleQSelect(' + i + ')" style="margin-top:3px;width:16px;height:16px;flex-shrink:0;cursor:pointer">' +
+    '<div style="flex:1;min-width:0">' +
+      '<div class="adm-card-meta">#' + (i+1) + (q.type==='players'?' · 👥 Gracze':'') + '</div>' +
+      '<div class="adm-card-q">' + escHtml(q.q) + '</div>' +
+      (ans ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">' + ans + '</div>' : '') +
+      (catTags ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">' + catTags + '</div>' : '') +
+      '<div style="display:flex;gap:8px;margin-top:8px">' +
+        '<button onclick="admEditQ(' + i + ')" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer">✏ Edytuj</button>' +
+        '<button onclick="admDeleteQ(' + i + ')" style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--c0)44;background:transparent;color:var(--c0);font-size:12px;font-weight:600;cursor:pointer">🗑</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
 }
 
 function escHtml(str) {
@@ -3105,34 +3607,6 @@ async function admLoadPendingCount() {
 }
 
 // ── TAB: REPORTS ──
-async function reportQuestion(btn) {
-  if (!btn || btn.disabled) return;
-  btn.disabled = true;
-  const origText = btn.textContent;
-  btn.textContent = '⏳';
-  try {
-    const qIdx  = GS ? GS.ri : 0;
-    const qText = (GS && GS.qSeq) ? (QS[GS.qSeq[qIdx]]?.q || '') : '';
-    const reporterName = (GS && mySlot !== null) ? (GS.players[mySlot]?.name || 'Gracz') : 'Gracz';
-    await fetch(DB_URL + '/reports.json', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ qText, qIdx, gameId, reporterName, reportedAt: Date.now(), resolved: false })
-    });
-    btn.textContent = '✓ Zgłoszono';
-  } catch(e) {
-    btn.disabled = false;
-    btn.textContent = origText;
-  }
-}
-
-function resetReportBtns() {
-  ['btn-report-v', 'btn-report-sj'].forEach(id => {
-    const btn = $(id);
-    if (btn) { btn.disabled = false; btn.textContent = '⚑ Zgłoś błąd w pytaniu/odpowiedzi'; }
-  });
-}
-
 async function admLoadReports() {
   const list = $('adm-reports-list');
   const empty = $('adm-reports-empty');
@@ -3142,7 +3616,12 @@ async function admLoadReports() {
   try {
     const data = await admFetch('reports');
     const items = [];
-    if (data) Object.entries(data).forEach(([rid, r]) => { if (r && !r.resolved) items.push({rid, r}); });
+    if (data) Object.entries(data).forEach(([rid, r]) => {
+      if (!r) return;
+      // Support both old format (r.resolved field) and new format (r.status field)
+      const isOpen = r.status ? r.status === 'open' : !r.resolved;
+      if (isOpen) items.push({rid, r});
+    });
 
     list.innerHTML = '';
     if (items.length === 0) { if (empty) empty.style.display = ''; return; }
@@ -3152,11 +3631,25 @@ async function admLoadReports() {
       const card = document.createElement('div');
       card.className = 'adm-card';
       card.id = 'rep-' + rid;
+      const dateStr = r.reportedAt ? new Date(r.reportedAt).toLocaleString('pl') : (r.reportedAt||'—');
+      const qText = r.questionText || r.qText || '(brak treści)';
+      const answers = r.answers || [];
+      const ansHtml = answers.length > 0
+        ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0">' + answers.map((a,i) => '<span style="font-size:11px;background:var(--bg);border-radius:6px;padding:3px 8px;color:var(--muted)">' + (i+1) + '. ' + escHtml(a) + '</span>').join('') + '</div>'
+        : '';
       card.innerHTML =
-        '<div class="adm-card-meta">Pytanie #' + ((r.qIdx||0)+1) + ' · ' + new Date(r.reportedAt||0).toLocaleDateString('pl') + '</div>' +
-        '<div class="adm-card-q">' + escHtml(r.qText||'(brak treści)') + '</div>' +
-        (r.message ? '<div style="font-size:12px;color:var(--muted);font-style:italic">"' + escHtml(r.message) + '"</div>' : '') +
-        '<button onclick="admResolveReport(\'' + rid + '\')" style="padding:9px;border-radius:8px;border:none;background:var(--text);color:var(--bg);font-size:12px;font-weight:700;cursor:pointer">✓ Oznacz jako rozwiązane</button>';
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">' +
+          '<span style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">' + dateStr + '</span>' +
+          '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:#ef444422;color:#f87171;border:1px solid #ef444444">Otwarte</span>' +
+        '</div>' +
+        '<div class="adm-card-q">' + escHtml(qText) + '</div>' +
+        ansHtml +
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">Zgłosił/a: ' + escHtml(r.reportedBy || r.reportedByName || '—') + (r.gameId ? ' · Gra: ' + escHtml(r.gameId) : '') + '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+          '<button onclick="admEditReportQ(\'' + rid + '\')" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--rim);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer">✏️ Edytuj</button>' +
+          '<button onclick="admResolveReport(\'' + rid + '\')" style="flex:1;padding:9px;border-radius:8px;border:none;background:#16a34a;color:#fff;font-size:12px;font-weight:700;cursor:pointer">✓ Zamknij</button>' +
+          '<button onclick="admRejectReport(\'' + rid + '\')" style="padding:9px 14px;border-radius:8px;border:1.5px solid var(--c0)44;background:transparent;color:var(--c0);font-size:12px;font-weight:700;cursor:pointer">✗ Odrzuć</button>' +
+        '</div>';
       list.appendChild(card);
     });
     admLoadReportsCount();
@@ -3165,9 +3658,35 @@ async function admLoadReports() {
   }
 }
 
+function admEditReportQ(rid) {
+  // Find related question in QS by matching questionText and open inline edit
+  const card = $('rep-' + rid);
+  if (!card) return;
+  const qTextEl = card.querySelector('.adm-card-q');
+  const qText = qTextEl ? qTextEl.textContent : '';
+  const qIdx = QS.findIndex(q => q.q === qText);
+  if (qIdx === -1) { alert('Nie znaleziono pytania w puli (może już edytowane lub pytanie gracza).'); return; }
+  // Navigate to questions tab and highlight the question
+  admSetTab('questions');
+  setTimeout(() => {
+    admEditQ(qIdx);
+    const el = $('admq-' + qIdx);
+    if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 200);
+}
+
 async function admResolveReport(rid) {
   try {
-    await admWrite('reports/' + rid + '/resolved', true);
+    await admWrite('reports/' + rid + '/status', 'resolved', 'PUT');
+    const card = $('rep-' + rid);
+    if (card) card.remove();
+    admLoadReportsCount();
+  } catch(e) { alert('Błąd: ' + e.message); }
+}
+
+async function admRejectReport(rid) {
+  try {
+    await admWrite('reports/' + rid + '/status', 'rejected', 'PUT');
     const card = $('rep-' + rid);
     if (card) card.remove();
     admLoadReportsCount();
@@ -3178,7 +3697,11 @@ async function admLoadReportsCount() {
   try {
     const data = await admFetch('reports');
     let n = 0;
-    if (data) Object.values(data).forEach(r => { if (r && !r.resolved) n++; });
+    if (data) Object.values(data).forEach(r => {
+      if (!r) return;
+      const isOpen = r.status ? r.status === 'open' : !r.resolved;
+      if (isOpen) n++;
+    });
     const el = $('adm-reports-count');
     if (el) { el.textContent = n; el.style.display = n > 0 ? 'inline' : 'none'; }
   } catch(e) {}
@@ -3390,7 +3913,7 @@ async function submitMyQuestion() {
     const r = await fetch(DB_URL + '/userQuestions/' + user.uid + '.json?auth=' + token, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({q, qs, a, as, status:'pending', authorEmail: user.email, createdAt: Date.now()})
+      body: JSON.stringify({q, qs, a, as, status:'pending', authorEmail: (user.email||'').replace(/@wiem\.app$/,''), createdAt: Date.now()})
     });
     if (!r.ok) throw new Error('POST ' + r.status);
 
@@ -3437,13 +3960,23 @@ async function submitMyQuestion() {
   </div>
 </div>
 
-<div id="auth-modal" style="display:none;position:fixed;inset:0;background:#000b;z-index:9999;align-items:center;justify-content:center">
+<div id="stats-modal" style="display:none;position:fixed;inset:0;background:#000b;z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)closeStatsModal()">
+  <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:16px;padding:24px;width:min(340px,92vw);display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="font-size:13px;font-weight:700;flex:1">📊 Twoje statystyki</div>
+      <button onclick="closeStatsModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">×</button>
+    </div>
+    <div id="stats-modal-body"><div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Ładowanie…</div></div>
+  </div>
+</div>
+
+<div id="auth-modal" style="display:none;position:fixed;inset:0;background:#000b;z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)closeAuthModal()">
   <div style="background:var(--card);border:1.5px solid var(--rim);border-radius:16px;padding:24px;width:min(340px,92vw);display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;align-items:center;gap:8px">
       <div id="auth-modal-title" style="font-size:13px;font-weight:700;flex:1"></div>
       <button onclick="closeAuthModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">×</button>
     </div>
-    <input id="auth-inp-email" type="email" autocomplete="email" placeholder="Email"
+    <input id="auth-inp-email" type="text" autocomplete="username" placeholder="Login"
       style="background:var(--bg);border:1.5px solid var(--rim);border-radius:10px;padding:11px 13px;font-size:14px;color:var(--text);font-family:inherit;width:100%;box-sizing:border-box"
       onkeydown="event.stopPropagation();if(event.key==='Enter')$('auth-inp-pass').focus()">
     <input id="auth-inp-pass" type="password" autocomplete="current-password" placeholder="Hasło (min. 6 znaków)"
