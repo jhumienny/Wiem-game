@@ -157,9 +157,10 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:1;}
 .onb-body{display:none;border-top:1px solid #818cf833;padding-top:10px;font-size:13px;color:var(--muted);line-height:1.55;}
 .onb-card.open .onb-body{display:block;}
 .onb-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;}
-.onb-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.onb-actions{display:flex;justify-content:flex-start;margin-top:10px;}
 .onb-mini-btn{border:1.5px solid var(--rim);background:transparent;color:var(--muted);border-radius:9px;padding:7px 10px;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;}
 .onb-mini-btn.primary{background:var(--text);border-color:var(--text);color:var(--bg);}
+.onb-dismiss{border:none;background:transparent;color:#c7d2fe;padding:2px 0;font-size:12px;font-weight:800;font-family:'DM Sans',sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;}
 .onb-hint{background:#1e3a5f22;border:1.5px solid #60a5fa55;color:#bfdbfe;border-radius:12px;padding:9px 12px;font-size:12px;line-height:1.45;font-weight:600;}
 .cat-scroll{display:flex;gap:6px;overflow-x:auto;padding:0 18px 4px 18px;margin:0 -18px;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 28px,#000 calc(100% - 34px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 28px,#000 calc(100% - 34px),transparent 100%);}
 .cat-scroll::-webkit-scrollbar{display:none;}
@@ -184,6 +185,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:1;}
 [data-theme="light"] .onb-hint{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8;}
 [data-theme="light"] .onb-mini-btn{color:#514a68;}
 [data-theme="light"] .onb-mini-btn.primary{background:#12111a;border-color:#12111a;color:#ffffff;}
+[data-theme="light"] .onb-dismiss{color:#5b21b6;}
 [data-theme="light"] .codebox.copied{background:#dcfce7;border-color:#16a34a;box-shadow:0 0 0 3px #16a34a22;}
 [data-theme="light"] .copy-note{color:#15803d;}
 </style>
@@ -371,7 +373,7 @@ onAuthStateChanged(auth, (user) => {
         <li>Trafisz — zyskujesz. Pudło — tracisz.</li>
       </ul>
       <div class="onb-actions">
-        <button class="onb-mini-btn primary" onclick="event.stopPropagation();dismissOnboardingHelp()">Nie pokazuj więcej</button>
+        <button class="onb-dismiss" onclick="event.stopPropagation();dismissOnboardingHelp()">Nie pokazuj więcej</button>
       </div>
     </div>
   </div>
