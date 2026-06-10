@@ -173,6 +173,10 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:1;}
 .adm-card-meta{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
 .theme-btn{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:10px;border:1.5px solid var(--rim);background:var(--card);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;transition:all .15s;}
 .theme-btn:active{transform:scale(.95);}
+.lobby-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;}
+.leave-icon-btn{width:40px;height:40px;flex:0 0 40px;border-radius:12px;border:1.5px solid var(--c0);background:#2d1a1a;color:var(--c0);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s ease,background .15s ease,border-color .15s ease;}
+.leave-icon-btn:active{transform:scale(.95);}
+.leave-icon-btn svg{width:22px;height:22px;stroke:currentColor;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round;fill:none;}
 [data-theme="light"] .mode-btn-active{border-color:#7c3aed;background:#ece9ff;color:#312e81;}
 [data-theme="light"] .mode-btn span[style*="opacity"]{opacity:.82!important;}
 [data-theme="light"] .adm-tab-active{background:#ece9ff;border-color:#7c3aed;color:#312e81;}
@@ -192,6 +196,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:1;}
 [data-theme="light"] .onb-dismiss:focus-visible{background:#ede9fe;color:#3b0764;}
 [data-theme="light"] .codebox.copied{background:#dcfce7;border-color:#16a34a;box-shadow:0 0 0 3px #16a34a22;}
 [data-theme="light"] .copy-note{color:#15803d;}
+[data-theme="light"] .leave-icon-btn{background:#fee2e2;}
 </style>
 
 <!-- Firebase Auth SDK -->
@@ -351,8 +356,15 @@ onAuthStateChanged(auth, (user) => {
 
 <!-- ══ LOBBY ══ -->
 <div class="scr" id="s-lobby">
-  <div style="padding-top:12px">
+  <div class="lobby-head">
     <div class="logo" style="font-size:42px">Wiem<em>!</em></div>
+    <button class="leave-icon-btn" onclick="leaveGame()" title="Opuść grę" aria-label="Opuść grę">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M13 4h-6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6"/>
+        <path d="M16 8l4 4-4 4"/>
+        <path d="M9 12h11"/>
+      </svg>
+    </button>
   </div>
   <div class="codebox" onclick="copyCode()">
     <div class="codelbl">Kod gry</div>
@@ -424,7 +436,6 @@ onAuthStateChanged(auth, (user) => {
     <div class="conn" id="lob-guest-conn"><span class="cdot dwait"></span>Czekaj aż host rozpocznie grę…</div>
   </div>
   <div class="conn"><span class="cdot dok"></span><span id="sync-st">Połączono</span></div>
-  <button class="btn btn-dim" style="color:var(--c0);border-color:var(--c0)44;margin-top:4px" onclick="leaveGame()">← Opuść grę</button>
 </div>
 
 <!-- ══ VOTE ══ -->
